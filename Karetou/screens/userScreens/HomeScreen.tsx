@@ -1210,10 +1210,6 @@ const HomeScreen = () => {
         >
           {/* --- Header --- */}
           <View style={styles.header}>
-            <Image
-              source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-              style={styles.avatar}
-            />
             <View style={styles.locationContainer}>
               <Ionicons name="location-sharp" size={screenWidth * 0.06} color="#FF5733" />
               {locationLoading ? (

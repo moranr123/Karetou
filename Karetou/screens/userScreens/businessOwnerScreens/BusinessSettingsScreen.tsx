@@ -11,8 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../../contexts/AuthContext';
 import { auth, db } from '../../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -34,8 +33,7 @@ interface SettingRowProps {
 }
 
 const BusinessSettingsScreen = () => {
-  const navigation = useNavigation();
-  const { user, theme, toggleTheme } = useAuth();
+  const { user, theme, toggleTheme, logout } = useAuth();
   const [userFullName, setUserFullName] = useState<string>('');
   const [loadingUserData, setLoadingUserData] = useState(true);
 
@@ -74,8 +72,12 @@ const BusinessSettingsScreen = () => {
         },
         { 
           text: "OK", 
-          onPress: () => {
-            auth.signOut().catch(error => Alert.alert('Logout Error', error.message));
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error: any) {
+              Alert.alert('Logout Error', error?.message || 'Failed to logout');
+            }
           }
         }
       ]
@@ -112,20 +114,14 @@ const BusinessSettingsScreen = () => {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
           {/* Profile Section */}
           <View style={styles.profileSection}>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={width * 0.1} color="#fff" />
-            </View>
             <View style={styles.profileTextContainer}>
               <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#fff' }]}>
-                {loadingUserData ? 'Loading...' : (userFullName || user?.displayName || 'Business Owner')}
+                {loadingUserData ? 'Loading...' : (userFullName || user?.displayName || '')}
               </Text>
               <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.8)' }]}>
                 {user?.email}
               </Text>
             </View>
-            <TouchableOpacity style={styles.editProfileButton}>
-              <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Preferences Section */}
@@ -139,13 +135,7 @@ const BusinessSettingsScreen = () => {
                 ios_backgroundColor="#3e3e3e"
               />
             </SettingRow>
-            <Divider />
-            <SettingRow 
-              icon="bell" 
-              name="Notifications" 
-              description="Manage notification preferences"
-              onPress={() => (navigation as any).navigate('NotificationScreen')}
-            />
+            
           </Section>
 
           {/* Support Section */}

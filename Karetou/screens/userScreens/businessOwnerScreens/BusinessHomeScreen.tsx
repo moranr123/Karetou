@@ -207,12 +207,6 @@ const BusinessHomeScreen = () => {
                 </View>
               )}
             </TouchableOpacity>
-            <View style={styles.iconButton}>
-              <LoadingImage
-                source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-                style={styles.profileIcon}
-              />
-            </View>
           </View>
         </View>
         <ScrollView

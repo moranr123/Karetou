@@ -24,20 +24,33 @@ import NotificationScreen from './screens/userScreens/NotificationScreen';
 
 const Stack = createStackNavigator();
 
-const AuthStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      initialRouteName: 'Login',
-    }}
-  >
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Signup" component={SignupScreen} />
-    <Stack.Screen name="SMSOTP" component={SMSOTPScreen} />
-    <Stack.Screen name="BusinessLogin" component={BusinessLogin} />
-    <Stack.Screen name="BusinessSignUp" component={BusinessSignUp} />
-  </Stack.Navigator>
-);
+const AuthStack = ({ lastUserType }) => {
+  let initialRoute = 'Login'; // Default to regular user login
+  
+  if (lastUserType === 'business') {
+    initialRoute = 'BusinessLogin';
+  } else if (lastUserType === 'user') {
+    initialRoute = 'Login';
+  }
+  // If lastUserType is null or undefined, default to 'Login'
+  
+  console.log('🔐 AuthStack - lastUserType:', lastUserType, 'initialRoute:', initialRoute);
+  
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+      initialRouteName={initialRoute}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="SMSOTP" component={SMSOTPScreen} />
+      <Stack.Screen name="BusinessLogin" component={BusinessLogin} />
+      <Stack.Screen name="BusinessSignUp" component={BusinessSignUp} />
+    </Stack.Navigator>
+  );
+};
 
 const UserAppStack = () => (
   <Stack.Navigator
@@ -70,22 +83,28 @@ const BusinessAppStack = () => (
 );
 
 const Navigation = () => {
-  const { user, userType, theme } = useAuth();
+  const { user, userType, lastUserType, theme } = useAuth();
+  
+  console.log('🧭 Navigation state - user:', !!user, 'userType:', userType, 'lastUserType:', lastUserType);
   
   if (!user) {
-    return <AuthStack />;
+    console.log('📱 No user - showing AuthStack with lastUserType:', lastUserType);
+    return <AuthStack lastUserType={lastUserType} />;
   }
   
   // If user is logged in but userType is not set, show auth stack
   if (!userType) {
-    return <AuthStack />;
+    console.log('📱 User exists but no userType - showing AuthStack with lastUserType:', lastUserType);
+    return <AuthStack lastUserType={lastUserType} />;
   }
   
   // Show appropriate app based on user type
   if (userType === 'business') {
+    console.log('📱 Business user - showing BusinessAppStack');
     return <BusinessAppStack />;
   }
   
+  console.log('📱 Regular user - showing UserAppStack');
   return <UserAppStack />;
 };
 

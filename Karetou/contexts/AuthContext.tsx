@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode, useMe
 import { auth } from '../firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { Appearance } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService, { NotificationData } from '../services/NotificationService';
 
 type Theme = 'light' | 'dark';
@@ -10,6 +11,7 @@ type UserType = 'user' | 'business' | null;
 interface AuthContextType {
   user: User | null;
   userType: UserType;
+  lastUserType: UserType;
   loading: boolean;
   theme: Theme;
   notifications: NotificationData[];
@@ -28,6 +30,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userType: null,
+  lastUserType: null,
   loading: true,
   theme: 'light',
   notifications: [],
@@ -54,6 +57,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
+  const [lastUserType, setLastUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<Theme>(Appearance.getColorScheme() || 'light');
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -64,12 +68,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const notificationService = NotificationService.getInstance();
 
+  // Load lastUserType from AsyncStorage on app start
+  useEffect(() => {
+    const loadLastUserType = async () => {
+      try {
+        const savedLastUserType = await AsyncStorage.getItem('lastUserType');
+        if (savedLastUserType) {
+          setLastUserType(savedLastUserType as UserType);
+        }
+      } catch (error) {
+        console.error('Error loading lastUserType:', error);
+      }
+    };
+    loadLastUserType();
+  }, []);
+
+  // Save lastUserType to AsyncStorage whenever it changes
+  useEffect(() => {
+    const saveLastUserType = async () => {
+      try {
+        if (lastUserType) {
+          await AsyncStorage.setItem('lastUserType', lastUserType);
+        } else {
+          await AsyncStorage.removeItem('lastUserType');
+        }
+      } catch (error) {
+        console.error('Error saving lastUserType:', error);
+      }
+    };
+    saveLastUserType();
+  }, [lastUserType]);
+
   const toggleTheme = useCallback(() => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   }, []);
 
   const logout = useCallback(async () => {
     try {
+      // Store current user type as last user type before logout
+      console.log('🔓 Logging out. Current userType:', userType, 'Setting as lastUserType');
+      setLastUserType(userType);
+      
       // Clean up notification listeners before logout
       notificationService.cleanup();
       
@@ -80,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  }, []);
+  }, [userType]);
 
   const markNotificationAsRead = useCallback(async (notificationId: string) => {
     try {
@@ -186,6 +225,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = useMemo(() => ({
     user,
     userType,
+    lastUserType,
     loading,
     theme,
     notifications,
@@ -203,7 +243,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setModalStatus(null);
       setModalBusinessName('');
     },
-  }), [user, userType, loading, theme, notifications, unreadNotificationCount, modalVisible, modalStatus, modalBusinessName, toggleTheme, logout, markNotificationAsRead, refreshData]);
+  }), [user, userType, lastUserType, loading, theme, notifications, unreadNotificationCount, modalVisible, modalStatus, modalBusinessName, toggleTheme, logout, markNotificationAsRead, refreshData]);
 
   return (
     <AuthContext.Provider value={value}>

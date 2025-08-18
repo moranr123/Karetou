@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { auth } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteUser } from "firebase/auth";
+import { doc, getDoc } from 'firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 const FONT_SCALE = Math.min(width, height) / 400;
@@ -32,10 +33,31 @@ interface SettingRowProps {
 }
 
 const SettingsScreen = () => {
-  const { theme, toggleTheme } = useAuth();
+  const { user, theme, toggleTheme, logout } = useAuth();
+  const [userFullName, setUserFullName] = useState<string>('');
+  const [loadingUserData, setLoadingUserData] = useState(true);
 
   const lightGradient = ['#667eea', '#764ba2'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  // Fetch user's full name from Firestore
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user?.uid) { setLoadingUserData(false); return; }
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData: any = userDoc.data();
+          setUserFullName((userData && (userData.fullName || userData.name)) || '');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoadingUserData(false);
+      }
+    };
+    fetchUserData();
+  }, [user?.uid]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -48,8 +70,12 @@ const SettingsScreen = () => {
         },
         { 
           text: "OK", 
-          onPress: () => {
-            auth.signOut().catch(error => Alert.alert('Logout Error', error.message));
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error: any) {
+              Alert.alert('Logout Error', error?.message || 'Failed to logout');
+            }
           }
         }
       ]
@@ -114,16 +140,14 @@ const SettingsScreen = () => {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
           {/* Profile Section */}
           <View style={styles.profileSection}>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={width * 0.1} color="#fff" />
-            </View>
             <View style={styles.profileTextContainer}>
-              <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#fff' }]}>keith</Text>
-              <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.8)' }]}>@keith</Text>
+              <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#fff' }]}>
+                {loadingUserData ? 'Loading...' : (userFullName || user?.displayName || 'User')}
+              </Text>
+              <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.8)' }]}>
+                {user?.email || ''}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.editProfileButton}>
-              <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Preferences Section */}
@@ -188,8 +212,9 @@ const styles = StyleSheet.create({
   },
   // Profile
   profileSection: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: height * 0.03,
   },
   avatarContainer: {
@@ -201,17 +226,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileTextContainer: {
-    flex: 1,
-    marginLeft: width * 0.04,
+    alignItems: 'center',
   },
   profileName: {
     fontSize: 20 * FONT_SCALE,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
   },
   profileHandle: {
     fontSize: 14 * FONT_SCALE,
     color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
   },
   editProfileButton: {
     backgroundColor: '#fff',
