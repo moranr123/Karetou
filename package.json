@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "expo-web-browser": "^14.2.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "@types/react": "~19.0.10"
+  }
+}
