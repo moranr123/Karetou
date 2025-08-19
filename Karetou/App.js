@@ -98,7 +98,7 @@ const Navigation = () => {
     return <AuthStack lastUserType={lastUserType} />;
   }
   
-  // Show appropriate app based on user type
+  // Show appropriate 
   if (userType === 'business') {
     console.log('📱 Business user - showing BusinessAppStack');
     return <BusinessAppStack />;
