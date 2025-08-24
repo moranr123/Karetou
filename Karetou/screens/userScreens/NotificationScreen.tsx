@@ -22,7 +22,7 @@ const { width: screenWidth } = Dimensions.get('window');
  
 const NotificationScreen = () => {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, userType } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,31 +167,126 @@ const NotificationScreen = () => {
       markNotificationAsRead(notification.id);
     }
 
+    // Debug logging
+    console.log('🔔 Notification clicked:', {
+      type: notification.type,
+      userType: userType,
+      notificationData: notification.data,
+      notificationTitle: notification.title,
+      notificationBody: notification.body
+    });
+
+    // Determine the correct main navigator name based on user type
+    const mainNavigatorName = userType === 'business' ? 'BusinessMain' : 'Main';
+    console.log('🧭 Main navigator name:', mainNavigatorName);
+
     // Handle navigation based on notification type
     switch (notification.type) {
       case 'new_place':
         // Navigate to home screen to see new places
-        (navigation as any).navigate('Main', { screen: 'Home' });
-        break;
-      case 'new_post':
-        // Navigate to feed screen to see new posts
-        (navigation as any).navigate('Main', { screen: 'Feed' });
-        break;
-      case 'business_reply':
-      case 'post_comment':
-        // Navigate to feed screen to see the post with comments
-        (navigation as any).navigate('Main', { screen: 'Feed' });
-        break;
-      case 'business_approval':
-      case 'business_rejection':
-        // For business notifications, navigate to business screen if available
-        if (notification.data?.businessId) {
-          (navigation as any).navigate('MyBusinessScreen');
+        if (userType === 'business') {
+          // Business users can see new places on their home screen
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        } else {
+          // Regular users navigate to home to see new places
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
         }
         break;
+        
+      case 'new_post':
+        // Navigate to see new posts
+        if (userType === 'business') {
+          // Business users can view posts on their home screen or navigate to create post screen to see feed-like content
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        } else {
+          // Regular users navigate to Feed screen to see posts
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Feed' });
+        }
+        break;
+        
+      case 'business_reply':
+      case 'post_comment':
+        // Navigate to see post with comments
+        console.log('🔔 Navigating for business_reply/post_comment notification');
+        if (userType === 'business') {
+          console.log('🧭 Business user - navigating to MyPosts screen to see commented post');
+          (navigation as any).navigate('MyPosts');
+        } else {
+          console.log('🧭 Regular user - navigating to Feed to see post with comments');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Feed' });
+        }
+        break;
+        
+      case 'new_review':
+        // Navigate to reviews section
+        console.log('🔔 Navigating for new_review notification');
+        if (userType === 'business') {
+          console.log('🧭 Business user - navigating to Reviews tab');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Reviews' });
+        } else {
+          console.log('🧭 Regular user - navigating to Home');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        }
+        break;
+        
+      case 'business_approval':
+        // Business was approved - navigate to business management
+        console.log('🔔 Navigating for business_approval notification');
+        if (userType === 'business') {
+          console.log('🧭 Business user - navigating to MyBusiness screen (stack screen)');
+          (navigation as any).navigate('MyBusiness');
+        } else {
+          console.log('🧭 Regular user - navigating to Home');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        }
+        break;
+        
+      case 'business_rejection':
+        // Business was rejected - navigate to business management or settings
+        console.log('🔔 Navigating for business_rejection notification');
+        if (userType === 'business') {
+          console.log('🧭 Business user - navigating to MyBusiness screen (stack screen)');
+          (navigation as any).navigate('MyBusiness');
+        } else {
+          console.log('🧭 Regular user - navigating to Home');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        }
+        break;
+        
+      case 'promotion':
+        // Navigate to promotions
+        console.log('🔔 Navigating for promotion notification');
+        if (userType === 'business') {
+          console.log('🧭 Business user - navigating to Promotions screen (stack screen)');
+          (navigation as any).navigate('Promotions');
+        } else {
+          console.log('🧭 Regular user - navigating to Home');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        }
+        break;
+        
+      case 'post_like':
+        // Someone liked a business post
+        console.log('🔔 Navigating for post_like notification');
+        if (userType === 'business') {
+          console.log('🧭 Business user - navigating to MyPosts screen (stack screen)');
+          (navigation as any).navigate('MyPosts');
+        } else {
+          console.log('🧭 Regular user - navigating to Feed');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Feed' });
+        }
+        break;
+        
       default:
-        // Default navigation to home
-        (navigation as any).navigate('Main', { screen: 'Home' });
+        // Default navigation based on user type
+        console.log('🔔 Default navigation case triggered for notification type:', notification.type);
+        if (userType === 'business') {
+          console.log('🧭 Business user - default navigation to Home');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        } else {
+          console.log('🧭 Regular user - default navigation to Home');
+          (navigation as any).navigate(mainNavigatorName, { screen: 'Home' });
+        }
         break;
     }
   };
