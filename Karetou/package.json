@@ -17,6 +17,7 @@
     "@react-navigation/native": "^7.1.13",
     "@react-navigation/stack": "^7.3.6",
     "@types/mapbox__polyline": "^1.0.5",
+    "dotenv": "^17.2.1",
     "expo": "~53.0.12",
     "expo-auth-session": "~6.0.2",
     "expo-constants": "^17.1.6",

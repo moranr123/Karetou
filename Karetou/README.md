@@ -1,160 +1,121 @@
-# Karetou - React Native Authentication App
+# Karetou - React Native Business Discovery App
 
-A beautiful React Native app with Firebase authentication featuring login and signup screens.
+A comprehensive React Native app for discovering and managing local businesses, built with Expo and Firebase.
 
-## Features
+## 🚀 Quick Start
 
-- 🔐 Firebase Authentication
-- 📱 Beautiful UI with modern design
-- 🔄 Automatic navigation based on auth state
-- 👁️ Password visibility toggle
-- ✅ Form validation
-- 🎨 Responsive design
-- 📱 Cross-platform (iOS & Android)
+For detailed setup instructions, see [SETUP.md](./SETUP.md)
 
-## Screenshots
-
-- **Login Screen**: Clean login interface with email and password fields
-- **Signup Screen**: User registration with password confirmation
-- **Home Screen**: Welcome screen showing user information and logout option
-
-## Setup Instructions
-
-### 1. Install Dependencies
-
+### Quick Setup
 ```bash
+# Clone the repository
+git clone <your-repository-url>
+cd Karetou
+
+# Install dependencies
 npm install
+
+# Copy environment file and add your API keys
+cp env.example .env
+
+# Start the app
+npx expo start
 ```
 
-### 2. Firebase Configuration
+## ✨ Features
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or select an existing one
-3. Enable Authentication:
-   - Go to Authentication > Sign-in method
-   - Enable Email/Password authentication
-4. Get your Firebase config:
-   - Go to Project Settings > General
-   - Scroll down to "Your apps" section
-   - Click on the web app icon (</>) to add a web app
-   - Copy the config object
+- 🔐 Firebase Authentication (User & Business)
+- 🏢 Business Management & Verification
+- 📍 Location Services with Google Maps
+- 🔔 Push Notifications
+- 📱 Cross-platform (iOS & Android)
+- 🎨 Modern UI/UX Design
+- 📊 Business Analytics & Reviews
 
-### 3. Update Firebase Config
+## 📱 App Screens
 
-Open `firebase.js` and replace the placeholder config with your actual Firebase configuration:
+### User Features
+- **Home**: Discover nearby businesses
+- **Feed**: Browse business posts and updates
+- **Map**: Navigate to business locations
+- **Saved**: Bookmark favorite businesses
+- **Settings**: User preferences and account
 
-```javascript
-const firebaseConfig = {
-  apiKey: "your-actual-api-key",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "your-messaging-sender-id",
-  appId: "your-app-id"
-};
-```
+### Business Features
+- **Business Dashboard**: Manage your business
+- **Create Posts**: Share updates and promotions
+- **Reviews**: Monitor customer feedback
+- **Analytics**: Track business performance
 
-### 4. Run the App
+## 🔧 Setup Instructions
 
-```bash
-# Start the development server
-npm start
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+- Expo CLI
+- Expo Go app on your mobile device
 
-# Run on iOS
-npm run ios
+### Environment Configuration
+1. Copy `env.example` to `.env`
+2. Add your Firebase and Google Maps API keys
+3. See [SETUP.md](./SETUP.md) for detailed instructions
 
-# Run on Android
-npm run android
-
-# Run on web
-npm run web
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 Karetou/
 ├── App.js                 # Main app component with navigation
-├── firebase.js           # Firebase configuration
-├── contexts/
-│   └── AuthContext.js    # Authentication context
-├── screens/
-│   ├── LoginScreen.js    # Login screen
-│   ├── SignupScreen.js   # Signup screen
-│   └── HomeScreen.js     # Home screen (authenticated)
-└── assets/               # App assets
+├── firebase.ts           # Firebase configuration
+├── app.json              # Expo configuration
+├── components/           # Reusable UI components
+├── contexts/             # React contexts (Auth, etc.)
+├── screens/              # App screens
+│   ├── userScreens/      # Regular user screens
+│   └── businessOwnerScreens/ # Business owner screens
+├── services/             # API and service functions
+├── assets/               # App assets and images
+└── utils/                # Utility functions
 ```
 
-## Dependencies
+## 🛠️ Dependencies
 
-- `react-native`: Core React Native framework
 - `expo`: Expo framework for React Native
-- `firebase`: Firebase SDK for authentication
+- `firebase`: Firebase SDK for backend services
 - `@react-navigation/native`: Navigation library
-- `@react-navigation/stack`: Stack navigator
-- `@react-native-async-storage/async-storage`: Local storage
+- `expo-location`: Location services
+- `expo-notifications`: Push notifications
 - `@expo/vector-icons`: Icon library
 
-## Authentication Flow
+## 🔐 Authentication Flow
 
-1. **App Launch**: App checks for existing user session
-2. **Unauthenticated**: Shows Login/Signup screens
-3. **Login**: User enters email/password, Firebase validates
-4. **Signup**: User creates account with email/password
-5. **Authenticated**: App navigates to Home screen
-6. **Logout**: User can logout, returns to Login screen
+1. **App Launch**: Check for existing user session
+2. **User Type**: Choose between regular user or business owner
+3. **Authentication**: Login/Signup with Firebase
+4. **Navigation**: Route to appropriate app stack
 
-## Features Explained
+## 📚 Documentation
 
-### Login Screen
-- Email and password input fields
-- Password visibility toggle
-- Form validation
-- Loading states
-- Navigation to signup
+- [SETUP.md](./SETUP.md) - Detailed setup guide
+- [NOTIFICATION_SYSTEM.md](./NOTIFICATION_SYSTEM.md) - Notification system documentation
 
-### Signup Screen
-- Email, password, and confirm password fields
-- Password matching validation
-- Minimum password length check
-- Loading states
-- Navigation to login
+## 🤝 Contributing
 
-### Home Screen
-- Displays user information
-- Logout functionality with confirmation
-- Clean, modern design
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## Customization
+## 📄 License
 
-### Styling
-All styles are defined in each component's StyleSheet. You can customize:
-- Colors (primary: #007AFF, background: #f8f9fa)
-- Typography (fonts, sizes, weights)
-- Layout (padding, margins, spacing)
-- Shadows and elevation
+This project is licensed under the MIT License.
 
-### Firebase Features
-You can extend the app with additional Firebase features:
-- Firestore for user data
-- Cloud Storage for files
-- Cloud Functions for backend logic
-- Analytics and Crashlytics
+## 🆘 Support
 
-## Troubleshooting
+If you encounter issues:
+1. Check the [SETUP.md](./SETUP.md) troubleshooting section
+2. Review Firebase and Google Cloud Console logs
+3. Open an issue in the repository
 
-### Common Issues
+---
 
-1. **Firebase config error**: Make sure you've updated the config in `firebase.js`
-2. **Navigation error**: Ensure all navigation dependencies are installed
-3. **AsyncStorage error**: Make sure `@react-native-async-storage/async-storage` is installed
-
-### Getting Help
-
-- Check the [Expo documentation](https://docs.expo.dev/)
-- Review [Firebase documentation](https://firebase.google.com/docs)
-- Check [React Navigation docs](https://reactnavigation.org/)
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE). 
+**Note**: Make sure to set up your own Firebase project and Google Maps API key before running the app. See [SETUP.md](./SETUP.md) for detailed instructions. 
