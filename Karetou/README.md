@@ -15,10 +15,8 @@ cd Karetou
 # Install dependencies
 npm install
 
-# Copy environment file and add your API keys
-cp env.example .env
-
-# Start the app
+# Update Firebase config in firebase.ts with your own API keys
+# Then start the app
 npx expo start
 ```
 
@@ -55,9 +53,9 @@ npx expo start
 - Expo CLI
 - Expo Go app on your mobile device
 
-### Environment Configuration
-1. Copy `env.example` to `.env`
-2. Add your Firebase API keys
+### Firebase Configuration
+1. Get your Firebase project configuration
+2. Open `firebase.ts` and replace the config with your own
 3. See [SETUP.md](./SETUP.md) for detailed instructions
 
 ## 📁 Project Structure
@@ -118,4 +116,4 @@ If you encounter issues:
 
 ---
 
-**Note**: Make sure to set up your own Firebase project before running the app. See [SETUP.md](./SETUP.md) for detailed instructions. 
+**Note**: Make sure to set up your own Firebase project and update the configuration in `firebase.ts` before running the app. See [SETUP.md](./SETUP.md) for detailed instructions. 
