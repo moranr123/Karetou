@@ -26,7 +26,7 @@ npx expo start
 
 - 🔐 Firebase Authentication (User & Business)
 - 🏢 Business Management & Verification
-- 📍 Location Services with Google Maps
+- 📍 Basic Location Services with expo-location
 - 🔔 Push Notifications
 - 📱 Cross-platform (iOS & Android)
 - 🎨 Modern UI/UX Design
@@ -37,7 +37,7 @@ npx expo start
 ### User Features
 - **Home**: Discover nearby businesses
 - **Feed**: Browse business posts and updates
-- **Map**: Navigate to business locations
+- **Map**: Basic location functionality
 - **Saved**: Bookmark favorite businesses
 - **Settings**: User preferences and account
 
@@ -57,7 +57,7 @@ npx expo start
 
 ### Environment Configuration
 1. Copy `env.example` to `.env`
-2. Add your Firebase and Google Maps API keys
+2. Add your Firebase API keys
 3. See [SETUP.md](./SETUP.md) for detailed instructions
 
 ## 📁 Project Structure
@@ -82,7 +82,7 @@ Karetou/
 - `expo`: Expo framework for React Native
 - `firebase`: Firebase SDK for backend services
 - `@react-navigation/native`: Navigation library
-- `expo-location`: Location services
+- `expo-location`: Basic location services
 - `expo-notifications`: Push notifications
 - `@expo/vector-icons`: Icon library
 
@@ -113,9 +113,9 @@ This project is licensed under the MIT License.
 
 If you encounter issues:
 1. Check the [SETUP.md](./SETUP.md) troubleshooting section
-2. Review Firebase and Google Cloud Console logs
+2. Review Firebase Console logs
 3. Open an issue in the repository
 
 ---
 
-**Note**: Make sure to set up your own Firebase project and Google Maps API key before running the app. See [SETUP.md](./SETUP.md) for detailed instructions. 
+**Note**: Make sure to set up your own Firebase project before running the app. See [SETUP.md](./SETUP.md) for detailed instructions. 

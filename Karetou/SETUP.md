@@ -41,15 +41,11 @@ npm install
    FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    FIREBASE_APP_ID=your_app_id
    FIREBASE_MEASUREMENT_ID=your_measurement_id
-
-   # Google Maps API Key
-   GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
    ```
 
 #### Option B: Direct Configuration
 If you prefer to directly edit the files:
 1. Update `firebase.ts` with your Firebase config
-2. Update `app.json` with your Google Maps API key
 
 ### 4. Get Your API Keys
 
@@ -59,13 +55,6 @@ If you prefer to directly edit the files:
 3. Add a web app to your project
 4. Copy the configuration object
 5. Enable Authentication, Firestore, and Storage services
-
-#### Google Maps Setup
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Maps SDK for Android and iOS
-4. Create credentials (API Key)
-5. Restrict the API key to your app's bundle ID
 
 ### 5. Run the App
 ```bash
@@ -82,7 +71,6 @@ npx expo start
 ### App Won't Load After Scanning QR
 - Check that all API keys are correctly set
 - Verify Firebase services are enabled
-- Ensure Google Maps API key is valid
 - Check console for error messages
 
 ### Firebase Connection Issues
@@ -90,16 +78,11 @@ npx expo start
 - Check if Firebase services are enabled
 - Ensure your app's bundle ID is registered
 
-### Google Maps Not Working
-- Verify Maps SDK is enabled in Google Cloud Console
-- Check API key restrictions
-- Ensure billing is enabled for Google Cloud project
-
 ## 📱 App Features
 
 - **User Authentication**: Login/Signup with Firebase
 - **Business Management**: Create and manage business profiles
-- **Location Services**: Find nearby places with Google Maps
+- **Location Services**: Basic location functionality with expo-location
 - **Notifications**: Push notifications for updates
 - **Feed System**: Browse business posts and updates
 
@@ -114,7 +97,7 @@ npx expo start
 
 If you encounter issues:
 1. Check the troubleshooting section above
-2. Review Firebase and Google Cloud Console logs
+2. Review Firebase Console logs
 3. Check Expo documentation
 4. Open an issue in the repository
 
