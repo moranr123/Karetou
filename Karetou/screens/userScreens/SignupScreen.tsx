@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   signupButton: {
-    backgroundColor: '#fff',
+    backgroundColor: '#667eea',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#667eea',
+    color: '#fff',
   },
   divider: {
     flexDirection: 'row',
