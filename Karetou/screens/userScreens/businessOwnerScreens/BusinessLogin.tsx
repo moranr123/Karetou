@@ -28,6 +28,7 @@ type RootStackParamList = {
   BusinessLogin: undefined;
   BusinessSignUp: undefined;
   Login: undefined;
+  EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
 
 type BusinessLoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BusinessLogin'>;
@@ -53,6 +54,27 @@ export default function BusinessLogin({ navigation }: Props) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // Check email verification status
+      if (!user.emailVerified) {
+        // Sign out the user and redirect to email verification
+        await auth.signOut();
+        Alert.alert(
+          'Email Not Verified',
+          'Please verify your email address before signing in. Check your inbox for the verification email.',
+          [
+            {
+              text: 'Resend Email',
+              onPress: () => navigation.navigate('EmailVerification', { email, password, userType: 'business' }),
+            },
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ]
+        );
+        return;
+      }
 
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);

@@ -12,7 +12,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth, db } from '../../../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,7 @@ const { width, height } = Dimensions.get('window');
 type RootStackParamList = {
   BusinessLogin: undefined;
   BusinessSignUp: undefined;
+  EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
 
 type BusinessSignUpScreenNavigationProp = StackNavigationProp<
@@ -67,17 +68,31 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user type to Firestore
+      // Send email verification
+      await sendEmailVerification(user);
+
+      // Save user type to Firestore (but don't set as verified until email is confirmed)
       await setDoc(doc(db, 'users', user.uid), {
         fullName: fullName,
         email: user.email,
         userType: 'business',
+        emailVerified: false,
+        createdAt: new Date().toISOString(),
       });
 
-      // Set user type in context
-      setUserType('business');
-      Alert.alert('Success', 'Business account created successfully!');
-      navigation.navigate('BusinessLogin');
+      // Sign out the user until they verify their email
+      await auth.signOut();
+
+      Alert.alert(
+        'Verification Email Sent',
+        'Please check your email and click the verification link to activate your business account.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('EmailVerification', { email, password, userType: 'business' }),
+          },
+        ]
+      );
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {

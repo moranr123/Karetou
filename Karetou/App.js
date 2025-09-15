@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginScreen from './screens/userScreens/Login';
 import SignupScreen from './screens/userScreens/SignupScreen';
 import SMSOTPScreen from './screens/userScreens/SMSOTPScreen';
+import EmailVerificationScreen from './screens/userScreens/EmailVerificationScreen';
 import MainTabNavigator from './components/MainTabNavigator';
 import { SearchBarScreen } from './screens/userScreens/SearchBarScreen';
 import BusinessLogin from './screens/userScreens/businessOwnerScreens/BusinessLogin';
@@ -46,6 +47,7 @@ const AuthStack = ({ lastUserType }) => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="SMSOTP" component={SMSOTPScreen} />
+      <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
       <Stack.Screen name="BusinessLogin" component={BusinessLogin} />
       <Stack.Screen name="BusinessSignUp" component={BusinessSignUp} />
     </Stack.Navigator>

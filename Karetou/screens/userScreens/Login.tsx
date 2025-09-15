@@ -32,6 +32,7 @@ type RootStackParamList = {
   Home: undefined;
   SMSOTP: undefined;
   BusinessLogin: undefined;
+  EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -61,11 +62,33 @@ export default function Login({ navigation }: Props) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      // Check email verification status
+      if (!user.emailVerified) {
+        // Sign out the user and redirect to email verification
+        await auth.signOut();
+        Alert.alert(
+          'Email Not Verified',
+          'Please verify your email address before signing in. Check your inbox for the verification email.',
+          [
+            {
+              text: 'Resend Email',
+              onPress: () => navigation.navigate('EmailVerification', { email, password, userType: 'user' }),
+            },
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ]
+        );
+        return;
+      }
+      
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
       // Debug logging
       console.log('🔍 Login Debug - User UID:', user.uid);
+      console.log('🔍 Login Debug - Email verified:', user.emailVerified);
       console.log('🔍 Login Debug - User doc exists:', userDoc.exists());
       if (userDoc.exists()) {
         const userData = userDoc.data();
