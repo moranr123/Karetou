@@ -1357,7 +1357,7 @@ const HomeScreen = () => {
 
           {/* --- Suggested Places --- */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>Suggested places</Text>
+            <Text style={[styles.sectionTitle, { color: '#FFF' }]}>Suggested places</Text>
             {loadingSuggested ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#667eea" />
@@ -1431,7 +1431,7 @@ const HomeScreen = () => {
 
           {/* --- Promos and Deals --- */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>Promos & Deals</Text>
+            <Text style={[styles.sectionTitle, { color: '#FFF' }]}>Promos & Deals</Text>
             {loadingPromos ? (
               <View style={styles.loadingPromoContainer}>
                 <ActivityIndicator size="large" color={theme === 'light' ? '#667eea' : '#fff'} />
@@ -1492,7 +1492,7 @@ const HomeScreen = () => {
           {/* --- Places to Visit --- */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>Places to visit</Text>
+              <Text style={[styles.sectionTitle, { color: '#FFF' }]}>Places to visit</Text>
               <TouchableOpacity onPress={() => navigation.navigate('SearchBarScreen')}>
                 <View style={styles.seeAllButton}>
                   <Text style={[styles.seeAllText, { color: theme === 'dark' ? '#FFF' : '#4B0082' }]}>See All</Text>
