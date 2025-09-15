@@ -12,14 +12,12 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -28,7 +26,6 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
-  SMSOTP: undefined;
   EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
 
@@ -38,8 +35,6 @@ interface Props {
   navigation: SignupScreenNavigationProp;
 }
 
-// Configure WebBrowser for auth session
-WebBrowser.maybeCompleteAuthSession();
 
 const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
@@ -113,59 +108,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      // Google OAuth configuration
-      const redirectUri = 'https://auth.expo.io/@moranr123/karetou';
-
-      const request = new AuthSession.AuthRequest({
-        clientId: '886412692986-em4ainkupt54iothi79hbdmb7m136fss.apps.googleusercontent.com',
-        scopes: ['openid', 'profile', 'email'],
-        redirectUri,
-        responseType: AuthSession.ResponseType.Code,
-        extraParams: {
-          access_type: 'offline',
-        },
-      });
-
-      const result = await request.promptAsync({
-        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-      });
-
-      if (result.type === 'success') {
-        // Exchange code for tokens
-        const tokenResponse = await AuthSession.exchangeCodeAsync(
-          {
-            clientId: '886412692986-em4ainkupt54iothi79hbdmb7m136fss.apps.googleusercontent.com',
-            code: result.params.code,
-            redirectUri,
-            extraParams: {
-              code_verifier: request.codeVerifier!,
-            },
-          },
-          {
-            tokenEndpoint: 'https://oauth2.googleapis.com/token',
-          }
-        );
-
-        // Create Google credential for Firebase
-        const credential = GoogleAuthProvider.credential(
-          tokenResponse.accessToken,
-          tokenResponse.idToken
-        );
-
-        // Sign in to Firebase with Google credential
-        await signInWithCredential(auth, credential);
-        Alert.alert('Success', 'Signed in with Google!');
-      }
-    } catch (error: any) {
-      console.error('Google Sign-In Error:', error);
-      Alert.alert('Error', 'Google Sign-In failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <LinearGradient
@@ -288,27 +230,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Social Signup */}
-            <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
-              <Ionicons name="logo-google" size={20} color="#fff" />
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            {/* SMS OTP Signup */}
-            <TouchableOpacity 
-              style={[styles.socialButton, styles.smsButton]} 
-              onPress={() => navigation.navigate('SMSOTP')}
-            >
-              <Ionicons name="phone-portrait" size={20} color="#fff" />
-              <Text style={styles.socialButtonText}>Continue with Phone</Text>
-            </TouchableOpacity>
 
             {/* Footer */}
             <View style={styles.footer}>
@@ -422,36 +343,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  dividerText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginHorizontal: 16,
-    fontSize: 14,
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    marginBottom: 20,
-  },
-  socialButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -465,10 +356,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  smsButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginTop: 10,
   },
 });
 

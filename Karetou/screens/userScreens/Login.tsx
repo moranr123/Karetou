@@ -1,5 +1,5 @@
 import { auth } from '../../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import React, { useState } from 'react';
 import { 
   SafeAreaView, 
@@ -18,8 +18,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -30,7 +28,6 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
-  SMSOTP: undefined;
   BusinessLogin: undefined;
   EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
@@ -41,8 +38,6 @@ interface Props {
   navigation: LoginScreenNavigationProp;
 }
 
-// Configure WebBrowser for auth session
-WebBrowser.maybeCompleteAuthSession();
 
 export default function Login({ navigation }: Props) {
   const [email, setEmail] = useState('');
@@ -152,65 +147,6 @@ export default function Login({ navigation }: Props) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      console.log('Starting Google Sign-In...');
-      
-      const request = new AuthSession.AuthRequest({
-        clientId: '886412692986-em4ainkupt54iothi79hbdmb7m136fss.apps.googleusercontent.com',
-        scopes: ['openid', 'profile', 'email'],
-        redirectUri: 'https://auth.expo.io/@moranr123/karetou',
-        responseType: AuthSession.ResponseType.Code,
-      });
-
-      console.log('Auth request created, prompting...');
-      const result = await request.promptAsync({
-        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-      });
-
-      console.log('Auth result:', result);
-
-      if (result.type === 'success') {
-        console.log('Auth successful, exchanging code...');
-        const tokenResponse = await AuthSession.exchangeCodeAsync(
-          {
-            clientId: '886412692986-em4ainkupt54iothi79hbdmb7m136fss.apps.googleusercontent.com',
-            code: result.params.code,
-            redirectUri: 'https://auth.expo.io/@moranr123/karetou',
-            extraParams: {
-              code_verifier: request.codeVerifier!,
-            },
-          },
-          {
-            tokenEndpoint: 'https://oauth2.googleapis.com/token',
-          }
-        );
-
-        console.log('Token response received:', tokenResponse);
-
-        const credential = GoogleAuthProvider.credential(
-          tokenResponse.accessToken,
-          tokenResponse.idToken
-        );
-
-        console.log('Signing in to Firebase...');
-        await signInWithCredential(auth, credential);
-        Alert.alert('Success', 'Signed in with Google!');
-      } else if (result.type === 'cancel') {
-        console.log('User cancelled the sign-in');
-        Alert.alert('Cancelled', 'Google Sign-In was cancelled');
-      } else {
-        console.log('Auth failed:', result);
-        Alert.alert('Error', 'Google Sign-In failed');
-      }
-    } catch (error: any) {
-      console.error('Google Sign-In Error:', error);
-      Alert.alert('Error', `Google Sign-In failed: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const signUp = async () => {
     if (!email || !password) {
@@ -333,27 +269,6 @@ export default function Login({ navigation }: Props) {
                 </Text>
               </TouchableOpacity>
 
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Social Login */}
-              <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
-                <Ionicons name="logo-google" size={20} color="#fff" />
-                <Text style={styles.socialButtonText}>Continue with Google</Text>
-              </TouchableOpacity>
-
-              {/* SMS OTP Login */}
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.smsButton]} 
-                onPress={() => navigation.navigate('SMSOTP')}
-              >
-                <Ionicons name="phone-portrait" size={20} color="#fff" />
-                <Text style={styles.socialButtonText}>Continue with Phone</Text>
-              </TouchableOpacity>
             </View>
 
             {/* Footer */}
@@ -476,36 +391,6 @@ const styles = StyleSheet.create({
   signupButtonText: {
     color: '#fff',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  dividerText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginHorizontal: 16,
-    fontSize: 14,
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    marginBottom: 20,
-  },
-  socialButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
   footer: {
     alignItems: 'center',
     marginTop: 20,
@@ -527,9 +412,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textDecorationLine: 'underline',
-  },
-  smsButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginTop: 10,
   },
 });
