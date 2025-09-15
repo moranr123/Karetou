@@ -785,6 +785,35 @@ const styles = StyleSheet.create({
   placeImageContainer: {
     position: 'relative',
   },
+  filterContainer: {
+    paddingHorizontal: screenWidth * 0.05,
+    marginTop: screenHeight * 0.015,
+    marginBottom: screenHeight * 0.01,
+  },
+  filterScrollView: {
+    flexDirection: 'row',
+  },
+  filterButton: {
+    paddingHorizontal: screenWidth * 0.04,
+    paddingVertical: screenHeight * 0.01,
+    borderRadius: 20,
+    marginRight: screenWidth * 0.025,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  filterButtonActive: {
+    backgroundColor: '#fff',
+    borderColor: '#fff',
+  },
+  filterButtonText: {
+    fontSize: screenWidth * 0.035,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  filterButtonTextActive: {
+    color: '#667eea',
+  },
 });
 
 // --- Component ---
@@ -809,6 +838,42 @@ const HomeScreen = () => {
   const [userLocation, setUserLocation] = useState<string>('Silay City'); // Default fallback
   const [locationLoading, setLocationLoading] = useState(true);
   const [savedBusinesses, setSavedBusinesses] = useState<string[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const [filteredPlaces, setFilteredPlaces] = useState<any[]>([]);
+  const [filteredSuggestedPlaces, setFilteredSuggestedPlaces] = useState<any[]>([]);
+
+  const filterOptions = ['All', 'Coffee Shops', 'Tourist Spots', 'Restaurants'];
+
+  // Filter places based on selected filter
+  const applyFilter = (places: any[], filter: string) => {
+    if (filter === 'All') {
+      return places;
+    }
+    
+    return places.filter(place => {
+      const businessType = place.businessType?.toLowerCase() || '';
+      
+      switch (filter) {
+        case 'Coffee Shops':
+          return businessType.includes('coffee shop') || 
+                 businessType.includes('coffee') || 
+                 businessType.includes('cafe') || 
+                 businessType.includes('café');
+        case 'Tourist Spots':
+          return businessType.includes('tourist spot') ||
+                 businessType.includes('tourist') || 
+                 businessType.includes('attraction') || 
+                 businessType.includes('resort') || 
+                 businessType.includes('hotel');
+        case 'Restaurants':
+          return businessType.includes('restaurant') || 
+                 businessType.includes('food') || 
+                 businessType.includes('dining');
+        default:
+          return true;
+      }
+    });
+  };
 
   const lightGradient = ['#667eea', '#764ba2'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -931,7 +996,7 @@ const HomeScreen = () => {
           image: data.businessImages && data.businessImages.length > 0 
             ? data.businessImages[0] 
             : 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2487&auto=format&fit=crop',
-          businessType: data.businessType,
+          businessType: data.selectedType || data.businessType,
           contactNumber: data.contactNumber,
           businessHours: data.businessHours,
           businessLocation: data.businessLocation,
@@ -943,6 +1008,7 @@ const HomeScreen = () => {
       });
       
       setSuggestedPlaces(businesses.length > 0 ? businesses : fallbackSuggestedPlaces);
+      setFilteredSuggestedPlaces(applyFilter(businesses.length > 0 ? businesses : fallbackSuggestedPlaces, selectedFilter));
       
       // Preload suggested places images
       const preloadPromises: Promise<void>[] = [];
@@ -961,6 +1027,7 @@ const HomeScreen = () => {
       console.error('Error loading suggested places:', error);
       // Fallback to dummy data if there's an error
       setSuggestedPlaces(fallbackSuggestedPlaces);
+      setFilteredSuggestedPlaces(applyFilter(fallbackSuggestedPlaces, selectedFilter));
     } finally {
       setLoadingSuggested(false);
     }
@@ -988,7 +1055,7 @@ const HomeScreen = () => {
           image: data.businessImages && data.businessImages.length > 0 
             ? data.businessImages[0] 
             : 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2487&auto=format&fit=crop',
-          businessType: data.businessType,
+          businessType: data.selectedType || data.businessType,
           contactNumber: data.contactNumber,
           businessHours: data.businessHours,
           businessLocation: data.businessLocation,
@@ -997,6 +1064,7 @@ const HomeScreen = () => {
       });
       
       setPlacesToVisit(businesses);
+      setFilteredPlaces(applyFilter(businesses, selectedFilter));
       
       // Aggressively preload all business images immediately
       console.log('🚀 HomeScreen: Starting aggressive image preloading...');
@@ -1024,16 +1092,19 @@ const HomeScreen = () => {
     } catch (error) {
       console.error('Error loading places to visit:', error);
       // Fallback to dummy data if there's an error
-      setPlacesToVisit([
-  {
-    id: '1',
-    name: 'El Ideal',
-    location: '118 Rizal St, Silay City Heritage Zone, Silay City',
-    rating: '4.9',
-    reviews: '3.6K Reviews',
-    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2487&auto=format&fit=crop',
+      const fallbackData = [
+        {
+          id: '1',
+          name: 'El Ideal',
+          location: '118 Rizal St, Silay City Heritage Zone, Silay City',
+          rating: '4.9',
+          reviews: '3.6K Reviews',
+          image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2487&auto=format&fit=crop',
+          businessType: 'Restaurant'
         }
-      ]);
+      ];
+      setPlacesToVisit(fallbackData);
+      setFilteredPlaces(applyFilter(fallbackData, selectedFilter));
     } finally {
       setLoadingPlaces(false);
     }
@@ -1093,7 +1164,7 @@ const HomeScreen = () => {
           validUntil: data.endDate,
           discount: data.discount,
           image: data.image,
-          businessType: data.businessType,
+          businessType: data.selectedType || data.businessType,
           isExpired: isExpired,
         };
       });
@@ -1132,6 +1203,12 @@ const HomeScreen = () => {
       setLoadingPromos(false);
     }
   };
+
+  // Update filtered places when filter changes
+  useEffect(() => {
+    setFilteredPlaces(applyFilter(placesToVisit, selectedFilter));
+    setFilteredSuggestedPlaces(applyFilter(suggestedPlaces, selectedFilter));
+  }, [selectedFilter, placesToVisit, suggestedPlaces]);
 
   useEffect(() => {
     getUserLocation(); // Get user's real location
@@ -1241,6 +1318,35 @@ const HomeScreen = () => {
             </View>
           </View>
 
+          {/* --- Filter Buttons --- */}
+          <View style={styles.filterContainer}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScrollView}
+            >
+              {filterOptions.map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[
+                    styles.filterButton,
+                    selectedFilter === filter && styles.filterButtonActive
+                  ]}
+                  onPress={() => setSelectedFilter(filter)}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedFilter === filter && styles.filterButtonTextActive
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           {/* --- Search Bar --- */}
           <TouchableOpacity onPress={() => navigation.navigate('SearchBarScreen')}>
           <View style={styles.searchContainer}>
@@ -1259,9 +1365,25 @@ const HomeScreen = () => {
                   Loading suggested places...
                 </Text>
               </View>
+            ) : filteredSuggestedPlaces.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="business-outline" size={60} color="#999" />
+                <Text style={[styles.emptyText, { color: theme === 'dark' ? '#CCC' : '#666' }]}>
+                  {selectedFilter === 'All' 
+                    ? 'No suggested places available' 
+                    : `No ${selectedFilter.toLowerCase()} in suggestions`
+                  }
+                </Text>
+                <Text style={[styles.emptySubText, { color: theme === 'dark' ? '#AAA' : '#888' }]}>
+                  {selectedFilter === 'All' 
+                    ? 'Check back later for suggestions!' 
+                    : 'Try selecting a different filter!'
+                  }
+                </Text>
+              </View>
             ) : (
               <FlatList
-                data={suggestedPlaces}
+                data={filteredSuggestedPlaces}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
@@ -1385,18 +1507,24 @@ const HomeScreen = () => {
                   Loading places to visit...
                 </Text>
               </View>
-            ) : placesToVisit.length === 0 ? (
+            ) : filteredPlaces.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons name="business-outline" size={60} color="#999" />
                 <Text style={[styles.emptyText, { color: theme === 'dark' ? '#CCC' : '#666' }]}>
-                  No businesses available yet
+                  {selectedFilter === 'All' 
+                    ? 'No businesses available yet' 
+                    : `No ${selectedFilter.toLowerCase()} found`
+                  }
                 </Text>
                 <Text style={[styles.emptySubText, { color: theme === 'dark' ? '#AAA' : '#888' }]}>
-                  Check back later for new places to visit!
+                  {selectedFilter === 'All' 
+                    ? 'Check back later for new places to visit!' 
+                    : 'Try selecting a different filter or check back later!'
+                  }
                 </Text>
               </View>
             ) : (
-              placesToVisit.map((item) => (
+              filteredPlaces.map((item) => (
               <TouchableOpacity 
                 key={item.id} 
                 style={styles.placeCard}
