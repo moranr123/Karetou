@@ -301,7 +301,7 @@ const Navigate = () => {
   const [reviewUnsubscribes, setReviewUnsubscribes] = useState<{[key: string]: any}>({});
   const previouslyDetectedBusinessesRef = useRef(new Set<string>());
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Load businesses from Firestore

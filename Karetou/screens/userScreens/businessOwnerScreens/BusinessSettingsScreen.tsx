@@ -37,7 +37,7 @@ const BusinessSettingsScreen = () => {
   const [userFullName, setUserFullName] = useState<string>('');
   const [loadingUserData, setLoadingUserData] = useState(true);
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Fetch user's full name from Firestore
@@ -86,7 +86,7 @@ const BusinessSettingsScreen = () => {
 
   const Section = ({ title, children }: SectionProps) => (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : 'rgba(255, 255, 255, 0.9)' }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>{title}</Text>
       <View style={styles.sectionCard}>{children}</View>
     </View>
   );
@@ -115,10 +115,10 @@ const BusinessSettingsScreen = () => {
           {/* Profile Section */}
           <View style={styles.profileSection}>
             <View style={styles.profileTextContainer}>
-              <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#fff' }]}>
+              <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#000' }]}>
                 {loadingUserData ? 'Loading...' : (userFullName || user?.displayName || '')}
               </Text>
-              <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.8)' }]}>
+              <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666' }]}>
                 {user?.email}
               </Text>
             </View>

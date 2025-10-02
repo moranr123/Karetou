@@ -10,7 +10,10 @@ import LoadingImage from '../../../components/LoadingImage';
 const { width: screenWidth } = Dimensions.get('window');
 
 const BusinessReviewsScreen = () => {
-  const { user } = useAuth();
+  const { user, theme } = useAuth();
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [businessReviews, setBusinessReviews] = useState<{ [businessId: string]: any[] }>({});
@@ -159,14 +162,14 @@ const BusinessReviewsScreen = () => {
   };
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           <Text style={styles.title}>Business Reviews</Text>
           <Text style={styles.subtitle}>Active businesses and their reviews</Text>
           
           {loading ? (
-            <ActivityIndicator size="large" color="#fff" style={{ marginTop: 30 }} />
+            <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 30 }} />
           ) : businesses.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="business-outline" size={60} color="rgba(255,255,255,0.5)" />
@@ -191,8 +194,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   content: { flex: 1, padding: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 5, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'center', marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#000', marginBottom: 5, textAlign: 'center' },
+  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20 },
   businessCard: {
     backgroundColor: '#fff',
     borderRadius: 16,

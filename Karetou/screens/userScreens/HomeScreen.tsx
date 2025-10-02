@@ -799,20 +799,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: screenWidth * 0.025,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
   },
   filterButtonActive: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
   },
   filterButtonText: {
     fontSize: screenWidth * 0.035,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#333',
   },
   filterButtonTextActive: {
-    color: '#667eea',
+    color: '#fff',
   },
 });
 
@@ -875,7 +875,7 @@ const HomeScreen = () => {
     });
   };
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Get user's real location and extract city name
@@ -1357,7 +1357,7 @@ const HomeScreen = () => {
 
           {/* --- Suggested Places --- */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: '#FFF' }]}>Suggested places</Text>
+            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Suggested places</Text>
             {loadingSuggested ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#667eea" />
@@ -1431,7 +1431,7 @@ const HomeScreen = () => {
 
           {/* --- Promos and Deals --- */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: '#FFF' }]}>Promos & Deals</Text>
+            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Promos & Deals</Text>
             {loadingPromos ? (
               <View style={styles.loadingPromoContainer}>
                 <ActivityIndicator size="large" color={theme === 'light' ? '#667eea' : '#fff'} />
@@ -1492,7 +1492,7 @@ const HomeScreen = () => {
           {/* --- Places to Visit --- */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: '#FFF' }]}>Places to visit</Text>
+              <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Places to visit</Text>
               <TouchableOpacity onPress={() => navigation.navigate('SearchBarScreen')}>
                 <View style={styles.seeAllButton}>
                   <Text style={[styles.seeAllText, { color: theme === 'dark' ? '#FFF' : '#4B0082' }]}>See All</Text>

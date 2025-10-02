@@ -49,7 +49,10 @@ interface LocationData {
 const EditBusinessScreen = () => {
   const navigation = useNavigation<EditBusinessScreenNavigationProp>();
   const route = useRoute<EditBusinessScreenRouteProp>();
-  const { user } = useAuth();
+  const { user, theme } = useAuth();
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
   
   const businessData = route.params?.businessData;
   
@@ -380,7 +383,7 @@ const EditBusinessScreen = () => {
   };
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.formCard}>
@@ -560,12 +563,12 @@ const EditBusinessScreen = () => {
           animationType="slide"
           onRequestClose={() => setShowLocationModal(false)}
         >
-          <LinearGradient colors={['#667eea', '#764ba2']} style={styles.modalContainer}>
+          <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.modalContainer}>
             <SafeAreaView style={styles.modalSafeArea}>
               {/* Modal Header */}
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                  <Ionicons name="close" size={24} color="#fff" />
+                  <Ionicons name="close" size={24} color="#000" />
                 </TouchableOpacity>
                 <Text style={styles.modalTitle}>Select Business Location</Text>
                 <TouchableOpacity onPress={() => setShowLocationModal(false)}>

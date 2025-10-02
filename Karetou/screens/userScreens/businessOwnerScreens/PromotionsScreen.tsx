@@ -27,6 +27,7 @@ import { User } from 'firebase/auth';
 interface AuthContextType {
   user: User | null;
   userType: 'user' | 'business' | null;
+  theme?: 'light' | 'dark';
   // ... other properties not needed for this component
 }
 
@@ -133,7 +134,10 @@ const getPromoImage = (businessType: string, title: string, description: string)
 
 const PromotionsScreen = () => {
   const navigation = useNavigation();
-  const { user } = useAuth() as AuthContextType;
+  const { user, theme } = useAuth() as AuthContextType;
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -454,19 +458,19 @@ const PromotionsScreen = () => {
   };
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
           </TouchableOpacity>
-          <Text style={styles.title}>Promotions & Deals</Text>
+          <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Promotions & Deals</Text>
           <TouchableOpacity 
             style={styles.createButton}
             onPress={() => setModalVisible(true)}
           >
-            <Ionicons name="add" size={24} color="#fff" />
-            <Text style={styles.createButtonText}>Create</Text>
+            <Ionicons name="add" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+            <Text style={[styles.createButtonText, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Create</Text>
           </TouchableOpacity>
         </View>
         
@@ -476,9 +480,9 @@ const PromotionsScreen = () => {
         >
           {promotions.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="pricetag-outline" size={80} color="#fff" />
-              <Text style={styles.emptyText}>No promotions yet</Text>
-              <Text style={styles.emptySubText}>Create your first promotion to attract customers!</Text>
+              <Ionicons name="pricetag-outline" size={80} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.3)'} />
+              <Text style={[styles.emptyText, { color: theme === 'dark' ? '#FFF' : '#000' }]}>No promotions yet</Text>
+              <Text style={[styles.emptySubText, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666' }]}>Create your first promotion to attract customers!</Text>
             </View>
           ) : (
             <FlatList
@@ -700,7 +704,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: screenWidth * 0.055,
     fontWeight: 'bold',
-    color: '#fff',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 20,
@@ -708,15 +711,14 @@ const styles = StyleSheet.create({
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     paddingVertical: screenHeight * 0.01,
     paddingHorizontal: screenWidth * 0.04,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   createButtonText: {
-    color: '#fff',
     fontWeight: '600',
     marginLeft: 5,
     fontSize: screenWidth * 0.035,
@@ -737,13 +739,11 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   emptyText: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
   },
   emptySubText: {
-    color: '#fff',
     fontSize: 16,
     opacity: 0.8,
     textAlign: 'center',

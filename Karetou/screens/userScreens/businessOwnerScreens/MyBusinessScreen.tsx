@@ -25,7 +25,7 @@ import LoadingImage from '../../../components/LoadingImage';
 const { width: screenWidth } = Dimensions.get('window');
 
 const MyBusinessScreen = () => {
-  const { user, refreshData } = useAuth();
+  const { user, theme, refreshData } = useAuth();
   const navigation = useNavigation();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +34,9 @@ const MyBusinessScreen = () => {
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [displayToggleLoading, setDisplayToggleLoading] = useState(false);
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
 
   // Set up real-time listener for business data
   useEffect(() => {
@@ -120,7 +123,7 @@ const MyBusinessScreen = () => {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+      <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading business information...</Text>
@@ -357,7 +360,7 @@ const MyBusinessScreen = () => {
 
   if (businesses.length === 0 && !loading) {
     return (
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+      <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <ScrollView 
             contentContainerStyle={styles.content}
@@ -365,19 +368,19 @@ const MyBusinessScreen = () => {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.title}>My Businesses</Text>
-              <View style={styles.businessCount}>
-                <Text style={styles.businessCountText}>0 Active</Text>
-              </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+            </TouchableOpacity>
+            <Text style={styles.title}>My Businesses</Text>
+            <View style={styles.businessCount}>
+              <Text style={styles.businessCountText}>0 Active</Text>
             </View>
+          </View>
 
             <View style={styles.noBusinessContainer}>
-              <Ionicons name="business-outline" size={80} color="rgba(255, 255, 255, 0.6)" />
+              <Ionicons name="business-outline" size={80} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.3)'} />
               <Text style={styles.noBusinessTitle}>No Active Businesses</Text>
               <Text style={styles.subtitle}>
                 You don't have any active or pending businesses. Register your business to get started.
@@ -393,7 +396,7 @@ const MyBusinessScreen = () => {
   }
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView 
           contentContainerStyle={styles.content}
@@ -404,7 +407,7 @@ const MyBusinessScreen = () => {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
             </TouchableOpacity>
             <Text style={styles.title}>My Businesses</Text>
             <View style={styles.businessCount}>
@@ -604,7 +607,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: '#fff',
+    color: '#000',
     fontWeight: '600',
   },
   noBusinessContainer: {
@@ -630,7 +633,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     flex: 1,
   },
   statusBadge: {
@@ -777,7 +780,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#666',
     textAlign: 'center',
     marginTop: 10,
   },
@@ -788,7 +791,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   businessCountText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -855,7 +858,7 @@ const styles = StyleSheet.create({
   noBusinessTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     marginBottom: 10,
   },
   // Modal Styles

@@ -111,7 +111,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={['#667eea', '#764ba2']}
+      colors={['#F5F5F5', '#F5F5F5']}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -278,12 +278,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#666',
     textAlign: 'center',
   },
   formContainer: {
@@ -349,11 +349,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   footerText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#666',
     fontSize: 16,
   },
   linkText: {
-    color: '#fff',
+    color: '#667eea',
     fontSize: 16,
     fontWeight: '600',
   },

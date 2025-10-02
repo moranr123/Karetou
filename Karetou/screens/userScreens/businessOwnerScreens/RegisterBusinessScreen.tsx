@@ -26,7 +26,10 @@ const businessTypes = ['Coffee Shop', 'Tourist Spot', 'Restaurant'];
 
 const RegisterBusinessScreen = () => {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, theme } = useAuth();
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
   
   const [permitPhoto, setPermitPhoto] = useState<string | null>(null);
   const [permitNumber, setPermitNumber] = useState('');
@@ -202,7 +205,7 @@ const RegisterBusinessScreen = () => {
   };
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.formCard}>
@@ -642,7 +645,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   selectedTypeButtonText: {
-    color: 'white',
+    color: '#fff',
   },
   timeContainer: {
     flexDirection: 'row',
@@ -672,7 +675,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   submitButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
   },

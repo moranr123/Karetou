@@ -335,13 +335,13 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="mail-outline" size={80} color="#fff" />
+              <Ionicons name="mail-outline" size={80} color="#667eea" />
             </View>
             <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.subtitle}>
@@ -465,20 +465,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     marginBottom: 16,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#666',
     textAlign: 'center',
     marginBottom: 8,
   },
   email: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#667eea',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -487,14 +487,14 @@ const styles = StyleSheet.create({
   },
   instructions: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#333',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 12,
   },
   subInstructions: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#666',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
   },
   rateLimitInfo: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#666',
     textAlign: 'center',
     lineHeight: 18,
     marginTop: 12,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#667eea',
   },
   buttonDisabled: {
     opacity: 0.6,

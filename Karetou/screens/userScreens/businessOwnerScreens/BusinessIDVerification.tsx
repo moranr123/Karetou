@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import LoadingImage from '../../../components/LoadingImage';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -46,8 +47,12 @@ type BusinessIDVerificationScreenRouteProp = RouteProp<
 const BusinessIDVerificationScreen = () => {
   const navigation = useNavigation<BusinessIDVerificationScreenNavigationProp>();
   const route = useRoute<BusinessIDVerificationScreenRouteProp>();
+  const { theme } = useAuth();
   const [frontIDPhoto, setFrontIDPhoto] = useState<string | null>(null);
   const [backIDPhoto, setBackIDPhoto] = useState<string | null>(null);
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -157,7 +162,7 @@ const BusinessIDVerificationScreen = () => {
   );
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.formCard}>

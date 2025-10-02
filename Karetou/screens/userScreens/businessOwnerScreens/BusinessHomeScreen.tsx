@@ -32,13 +32,13 @@ type RootStackParamList = {
 // --- Component ---
 const BusinessHomeScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { user, refreshData, unreadNotificationCount, modalVisible, modalStatus, modalBusinessName, closeModal } = useAuth();
+  const { user, theme, refreshData, unreadNotificationCount, modalVisible, modalStatus, modalBusinessName, closeModal } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string | null>(null);
 
-  // Always use light theme for business app
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
 
   // Get all businesses owned by the current user
   useEffect(() => {
@@ -185,7 +185,7 @@ const BusinessHomeScreen = () => {
   };
 
   return (
-    <LinearGradient colors={lightGradient} style={{flex: 1}}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={{flex: 1}}>
       <View style={styles.container}>
         {/* --- Fixed Header --- */}
         <View style={styles.header}>
@@ -198,7 +198,7 @@ const BusinessHomeScreen = () => {
               style={styles.iconButton}
               onPress={() => (navigation as any).navigate('NotificationScreen')}
             >
-              <Ionicons name="notifications-outline" size={screenWidth * 0.07} color="#fff" />
+              <Ionicons name="notifications-outline" size={screenWidth * 0.07} color={theme === 'dark' ? '#FFF' : '#000'} />
               {unreadNotificationCount > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.badgeText}>
@@ -216,13 +216,13 @@ const BusinessHomeScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#333"
+              tintColor={theme === 'dark' ? '#FFF' : '#333'}
             />
           }
         >
           {/* --- Quick Access --- */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: '#333' }]}>
+            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
               Quick Access
             </Text>
             <View style={styles.quickAccessContainer}>
@@ -262,7 +262,7 @@ const BusinessHomeScreen = () => {
           {/* --- Recent Reviews --- */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: '#333' }]}>
+              <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
                 Recent Reviews
               </Text>
               <TouchableOpacity 
@@ -270,7 +270,7 @@ const BusinessHomeScreen = () => {
                 onPress={() => (navigation as any).navigate('Reviews')}
               >
                 <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#333" />
+                <Ionicons name="chevron-forward" size={16} color="#667eea" />
               </TouchableOpacity>
             </View>
             {recentReviews.length > 0 ? (
@@ -295,7 +295,7 @@ const BusinessHomeScreen = () => {
               ))
             ) : (
               <View style={styles.noReviewsContainer}>
-                <Ionicons name="chatbubble-outline" size={40} color="rgba(255,255,255,0.5)" />
+                <Ionicons name="chatbubble-outline" size={40} color="#999" />
                 <Text style={styles.noReviewsText}>No reviews yet</Text>
                 <Text style={styles.noReviewsSubtext}>Reviews from customers will appear here</Text>
               </View>
@@ -378,13 +378,17 @@ const styles = StyleSheet.create({
     marginBottom: screenWidth * 0.03,
   },
   quickAccessButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#667eea',
     borderRadius: screenWidth * 0.04,
     paddingVertical: screenHeight * 0.03,
     width: '48.5%',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   quickAccessText: {
     color: '#fff',
@@ -394,12 +398,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   reviewCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#fff',
     borderRadius: screenWidth * 0.04,
     padding: screenWidth * 0.04,
     marginBottom: screenHeight * 0.015,
     flexDirection: 'row',
     alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   userImage: {
     width: screenWidth * 0.12,
@@ -450,21 +461,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   noReviewsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#fff',
     borderRadius: screenWidth * 0.04,
     padding: screenWidth * 0.08,
     alignItems: 'center',
     marginVertical: screenHeight * 0.02,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   noReviewsText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#333',
     fontSize: screenWidth * 0.045,
     fontWeight: 'bold',
     marginTop: screenHeight * 0.01,
     textAlign: 'center',
   },
   noReviewsSubtext: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#666',
     fontSize: screenWidth * 0.035,
     textAlign: 'center',
     marginTop: screenHeight * 0.005,
@@ -474,20 +487,22 @@ const styles = StyleSheet.create({
     height: screenWidth * 0.12,
     borderRadius: (screenWidth * 0.12) / 2,
     marginRight: screenWidth * 0.04,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   seeAllButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#fff',
     paddingHorizontal: screenWidth * 0.04,
     paddingVertical: screenHeight * 0.01,
     borderRadius: 15,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   seeAllText: {
-    color: '#333',
+    color: '#667eea',
     fontSize: screenWidth * 0.035,
     fontWeight: '600',
     marginRight: screenWidth * 0.01,

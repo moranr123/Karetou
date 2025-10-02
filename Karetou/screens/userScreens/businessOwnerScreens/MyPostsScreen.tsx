@@ -42,7 +42,7 @@ const MyPostsScreen = () => {
   
   const { user, theme } = useAuth();
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Real-time posts listener for current user's posts
@@ -576,18 +576,18 @@ const MyPostsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>My Posts</Text>
-          <Text style={styles.headerSubtitle}>{posts.length} posts</Text>
+          <Text style={[styles.headerTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>My Posts</Text>
+          <Text style={[styles.headerSubtitle, { color: theme === 'dark' ? 'rgba(255,255,255,0.7)' : '#666' }]}>{posts.length} posts</Text>
         </View>
         <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your posts...</Text>
+          <Text style={[styles.loadingText, { color: theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333' }]}>Loading your posts...</Text>
         </View>
       ) : (
         <FlatList
@@ -597,9 +597,9 @@ const MyPostsScreen = () => {
           renderItem={renderPost}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="newspaper-outline" size={60} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.emptyText}>No posts yet</Text>
-              <Text style={styles.emptySubtext}>Create your first post to get started!</Text>
+              <Ionicons name="newspaper-outline" size={60} color={theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'} />
+              <Text style={[styles.emptyText, { color: theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333' }]}>No posts yet</Text>
+              <Text style={[styles.emptySubtext, { color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : '#666' }]}>Create your first post to get started!</Text>
             </View>
           }
         />

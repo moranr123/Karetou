@@ -51,7 +51,8 @@ npx expo start
 - Node.js (v16 or higher)
 - npm or yarn
 - Expo CLI
-- Expo Go app on your mobile device
+- Expo Go app on your mobile 
+
 
 ### Firebase Configuration
 1. Get your Firebase project configuration

@@ -67,7 +67,7 @@ const SavedScreen = () => {
   const [commentText, setCommentText] = useState('');
   const { theme, user } = useAuth();
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Real-time listener for saved posts and businesses
@@ -333,7 +333,7 @@ const SavedScreen = () => {
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="bookmark-outline" size={60} color="rgba(255,255,255,0.5)" />
+                <Ionicons name="bookmark-outline" size={60} color="#ccc" />
                 <Text style={styles.emptyText}>No saved posts</Text>
                 <Text style={styles.emptySubtext}>Posts you save will appear here</Text>
               </View>
@@ -353,7 +353,7 @@ const SavedScreen = () => {
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="location-outline" size={60} color="rgba(255,255,255,0.5)" />
+                <Ionicons name="location-outline" size={60} color="#ccc" />
                 <Text style={styles.emptyText}>No saved places</Text>
                 <Text style={styles.emptySubtext}>Places you save will appear here</Text>
               </View>
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16 * FONT_SCALE,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+    color: '#666',
   },
   activeTabText: {
     color: '#667eea',
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.2,
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#000',
     fontSize: 16,
   },
   emptyContainer: {
@@ -681,14 +681,14 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.15,
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#666',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',

@@ -427,7 +427,7 @@ const NotificationScreen = () => {
   );
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
@@ -435,7 +435,7 @@ const NotificationScreen = () => {
             onPress={() => navigation.goBack()} 
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.title}>Notifications</Text>
           
@@ -444,7 +444,7 @@ const NotificationScreen = () => {
               style={styles.filterButton}
               onPress={() => setShowFilterMenu(!showFilterMenu)}
             >
-              <Ionicons name="filter" size={24} color="#fff" />
+              <Ionicons name="filter" size={24} color="#000" />
             </TouchableOpacity>
             
             {showFilterMenu && (
@@ -528,13 +528,13 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: 20,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     flex: 1,
     textAlign: 'center',
   },

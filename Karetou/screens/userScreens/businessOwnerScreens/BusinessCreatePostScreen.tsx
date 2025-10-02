@@ -29,7 +29,7 @@ const BusinessCreatePostScreen = () => {
   
   const { user, theme } = useAuth();
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Fetch user's active businesses
@@ -206,7 +206,7 @@ const BusinessCreatePostScreen = () => {
       <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.emptyContainer}>
-            <Ionicons name="storefront-outline" size={60} color="rgba(255,255,255,0.5)" />
+            <Ionicons name="storefront-outline" size={60} color="#999" />
             <Text style={styles.emptyText}>No Active Businesses</Text>
             <Text style={styles.emptySubtext}>
               You need to have at least one verified business to create posts
@@ -364,12 +364,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: '#ddd',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     textAlign: 'center',
   },
   content: {
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#333',
     fontSize: 16,
   },
   emptyContainer: {
@@ -508,14 +508,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.9)',
+    color: '#333',
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#666',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',

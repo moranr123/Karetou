@@ -40,7 +40,7 @@ const FeedScreen = () => {
   
   const { theme, user } = useAuth();
 
-  const lightGradient = ['#667eea', '#764ba2'] as const;
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
   // Real-time posts listener
@@ -443,7 +443,7 @@ const FeedScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="newspaper-outline" size={60} color="rgba(255,255,255,0.5)" />
+              <Ionicons name="newspaper-outline" size={60} color="#ccc" />
               <Text style={styles.emptyText}>No posts yet</Text>
               <Text style={styles.emptySubtext}>Posts from businesses will appear here</Text>
             </View>
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: '#000',
   },
   searchBarContainer: {
     flexDirection: 'row',
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#000',
     fontSize: 16,
   },
   emptyContainer: {
@@ -764,13 +764,13 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,
   },
   emptySubtext: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#666',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',

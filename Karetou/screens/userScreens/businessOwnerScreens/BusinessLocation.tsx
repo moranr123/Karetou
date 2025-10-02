@@ -64,7 +64,10 @@ interface LocationData {
 const BusinessLocationScreen = () => {
   const navigation = useNavigation<BusinessLocationScreenNavigationProp>();
   const route = useRoute<BusinessLocationScreenRouteProp>();
-  const { user } = useAuth();
+  const { user, theme } = useAuth();
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
@@ -378,7 +381,7 @@ const BusinessLocationScreen = () => {
 
   if (isLoading) {
     return (
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+      <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Getting your location...</Text>
@@ -389,7 +392,7 @@ const BusinessLocationScreen = () => {
   }
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <SafeAreaView style={styles.safeArea}>
           {/* Header */}

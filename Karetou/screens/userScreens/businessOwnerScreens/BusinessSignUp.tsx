@@ -102,7 +102,7 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={['#667eea', '#764ba2']}
+      colors={['#F5F5F5', '#F5F5F5']}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: width * 0.08,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     marginBottom: height * 0.01,
   },
   subtitle: {
     fontSize: width * 0.04,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#666',
   },
   formContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
