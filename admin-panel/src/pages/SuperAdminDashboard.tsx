@@ -196,219 +196,243 @@ const SuperAdminDashboard: React.FC = () => {
 
   return (
     <Box>
-      {/* Header */}
-      <AppBar position="static" color="transparent" elevation={0} sx={{ bgcolor: '#fff', boxShadow: 1, mb: 3 }}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-              🛡️ SuperAdmin Dashboard
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Chip
-              label="SuperAdmin"
-              color="error"
-              size="small"
-            />
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {user?.email?.charAt(0).toUpperCase()}
-            </Avatar>
-            <Typography variant="body2" color="text.secondary">
-              {user?.email}
-            </Typography>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#1a1a2e' }}>
+          Super Admin Dashboard
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          You have full system access. Manage users, businesses, and admin accounts.
+        </Typography>
+      </Box>
+        
+      {/* Statistics Cards */}
+      <Box
+        display="grid"
+        gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }}
+        gap={3}
+        sx={{ mb: 4 }}
+      >
+        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(102, 126, 234, 0.15)' } }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Total Users</Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#667eea' }}>{stats.totalUsers}</Typography>
+              </Box>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(102, 126, 234, 0.1)' }}>
+                <PeopleIcon sx={{ fontSize: 40, color: '#667eea' }} />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(118, 75, 162, 0.15)' } }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Total Businesses</Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#764ba2' }}>{stats.totalBusinesses}</Typography>
+              </Box>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(118, 75, 162, 0.1)' }}>
+                <BusinessIcon sx={{ fontSize: 40, color: '#764ba2' }} />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(255, 152, 0, 0.15)' } }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Pending Approvals</Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#FF9800' }}>{stats.pendingApprovals}</Typography>
+              </Box>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 152, 0, 0.1)' }}>
+                <WarningIcon sx={{ fontSize: 40, color: '#FF9800' }} />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(76, 175, 80, 0.15)' } }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Total Admins</Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#4CAF50' }}>{stats.totalAdmins}</Typography>
+              </Box>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(76, 175, 80, 0.1)' }}>
+                <AdminIcon sx={{ fontSize: 40, color: '#4CAF50' }} />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(33, 150, 243, 0.15)' } }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Active Admins</Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#2196F3' }}>{stats.activeAdmins}</Typography>
+              </Box>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(33, 150, 243, 0.1)' }}>
+                <SecurityIcon sx={{ fontSize: 40, color: '#2196F3' }} />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(244, 67, 54, 0.15)' } }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Inactive Admins</Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#F44336' }}>{stats.inactiveAdmins}</Typography>
+              </Box>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(244, 67, 54, 0.1)' }}>
+                <TrendingUpIcon sx={{ fontSize: 40, color: '#F44336' }} />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+        
+      {/* Recent Activity */}
+      <Box
+        display="grid"
+        gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
+        gap={3}
+      >
+        <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0' }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            Recent Activity
+          </Typography>
+          <List>
+            {recentActivity.map((activity, index) => (
+              <React.Fragment key={activity.id}>
+                <ListItem alignItems="flex-start">
+                  <ListItemIcon>
+                    {getActivityIcon(activity.type)}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle1">
+                          {activity.title}
+                        </Typography>
+                        {getStatusChip(activity.status)}
+                      </Box>
+                    }
+                    secondary={
+                      <React.Fragment>
+                        <Typography component="span" variant="body2" color="text.primary">
+                          {activity.description}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </Typography>
+                      </React.Fragment>
+                    }
+                  />
+                </ListItem>
+                {index < recentActivity.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </List>
+        </Paper>
+        <Paper 
+          sx={{ 
+            p: 3,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            Quick Actions
+          </Typography>
+          <Box display="flex" flexDirection="column" gap={2}>
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<AdminIcon />}
+              href="/admin-management"
+              sx={{
+                py: 1.5,
+                bgcolor: '#4CAF50',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                '&:hover': {
+                  bgcolor: '#45a049',
+                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)',
+                },
+              }}
+            >
+              Manage Admins
+            </Button>
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<BusinessIcon />}
+              href="/business-approvals"
+              sx={{
+                py: 1.5,
+                bgcolor: '#667eea',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                '&:hover': {
+                  bgcolor: '#5568d3',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                },
+              }}
+            > 
+              Review Approvals
+            </Button>
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<PeopleIcon />}
+              href="/user-management"
+              sx={{
+                py: 1.5,
+                bgcolor: '#2196F3',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                '&:hover': {
+                  bgcolor: '#1976D2',
+                  boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
+                },
+              }}
+            >
+              Manage Users
+            </Button>
             <Button
               variant="outlined"
-              color="error"
-              startIcon={<LogoutIcon />}
-              onClick={handleLogoutClick}
+              fullWidth
+              startIcon={<SettingsIcon />}
+              onClick={fetchDashboardData}
+              sx={{
+                py: 1.5,
+                borderColor: '#667eea',
+                color: '#667eea',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                '&:hover': {
+                  borderColor: '#5568d3',
+                  bgcolor: 'rgba(102, 126, 234, 0.05)',
+                },
+              }}
             >
-              Logout
+              Refresh Data
             </Button>
           </Box>
-        </Toolbar>
-      </AppBar>
-
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            Welcome to the SuperAdmin Dashboard. You have full system access and can manage all users, businesses, and admin accounts.
-          </Typography>
-        </Alert>
-        
-        {/* Statistics Cards */}
-        <Box
-          display="grid"
-          gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }}
-          gap={3}
-          sx={{ mb: 4 }}
-        >
-          <Card sx={{ bgcolor: 'primary.light', color: 'white' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.totalUsers}
-                  </Typography>
-                  <Typography variant="body2">Total Users</Typography>
-                </Box>
-                <PeopleIcon sx={{ fontSize: 40 }} />
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'secondary.light', color: 'white' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.totalBusinesses}
-                  </Typography>
-                  <Typography variant="body2">Total Businesses</Typography>
-                </Box>
-                <BusinessIcon sx={{ fontSize: 40 }} />
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'warning.light', color: 'white' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.pendingApprovals}
-                  </Typography>
-                  <Typography variant="body2">Pending Approvals</Typography>
-                </Box>
-                <WarningIcon sx={{ fontSize: 40 }} />
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'success.light', color: 'white' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.totalAdmins}
-                  </Typography>
-                  <Typography variant="body2">Total Admins</Typography>
-                </Box>
-                <AdminIcon sx={{ fontSize: 40 }} />
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'info.light', color: 'white' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.activeAdmins}
-                  </Typography>
-                  <Typography variant="body2">Active Admins</Typography>
-                </Box>
-                <SecurityIcon sx={{ fontSize: 40 }} />
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'error.light', color: 'white' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.inactiveAdmins}
-                  </Typography>
-                  <Typography variant="body2">Inactive Admins</Typography>
-                </Box>
-                <TrendingUpIcon sx={{ fontSize: 40 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-        
-        {/* Recent Activity */}
-        <Box
-          display="grid"
-          gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
-          gap={3}
-        >
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Recent Activity
-            </Typography>
-            <List>
-              {recentActivity.map((activity, index) => (
-                <React.Fragment key={activity.id}>
-                  <ListItem alignItems="flex-start">
-                    <ListItemIcon>
-                      {getActivityIcon(activity.type)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="subtitle1">
-                            {activity.title}
-                          </Typography>
-                          {getStatusChip(activity.status)}
-                        </Box>
-                      }
-                      secondary={
-                        <React.Fragment>
-                          <Typography component="span" variant="body2" color="text.primary">
-                            {activity.description}
-                          </Typography>
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            {new Date(activity.timestamp).toLocaleString()}
-                          </Typography>
-                        </React.Fragment>
-                      }
-                    />
-                  </ListItem>
-                  {index < recentActivity.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          </Paper>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Quick Actions
-            </Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                startIcon={<AdminIcon />}
-                href="/admin-management"
-              >
-                Manage Admins
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                fullWidth
-                startIcon={<BusinessIcon />}
-                href="/business-approvals"
-              >
-                Review Approvals
-              </Button>
-              <Button
-                variant="contained"
-                color="info"
-                fullWidth
-                startIcon={<PeopleIcon />}
-                href="/user-management"
-              >
-                Manage Users
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                fullWidth
-                startIcon={<SettingsIcon />}
-                onClick={fetchDashboardData}
-              >
-                Refresh Data
-              </Button>
-            </Box>
-          </Paper>
-        </Box>
+        </Paper>
       </Box>
 
       {/* Logout Confirmation Dialog */}
@@ -430,4 +454,4 @@ const SuperAdminDashboard: React.FC = () => {
   );
 };
 
-export default SuperAdminDashboard; 
+export default SuperAdminDashboard;

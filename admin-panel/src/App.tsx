@@ -27,6 +27,17 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return user ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, userRole } = useAuth();
+  
+  if (!user) return <Navigate to="/login" />;
+  if (userRole?.role !== 'superadmin') {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const DashboardSelector: React.FC = () => {
   const { userRole } = useAuth();
   if (userRole?.role === 'superadmin') return <SuperAdminDashboard />;
@@ -51,8 +62,22 @@ const App: React.FC = () => {
             >
               <Route index element={<DashboardSelector />} />
               <Route path="business-approvals" element={<BusinessApprovals />} />
-              <Route path="user-management" element={<UserManagement />} />
-              <Route path="admin-management" element={<AdminManagement />} />
+              <Route 
+                path="user-management" 
+                element={
+                  <SuperAdminRoute>
+                    <UserManagement />
+                  </SuperAdminRoute>
+                } 
+              />
+              <Route 
+                path="admin-management" 
+                element={
+                  <SuperAdminRoute>
+                    <AdminManagement />
+                  </SuperAdminRoute>
+                } 
+              />
             </Route>
           </Routes>
         </Router>

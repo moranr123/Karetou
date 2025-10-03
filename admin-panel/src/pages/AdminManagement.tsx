@@ -291,7 +291,6 @@ const AdminManagement: React.FC = () => {
                   <TableCell>Email</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Created</TableCell>
-                  <TableCell>Created By</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -334,11 +333,6 @@ const AdminManagement: React.FC = () => {
                     <TableCell>
                       <Typography variant="body2">
                         {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {admin.createdBy === userRole?.uid ? 'You' : 'Superadmin'}
                       </Typography>
                     </TableCell>
                     <TableCell>

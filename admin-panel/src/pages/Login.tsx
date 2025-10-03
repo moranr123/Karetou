@@ -41,23 +41,54 @@ const Login: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#1a1a2e',
         padding: 2,
       }}
     >
       <Paper
-        elevation={3}
+        elevation={8}
         sx={{
-          padding: 4,
+          padding: 5,
           width: '100%',
-          maxWidth: 400,
+          maxWidth: 440,
           textAlign: 'center',
+          borderRadius: 4,
+          backgroundColor: '#ffffff',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Box
+            component="img"
+            src="/logo.png"
+            alt="Karetou Logo"
+            sx={{
+              width: 80,
+              height: 80,
+              objectFit: 'contain',
+            }}
+          />
+        </Box>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          gutterBottom
+          sx={{
+            fontWeight: 700,
+            color: '#000',
+            mb: 1,
+          }}
+        >
           Karetou Admin
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            mb: 4,
+            color: '#666',
+            fontSize: '1rem',
+          }}
+        >
           Sign in to access the admin panel
         </Typography>
 
@@ -77,6 +108,19 @@ const Login: React.FC = () => {
             margin="normal"
             required
             disabled={loading}
+            sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                backgroundColor: '#f9f9f9',
+                '&:hover': {
+                  backgroundColor: '#fff',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: '#fff',
+                },
+              },
+            }}
           />
           <TextField
             fullWidth
@@ -87,16 +131,47 @@ const Login: React.FC = () => {
             margin="normal"
             required
             disabled={loading}
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                backgroundColor: '#f9f9f9',
+                '&:hover': {
+                  backgroundColor: '#fff',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: '#fff',
+                },
+              },
+            }}
           />
           <Button
             type="submit"
             fullWidth
             variant="contained"
             size="large"
-            sx={{ mt: 3, mb: 2 }}
+            sx={{ 
+              mt: 2, 
+              mb: 2,
+              py: 1.75,
+              borderRadius: 2,
+              backgroundColor: '#667eea',
+              fontWeight: 600,
+              fontSize: '1.1rem',
+              textTransform: 'none',
+              boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                backgroundColor: '#5568d3',
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+              },
+              '&:disabled': {
+                backgroundColor: '#667eea',
+                opacity: 0.6,
+              },
+            }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : 'Sign In'}
+            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Sign In'}
           </Button>
         </Box>
       </Paper>

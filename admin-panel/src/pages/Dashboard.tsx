@@ -14,6 +14,16 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Grid,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -21,6 +31,8 @@ import {
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
   Settings as SettingsIcon,
+  Assessment as ReportIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -48,6 +60,11 @@ const AdminDashboard: React.FC = () => {
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportType, setReportType] = useState('user_summary');
+  const [dateRange, setDateRange] = useState('last_30_days');
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -128,6 +145,62 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleGenerateReport = async () => {
+    try {
+      setGeneratingReport(true);
+      setReportSuccess('');
+      
+      // Simulate report generation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Mock report data based on report type
+      let reportData = '';
+      const currentDate = new Date().toLocaleDateString();
+      
+      switch (reportType) {
+        case 'user_summary':
+          reportData = `User Summary Report - ${currentDate}\n\nTotal Users: ${stats.totalUsers}\nTotal Businesses: ${stats.totalBusinesses}\nPending Approvals: ${stats.pendingApprovals}`;
+          break;
+        case 'business_approvals':
+          reportData = `Business Approvals Report - ${currentDate}\n\nPending Approvals: ${stats.pendingApprovals}\nTotal Businesses: ${stats.totalBusinesses}`;
+          break;
+        case 'activity_log':
+          reportData = `Activity Log Report - ${currentDate}\n\nRecent Activities:\n${recentActivity.map(activity => `- ${activity.title}: ${activity.description}`).join('\n')}`;
+          break;
+        default:
+          reportData = `General Report - ${currentDate}\n\nSystem Statistics:\nTotal Users: ${stats.totalUsers}\nTotal Businesses: ${stats.totalBusinesses}\nPending Approvals: ${stats.pendingApprovals}`;
+      }
+      
+      // Create and download the report
+      const blob = new Blob([reportData], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setReportSuccess('Report generated and downloaded successfully!');
+      setReportDialogOpen(false);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setReportSuccess(''), 5000);
+      
+    } catch (error) {
+      console.error('Error generating report:', error);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+  const handleReportDialogClose = () => {
+    setReportDialogOpen(false);
+    setReportType('user_summary');
+    setDateRange('last_30_days');
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -137,15 +210,15 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3, color: 'primary.main' }}>
-        🛡️ Admin Dashboard
-      </Typography>
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          Welcome to the Admin Dashboard. You can manage users, businesses, and review business approvals.
+    <Box>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#1a1a2e' }}>
+          Dashboard
         </Typography>
-      </Alert>
+        <Typography variant="body1" color="text.secondary">
+          Welcome back! Here's what's happening with your business approvals.
+        </Typography>
+      </Box>
       {/* Statistics Cards */}
       <Box
         display="grid"
@@ -153,54 +226,196 @@ const AdminDashboard: React.FC = () => {
         gap={3}
         sx={{ mb: 4 }}
       >
-        <Card sx={{ bgcolor: 'primary.light', color: 'white' }}>
+        <Card 
+          sx={{ 
+            bgcolor: '#fff',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 16px rgba(102, 126, 234, 0.15)',
+            },
+          }}
+        >
           <CardContent>
             <Box display="flex" alignItems="center" justifyContent="space-between">
               <Box>
-                <Typography variant="h4" component="div">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Total Users
+                </Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#667eea' }}>
                   {stats.totalUsers}
                 </Typography>
-                <Typography variant="body2">Total Users</Typography>
               </Box>
-              <PeopleIcon sx={{ fontSize: 40 }} />
+              <Box sx={{ 
+                p: 2, 
+                borderRadius: 2, 
+                bgcolor: 'rgba(102, 126, 234, 0.1)',
+              }}>
+                <PeopleIcon sx={{ fontSize: 40, color: '#667eea' }} />
+              </Box>
             </Box>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: 'secondary.light', color: 'white' }}>
+        <Card 
+          sx={{ 
+            bgcolor: '#fff',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 16px rgba(118, 75, 162, 0.15)',
+            },
+          }}
+        >
           <CardContent>
             <Box display="flex" alignItems="center" justifyContent="space-between">
               <Box>
-                <Typography variant="h4" component="div">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Total Businesses
+                </Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#764ba2' }}>
                   {stats.totalBusinesses}
                 </Typography>
-                <Typography variant="body2">Total Businesses</Typography>
               </Box>
-              <BusinessIcon sx={{ fontSize: 40 }} />
+              <Box sx={{ 
+                p: 2, 
+                borderRadius: 2, 
+                bgcolor: 'rgba(118, 75, 162, 0.1)',
+              }}>
+                <BusinessIcon sx={{ fontSize: 40, color: '#764ba2' }} />
+              </Box>
             </Box>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: 'warning.light', color: 'white' }}>
+        <Card 
+          sx={{ 
+            bgcolor: '#fff',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 16px rgba(255, 152, 0, 0.15)',
+            },
+          }}
+        >
           <CardContent>
             <Box display="flex" alignItems="center" justifyContent="space-between">
               <Box>
-                <Typography variant="h4" component="div">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Pending Approvals
+                </Typography>
+                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#FF9800' }}>
                   {stats.pendingApprovals}
                 </Typography>
-                <Typography variant="body2">Pending Approvals</Typography>
               </Box>
-              <WarningIcon sx={{ fontSize: 40 }} />
+              <Box sx={{ 
+                p: 2, 
+                borderRadius: 2, 
+                bgcolor: 'rgba(255, 152, 0, 0.1)',
+              }}>
+                <WarningIcon sx={{ fontSize: 40, color: '#FF9800' }} />
+              </Box>
             </Box>
           </CardContent>
         </Card>
       </Box>
+      {/* Report Generation Section */}
+      <Box sx={{ mb: 4 }}>
+        <Paper 
+          sx={{ 
+            p: 3,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            Report Generation
+          </Typography>
+          <Box 
+            display="grid" 
+            gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} 
+            gap={2}
+          >
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<ReportIcon />}
+              onClick={() => setReportDialogOpen(true)}
+              sx={{
+                py: 1.5,
+                bgcolor: '#4CAF50',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                '&:hover': {
+                  bgcolor: '#45a049',
+                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)',
+                },
+              }}
+            >
+              Generate Report
+            </Button>
+            <Button
+              variant="outlined"
+              fullWidth
+              startIcon={<DownloadIcon />}
+              onClick={() => {
+                const reportData = `Quick Export - ${new Date().toLocaleDateString()}\n\nTotal Users: ${stats.totalUsers}\nTotal Businesses: ${stats.totalBusinesses}\nPending Approvals: ${stats.pendingApprovals}`;
+                const blob = new Blob([reportData], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `quick_export_${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              }}
+              sx={{
+                py: 1.5,
+                borderColor: '#2196F3',
+                color: '#2196F3',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                '&:hover': {
+                  borderColor: '#1976D2',
+                  bgcolor: 'rgba(33, 150, 243, 0.05)',
+                },
+              }}
+            >
+              Quick Export
+            </Button>
+          </Box>
+        </Paper>
+      </Box>
+
       {/* Recent Activity */}
       <Box
         display="grid"
         gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
         gap={3}
       >
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper 
+          sx={{ 
+            p: 3,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Recent Activity
           </Typography>
           <List>
@@ -236,41 +451,134 @@ const AdminDashboard: React.FC = () => {
             ))}
           </List>
         </Paper>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper 
+          sx={{ 
+            p: 3,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Quick Actions
           </Typography>
           <Box display="flex" flexDirection="column" gap={2}>
             <Button
               variant="contained"
-              color="secondary"
               fullWidth
               startIcon={<BusinessIcon />}
               href="/business-approvals"
+              sx={{
+                py: 1.5,
+                bgcolor: '#667eea',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                '&:hover': {
+                  bgcolor: '#5568d3',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                },
+              }}
             >
               Review Approvals
             </Button>
             <Button
-              variant="contained"
-              color="info"
-              fullWidth
-              startIcon={<PeopleIcon />}
-              href="/user-management"
-            >
-              Manage Users
-            </Button>
-            <Button
               variant="outlined"
-              color="primary"
               fullWidth
               startIcon={<SettingsIcon />}
               onClick={fetchDashboardData}
+              sx={{
+                py: 1.5,
+                borderColor: '#667eea',
+                color: '#667eea',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                '&:hover': {
+                  borderColor: '#5568d3',
+                  bgcolor: 'rgba(102, 126, 234, 0.05)',
+                },
+              }}
             >
               Refresh Data
             </Button>
           </Box>
         </Paper>
       </Box>
+
+      {/* Report Generation Dialog */}
+      <Dialog open={reportDialogOpen} onClose={handleReportDialogClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Generate Report</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Report Type</InputLabel>
+              <Select
+                value={reportType}
+                onChange={(e) => setReportType(e.target.value)}
+                label="Report Type"
+              >
+                <MenuItem value="user_summary">User Summary Report</MenuItem>
+                <MenuItem value="business_approvals">Business Approvals Report</MenuItem>
+                <MenuItem value="activity_log">Activity Log Report</MenuItem>
+                <MenuItem value="general">General Statistics Report</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Date Range</InputLabel>
+              <Select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                label="Date Range"
+              >
+                <MenuItem value="last_7_days">Last 7 Days</MenuItem>
+                <MenuItem value="last_30_days">Last 30 Days</MenuItem>
+                <MenuItem value="last_90_days">Last 90 Days</MenuItem>
+                <MenuItem value="all_time">All Time</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="Custom Date Range (Optional)"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleReportDialogClose} disabled={generatingReport}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleGenerateReport}
+            variant="contained"
+            disabled={generatingReport}
+            startIcon={generatingReport ? <CircularProgress size={20} /> : <ReportIcon />}
+          >
+            {generatingReport ? 'Generating...' : 'Generate Report'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Message */}
+      {reportSuccess && (
+        <Alert 
+          severity="success" 
+          sx={{ 
+            position: 'fixed', 
+            top: 20, 
+            right: 20, 
+            zIndex: 9999,
+            minWidth: 300 
+          }}
+        >
+          {reportSuccess}
+        </Alert>
+      )}
     </Box>
   );
 };

@@ -3,8 +3,6 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Drawer,
-  AppBar,
-  Toolbar,
   List,
   Typography,
   Divider,
@@ -13,15 +11,12 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Avatar,
-  Menu,
-  MenuItem,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -31,15 +26,18 @@ import {
   AdminPanelSettings as AdminIcon,
   AccountCircle,
   Logout,
+  ChevronLeft,
+  ChevronRight,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 240;
+const miniDrawerWidth = 72;
 
 const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [drawerHovered, setDrawerHovered] = useState(false);
   const { user, userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,17 +46,8 @@ const Layout: React.FC = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleLogoutClick = () => {
     setLogoutDialogOpen(true);
-    handleMenuClose(); // Close the menu when opening dialog
   };
 
   const handleLogoutConfirm = async () => {
@@ -80,125 +69,167 @@ const Layout: React.FC = () => {
   let menuItems = [];
   
   if (userRole?.role === 'superadmin') {
-    // Superadmin menu - only Dashboard and Admin Management
+    // Superadmin menu - Dashboard, Admin Management, and User Management
     menuItems = [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
       { text: 'Admin Management', icon: <AdminIcon />, path: '/admin-management' },
+      { text: 'User Management', icon: <PeopleIcon />, path: '/user-management' },
     ];
   } else {
-    // Regular admin menu - Business Management removed as it duplicates Business Approvals functionality
+    // Regular admin menu - only Dashboard and Business Approvals
     menuItems = [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
       { text: 'Business Approvals', icon: <ApprovalIcon />, path: '/business-approvals' },
-      { text: 'User Management', icon: <PeopleIcon />, path: '/user-management' },
     ];
   }
 
+  const isExpanded = drawerHovered;
+
   const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Karetou Admin
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: '#1a1a2e',
+        color: '#fff',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 2,
+          minHeight: '80px !important',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="img"
+            src="/logo.png"
+            alt="Karetou Logo"
+            sx={{
+              width: 40,
+              height: 40,
+              objectFit: 'contain',
+            }}
+          />
+          {isExpanded && (
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{
+                fontWeight: 'bold',
+                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
+              Karetou
+            </Typography>
+          )}
+        </Box>
+      </Box>
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+      <List sx={{ flex: 1, pt: 2, px: 1 }}>
+        {menuItems.map((item) => (
+          <Tooltip key={item.text} title={!isExpanded ? item.text : ''} placement="right" arrow>
+            <ListItem disablePadding sx={{ mb: 1 }}>
+              <ListItemButton
+                selected={location.pathname === item.path}
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  minHeight: 48,
+                  justifyContent: isExpanded ? 'initial' : 'center',
+                  px: 2.5,
+                  '&.Mui-selected': {
+                    bgcolor: '#667eea',
+                    '&:hover': {
+                      bgcolor: '#5568d3',
+                    },
+                  },
+                  '&:hover': {
+                    bgcolor: 'rgba(102, 126, 234, 0.1)',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isExpanded ? 2 : 'auto',
+                    justifyContent: 'center',
+                    color: location.pathname === item.path ? '#fff' : '#a0a0b0',
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                {isExpanded && (
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      opacity: 1,
+                      '& .MuiTypography-root': {
+                        fontWeight: location.pathname === item.path ? 600 : 400,
+                      },
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          </Tooltip>
+        ))}
+      </List>
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+      <List sx={{ px: 1, pb: 2 }}>
+        <Tooltip title={!isExpanded ? 'Logout' : ''} placement="right" arrow>
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={handleLogoutClick}
+              sx={{
+                borderRadius: 2,
+                minHeight: 48,
+                justifyContent: isExpanded ? 'initial' : 'center',
+                px: 2.5,
+                color: '#ff6b6b',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 107, 107, 0.1)',
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: isExpanded ? 2 : 'auto',
+                  justifyContent: 'center',
+                  color: '#ff6b6b',
+                }}
+              >
+                <Logout />
+              </ListItemIcon>
+              {isExpanded && <ListItemText primary="Logout" />}
             </ListItemButton>
           </ListItem>
-        ))}
-        <Divider sx={{ my: 1 }} />
-        <ListItem disablePadding>
-          <ListItemButton onClick={handleLogoutClick} sx={{ color: 'error.main' }}>
-            <ListItemIcon sx={{ color: 'error.main' }}>
-              <Logout />
-            </ListItemIcon>
-            <ListItemText primary="Logout" />
-          </ListItemButton>
-        </ListItem>
+        </Tooltip>
       </List>
-    </div>
+    </Box>
   );
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Admin Panel
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-            <Chip
-              label={userRole?.role === 'superadmin' ? 'Superadmin' : 'Admin'}
-              color={userRole?.role === 'superadmin' ? 'error' : 'primary'}
-              size="small"
-              sx={{ mr: 1 }}
-            />
-          </Box>
-          <IconButton
-            size="large"
-            aria-label="account of current user"
-            aria-controls="menu-appbar"
-            aria-haspopup="true"
-            onClick={handleMenuOpen}
-            color="inherit"
-          >
-            <AccountCircle />
-          </IconButton>
-          <Menu
-            id="menu-appbar"
-            anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={handleMenuClose}>
-              <Avatar sx={{ width: 24, height: 24, mr: 1 }}>
-                {user?.email?.charAt(0).toUpperCase()}
-              </Avatar>
-              {user?.email}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogoutClick}>
-              <Logout sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ 
+          width: { 
+            xs: 0,
+            sm: isExpanded ? drawerWidth : miniDrawerWidth 
+          }, 
+          flexShrink: { sm: 0 },
+          transition: 'width 0.3s',
+        }}
       >
         <Drawer
           variant="temporary"
@@ -209,7 +240,11 @@ const Layout: React.FC = () => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              bgcolor: '#1a1a2e',
+            },
           }}
         >
           {drawer}
@@ -218,9 +253,17 @@ const Layout: React.FC = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: isExpanded ? drawerWidth : miniDrawerWidth,
+              transition: 'width 0.3s',
+              overflowX: 'hidden',
+              bgcolor: '#1a1a2e',
+            },
           }}
           open
+          onMouseEnter={() => setDrawerHovered(true)}
+          onMouseLeave={() => setDrawerHovered(false)}
         >
           {drawer}
         </Drawer>
@@ -230,10 +273,15 @@ const Layout: React.FC = () => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { 
+            xs: '100%',
+            sm: `calc(100% - ${isExpanded ? drawerWidth : miniDrawerWidth}px)` 
+          },
+          transition: 'width 0.3s',
+          bgcolor: '#f5f5f5',
+          minHeight: '100vh',
         }}
       >
-        <Toolbar />
         <Outlet />
       </Box>
 
