@@ -335,100 +335,164 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
+    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
-          {/* Header */}
+          {/* Animated Header with Icon */}
           <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="mail-outline" size={80} color="#667eea" />
+            <View style={styles.iconWrapper}>
+              <View style={styles.iconCircle}>
+                <Ionicons name="mail" size={60} color="#fff" />
+              </View>
+              <View style={styles.checkmarkBadge}>
+                <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
+              </View>
             </View>
             <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.subtitle}>
-              We've sent a verification link to
+              We've sent a verification link to:
             </Text>
-            <Text style={styles.email}>{email}</Text>
+            <View style={styles.emailBadge}>
+              <Ionicons name="mail-outline" size={16} color="#667eea" />
+              <Text style={styles.email}>{email}</Text>
+            </View>
           </View>
 
-          {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <Text style={styles.instructions}>
-              Please check your email and click the verification link to activate your account.
-            </Text>
-            <Text style={styles.highlightedInstructions}>
-              ⚠️ Don't forget to check your spam folder if you don't see the email in your inbox.
-            </Text>
+          {/* Main Card */}
+          <View style={styles.card}>
+            {/* Instructions */}
+            <View style={styles.instructionsCard}>
+              <View style={styles.instructionItem}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepNumber}>1</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  Check your email inbox
+                </Text>
+              </View>
+              
+              <View style={styles.instructionItem}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepNumber}>2</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  Click the verification link
+                </Text>
+              </View>
+              
+              <View style={styles.instructionItem}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepNumber}>3</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  Return here and click "I've Verified"
+                </Text>
+              </View>
+            </View>
+
+            {/* Important Note */}
+            <View style={styles.noteCard}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.noteText}>
+                Check your spam folder if you don't see the email
+              </Text>
+            </View>
+
+            {/* Cooldown Info */}
             {resendAttempts === 0 && countdown > 60 && (
-              <Text style={styles.initialCooldownInfo}>
-                📧 Please wait 2 minutes before resending. This gives the initial email time to arrive.
-              </Text>
+              <View style={styles.cooldownCard}>
+                <Ionicons name="time-outline" size={20} color="#2196F3" />
+                <Text style={styles.cooldownText}>
+                  Please wait 2 minutes. This gives the email time to arrive.
+                </Text>
+              </View>
             )}
+
             {resendAttempts > 1 && (
-              <Text style={styles.rateLimitInfo}>
-                ⚠️ Multiple resend attempts detected. Longer delays are applied to prevent spam.
-              </Text>
+              <View style={styles.warningCard}>
+                <Ionicons name="warning-outline" size={20} color="#F44336" />
+                <Text style={styles.warningText}>
+                  Multiple resends detected. Longer delays applied to prevent spam.
+                </Text>
+              </View>
             )}
+
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.verifyButton, loading && styles.buttonDisabled]}
+                onPress={checkEmailVerification}
+                disabled={loading}
+              >
+                <LinearGradient
+                  colors={['#4CAF50', '#45a049']}
+                  style={styles.buttonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {loading ? (
+                    <>
+                      <Ionicons name="sync" size={20} color="#fff" />
+                      <Text style={styles.verifyButtonText}>Checking...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                      <Text style={styles.verifyButtonText}>I've Verified My Email</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.resendButton,
+                  (resendLoading || countdown > 0 || isRateLimited) && styles.buttonDisabled,
+                ]}
+                onPress={resendVerificationEmail}
+                disabled={resendLoading || countdown > 0 || isRateLimited}
+              >
+                {resendLoading ? (
+                  <>
+                    <Ionicons name="sync" size={20} color="#667eea" />
+                    <Text style={styles.resendButtonText}>Sending...</Text>
+                  </>
+                ) : countdown > 0 ? (
+                  <>
+                    <Ionicons 
+                      name={isRateLimited ? "warning-outline" : "time-outline"} 
+                      size={20} 
+                      color="#999" 
+                    />
+                    <Text style={styles.resendButtonTextDisabled}>
+                      {resendAttempts === 0 && countdown > 60
+                        ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
+                        : countdown >= 60 
+                        ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
+                        : `Resend in ${countdown}s`
+                      }
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="mail-outline" size={20} color="#667eea" />
+                    <Text style={styles.resendButtonText}>
+                      {resendAttempts > 0 ? `Resend Email (${resendAttempts})` : 'Resend Email'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.primaryButton, loading && styles.buttonDisabled]}
-              onPress={checkEmailVerification}
-              disabled={loading}
-            >
-              <Text style={styles.primaryButtonText}>
-                {loading ? 'Checking...' : 'I\'ve Verified My Email'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.secondaryButton,
-                (resendLoading || countdown > 0 || isRateLimited) && styles.buttonDisabled,
-              ]}
-              onPress={resendVerificationEmail}
-              disabled={resendLoading || countdown > 0 || isRateLimited}
-            >
-              {resendLoading ? (
-                <View style={styles.loadingContainer}>
-                  <Text style={styles.secondaryButtonText}>Sending...</Text>
-                </View>
-              ) : countdown > 0 ? (
-                <View style={styles.countdownContainer}>
-                  <Ionicons 
-                    name={isRateLimited ? "warning-outline" : "time-outline"} 
-                    size={20} 
-                    color="rgba(255, 255, 255, 0.7)" 
-                  />
-                  <Text style={[styles.secondaryButtonText, styles.countdownText]}>
-                    {resendAttempts === 0 && countdown > 60
-                      ? `Please wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')} - Email may take time to arrive`
-                      : countdown >= 60 
-                      ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
-                      : `Resend in ${countdown}s`
-                    }
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.resendContainer}>
-                  <Ionicons name="mail-outline" size={20} color="#fff" />
-                  <Text style={[styles.secondaryButtonText, { marginLeft: 8 }]}>
-                    {resendAttempts > 0 ? `Resend Email (${resendAttempts} sent)` : 'Resend Email'}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-
-            <TouchableOpacity
-              style={styles.linkButton}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.linkText}>Back to Sign In</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Footer */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Text style={styles.backButtonText}>Back to Sign In</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -444,163 +508,232 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
     justifyContent: 'space-between',
   },
   header: {
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 20,
   },
-  iconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  email: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#667eea',
-    textAlign: 'center',
+  iconWrapper: {
+    position: 'relative',
     marginBottom: 20,
   },
-  instructionsContainer: {
-    paddingHorizontal: 20,
-  },
-  instructions: {
-    fontSize: 16,
-    color: '#333',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 12,
-  },
-  subInstructions: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  highlightedInstructions: {
-    fontSize: 15,
-    color: '#FFE066',
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '600',
-    backgroundColor: 'rgba(255, 224, 102, 0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 224, 102, 0.3)',
-  },
-  initialCooldownInfo: {
-    fontSize: 14,
-    color: '#87CEEB',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(135, 206, 235, 0.3)',
-    fontWeight: '500',
-  },
-  rateLimitInfo: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginTop: 12,
-    paddingHorizontal: 10,
-    fontStyle: 'italic',
-  },
-  buttonContainer: {
-    width: '100%',
-  },
-  button: {
-    borderRadius: 16,
-    paddingVertical: 18,
+  iconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
-  primaryButton: {
+  checkmarkBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
     backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  secondaryButton: {
-    backgroundColor: 'transparent',
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  email: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#667eea',
+    marginLeft: 6,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    marginTop: 20,
+  },
+  instructionsCard: {
+    marginBottom: 16,
+  },
+  instructionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  stepBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#667eea',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  stepNumber: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  instructionText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 20,
+  },
+  noteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  noteText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#E65100',
+    marginLeft: 8,
+    lineHeight: 18,
+  },
+  cooldownCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  cooldownText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1565C0',
+    marginLeft: 8,
+    lineHeight: 18,
+  },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F44336',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#C62828',
+    marginLeft: 8,
+    lineHeight: 18,
+  },
+  buttonContainer: {
+    marginTop: 8,
+  },
+  verifyButton: {
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  verifyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  resendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#667eea',
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  primaryButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+  resendButtonText: {
     color: '#667eea',
-  },
-  secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
-  },
-  linkButton: {
-    alignSelf: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  linkText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textDecorationLine: 'underline',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countdownContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countdownText: {
     marginLeft: 8,
-    opacity: 0.7,
   },
-  resendContainer: {
+  resendButtonTextDisabled: {
+    color: '#999',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 20,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 
