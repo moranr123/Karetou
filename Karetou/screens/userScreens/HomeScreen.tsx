@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
-import { collection, query, getDocs, where, orderBy, limit, addDoc, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, getDocs, where, orderBy, limit, addDoc, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import LoadingImage from '../../components/LoadingImage';
 import NotificationService from '../../services/NotificationService';
 import * as Location from 'expo-location';
@@ -1528,7 +1528,21 @@ const HomeScreen = () => {
               <TouchableOpacity 
                 key={item.id} 
                 style={styles.placeCard}
-                onPress={() => {
+                onPress={async () => {
+                  // Track business view
+                  try {
+                    if (item.id) {
+                      const businessRef = doc(db, 'businesses', item.id);
+                      await updateDoc(businessRef, {
+                        viewCount: increment(1),
+                        lastViewedAt: new Date().toISOString(),
+                      });
+                      console.log('✅ View tracked for:', item.name);
+                    }
+                  } catch (error) {
+                    console.log('❌ Error tracking view:', error);
+                  }
+                  
                   setSelectedPlace(item);
                   setDetailsModalVisible(true);
                 }}

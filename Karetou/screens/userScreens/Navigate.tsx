@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
-import { collection, query, getDocs, where, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, getDoc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import LoadingImage from '../../components/LoadingImage';
 import { useRoute, RouteProp } from '@react-navigation/native';
 
@@ -1314,7 +1314,21 @@ const Navigate = () => {
     };
   }, [nearbyBusinesses]);
 
-  const handleMarkerPress = (business: Place) => {
+  const handleMarkerPress = async (business: Place) => {
+    // Track business view
+    try {
+      if (business.id) {
+        const businessRef = doc(db, 'businesses', business.id);
+        await updateDoc(businessRef, {
+          viewCount: increment(1),
+          lastViewedAt: new Date().toISOString(),
+        });
+        console.log('✅ View tracked for:', business.name);
+      }
+    } catch (error) {
+      console.log('❌ Error tracking view:', error);
+    }
+    
     setSelectedPlace(business);
     setDetailsModalVisible(true);
     if (business.businessLocation) {
