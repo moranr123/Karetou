@@ -385,6 +385,7 @@ const BusinessLocationScreen = () => {
       <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#667eea" style={styles.loadingIndicator} />
             <Text style={styles.loadingText}>Getting your location...</Text>
           </View>
         </SafeAreaView>
@@ -530,11 +531,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    marginHorizontal: 20,
+    marginVertical: 20,
+    borderRadius: 20,
+    padding: 40,
   },
   loadingText: {
     fontSize: 18,
-    color: '#fff',
+    color: '#333',
     fontWeight: '600',
+    marginTop: 20,
   },
   header: {
     flexDirection: 'row',
