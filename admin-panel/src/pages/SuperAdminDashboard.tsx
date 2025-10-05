@@ -212,82 +212,88 @@ const SuperAdminDashboard: React.FC = () => {
         gap={3}
         sx={{ mb: 4 }}
       >
-        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(102, 126, 234, 0.15)' } }}>
+        <Card sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
+          borderRadius: 2,
+        }}>
           <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Total Users</Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#667eea' }}>{stats.totalUsers}</Typography>
-              </Box>
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(102, 126, 234, 0.1)' }}>
-                <PeopleIcon sx={{ fontSize: 40, color: '#667eea' }} />
-              </Box>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+              Total Users
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              {stats.totalUsers}
+            </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(118, 75, 162, 0.15)' } }}>
+        <Card sx={{ 
+          bgcolor: '#764ba2',
+          boxShadow: '0 4px 12px rgba(118, 75, 162, 0.25)',
+          borderRadius: 2,
+        }}>
           <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Total Businesses</Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#764ba2' }}>{stats.totalBusinesses}</Typography>
-              </Box>
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(118, 75, 162, 0.1)' }}>
-                <BusinessIcon sx={{ fontSize: 40, color: '#764ba2' }} />
-              </Box>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+              Total Businesses
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              {stats.totalBusinesses}
+            </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(255, 152, 0, 0.15)' } }}>
+        <Card sx={{ 
+          bgcolor: '#FF9800',
+          boxShadow: '0 4px 12px rgba(255, 152, 0, 0.25)',
+          borderRadius: 2,
+        }}>
           <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Pending Approvals</Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#FF9800' }}>{stats.pendingApprovals}</Typography>
-              </Box>
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 152, 0, 0.1)' }}>
-                <WarningIcon sx={{ fontSize: 40, color: '#FF9800' }} />
-              </Box>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+              Pending Approvals
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              {stats.pendingApprovals}
+            </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(76, 175, 80, 0.15)' } }}>
+        <Card sx={{ 
+          bgcolor: '#4CAF50',
+          boxShadow: '0 4px 12px rgba(76, 175, 80, 0.25)',
+          borderRadius: 2,
+        }}>
           <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Total Admins</Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#4CAF50' }}>{stats.totalAdmins}</Typography>
-              </Box>
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(76, 175, 80, 0.1)' }}>
-                <AdminIcon sx={{ fontSize: 40, color: '#4CAF50' }} />
-              </Box>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+              Total Admins
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              {stats.totalAdmins}
+            </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(33, 150, 243, 0.15)' } }}>
+        <Card sx={{ 
+          bgcolor: '#2196F3',
+          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.25)',
+          borderRadius: 2,
+        }}>
           <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Active Admins</Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#2196F3' }}>{stats.activeAdmins}</Typography>
-              </Box>
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(33, 150, 243, 0.1)' }}>
-                <SecurityIcon sx={{ fontSize: 40, color: '#2196F3' }} />
-              </Box>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+              Active Admins
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              {stats.activeAdmins}
+            </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 16px rgba(244, 67, 54, 0.15)' } }}>
+        <Card sx={{ 
+          bgcolor: '#F44336',
+          boxShadow: '0 4px 12px rgba(244, 67, 54, 0.25)',
+          borderRadius: 2,
+        }}>
           <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Inactive Admins</Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#F44336' }}>{stats.inactiveAdmins}</Typography>
-              </Box>
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(244, 67, 54, 0.1)' }}>
-                <TrendingUpIcon sx={{ fontSize: 40, color: '#F44336' }} />
-              </Box>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+              Inactive Admins
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              {stats.inactiveAdmins}
+            </Typography>
           </CardContent>
         </Card>
       </Box>

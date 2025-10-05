@@ -324,10 +324,86 @@ const BusinessApprovals: React.FC = () => {
         Business Approvals
       </Typography>
 
-      <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
-        <Tab label={`Pending (${businesses.filter(b => b.status === 'pending').length})`} />
-        <Tab label={`Approved (${businesses.filter(b => b.status === 'approved').length})`} />
-        <Tab label={`Rejected (${businesses.filter(b => b.status === 'rejected').length})`} />
+      <Tabs 
+        value={tabValue} 
+        onChange={(_, newValue) => setTabValue(newValue)} 
+        sx={{ 
+          mb: 3,
+          '& .MuiTabs-indicator': {
+            height: 3,
+            borderRadius: '3px 3px 0 0',
+          },
+        }}
+      >
+        <Tab 
+          label={`Pending (${businesses.filter(b => b.status === 'pending').length})`}
+          icon={<Schedule />}
+          iconPosition="start"
+          sx={{
+            textTransform: 'none',
+            fontSize: '15px',
+            fontWeight: tabValue === 0 ? 700 : 500,
+            minHeight: 48,
+            px: 3,
+            color: tabValue === 0 ? '#FF9800' : '#666',
+            borderRadius: '8px 8px 0 0',
+            transition: 'all 0.3s',
+            '&:hover': {
+              bgcolor: 'rgba(255, 152, 0, 0.08)',
+              color: '#FF9800',
+            },
+            '&.Mui-selected': {
+              color: '#FF9800',
+              bgcolor: 'rgba(255, 152, 0, 0.1)',
+            },
+          }}
+        />
+        <Tab 
+          label={`Approved (${businesses.filter(b => b.status === 'approved').length})`}
+          icon={<CheckCircle />}
+          iconPosition="start"
+          sx={{
+            textTransform: 'none',
+            fontSize: '15px',
+            fontWeight: tabValue === 1 ? 700 : 500,
+            minHeight: 48,
+            px: 3,
+            color: tabValue === 1 ? '#4CAF50' : '#666',
+            borderRadius: '8px 8px 0 0',
+            transition: 'all 0.3s',
+            '&:hover': {
+              bgcolor: 'rgba(76, 175, 80, 0.08)',
+              color: '#4CAF50',
+            },
+            '&.Mui-selected': {
+              color: '#4CAF50',
+              bgcolor: 'rgba(76, 175, 80, 0.1)',
+            },
+          }}
+        />
+        <Tab 
+          label={`Rejected (${businesses.filter(b => b.status === 'rejected').length})`}
+          icon={<Cancel />}
+          iconPosition="start"
+          sx={{
+            textTransform: 'none',
+            fontSize: '15px',
+            fontWeight: tabValue === 2 ? 700 : 500,
+            minHeight: 48,
+            px: 3,
+            color: tabValue === 2 ? '#F44336' : '#666',
+            borderRadius: '8px 8px 0 0',
+            transition: 'all 0.3s',
+            '&:hover': {
+              bgcolor: 'rgba(244, 67, 54, 0.08)',
+              color: '#F44336',
+            },
+            '&.Mui-selected': {
+              color: '#F44336',
+              bgcolor: 'rgba(244, 67, 54, 0.1)',
+            },
+          }}
+        />
       </Tabs>
 
       <Box sx={{ mb: 3 }}>
@@ -948,27 +1024,87 @@ const BusinessApprovals: React.FC = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={processing}>
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button 
+            onClick={() => setDialogOpen(false)} 
+            disabled={processing}
+            variant="outlined"
+            sx={{
+              borderColor: '#999',
+              color: '#666',
+              textTransform: 'none',
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              '&:hover': {
+                borderColor: '#666',
+                bgcolor: 'rgba(0,0,0,0.05)',
+              },
+            }}
+          >
             Close
           </Button>
           {selectedBusiness?.status === 'pending' && (
             <>
               <Button
                 onClick={() => handleReject(selectedBusiness.id)}
-                color="error"
                 variant="contained"
                 disabled={processing || !rejectionReason.trim()}
+                sx={{
+                  bgcolor: '#F44336',
+                  color: '#fff',
+                  textTransform: 'none',
+                  px: 4,
+                  py: 1.2,
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+                  '&:hover': {
+                    bgcolor: '#D32F2F',
+                    boxShadow: '0 6px 16px rgba(244, 67, 54, 0.4)',
+                  },
+                  '&:disabled': {
+                    bgcolor: '#ccc',
+                    color: '#999',
+                  },
+                }}
               >
-                {processing ? <CircularProgress size={20} /> : 'Reject'}
+                {processing ? <CircularProgress size={20} color="inherit" /> : (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Cancel sx={{ fontSize: 20 }} />
+                    Reject
+                  </Box>
+                )}
               </Button>
               <Button
                 onClick={() => handleApprove(selectedBusiness.id)}
-                color="success"
                 variant="contained"
                 disabled={processing}
+                sx={{
+                  bgcolor: '#4CAF50',
+                  color: '#fff',
+                  textTransform: 'none',
+                  px: 4,
+                  py: 1.2,
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                  '&:hover': {
+                    bgcolor: '#45a049',
+                    boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+                  },
+                  '&:disabled': {
+                    bgcolor: '#ccc',
+                    color: '#999',
+                  },
+                }}
               >
-                {processing ? <CircularProgress size={20} /> : 'Approve'}
+                {processing ? <CircularProgress size={20} color="inherit" /> : (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <CheckCircle sx={{ fontSize: 20 }} />
+                    Approve
+                  </Box>
+                )}
               </Button>
             </>
           )}
