@@ -352,61 +352,61 @@ const AdminDashboard: React.FC = () => {
           <ReportIcon sx={{ color: '#667eea' }} />
           Overview
         </Typography>
-        <Box
-          display="grid"
+      <Box
+        display="grid"
           gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }}
-          gap={3}
-        >
-          <Card 
-            sx={{ 
+        gap={3}
+      >
+        <Card 
+          sx={{ 
               bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
               borderRadius: 2,
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            }}
-          >
-            <CardContent>
+          }}
+        >
+          <CardContent>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
                 Total Registered Business Accounts
-              </Typography>
+                </Typography>
               <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
                 {stats.totalBusinesses}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card 
-            sx={{ 
+                </Typography>
+          </CardContent>
+        </Card>
+        <Card 
+          sx={{ 
               bgcolor: '#4CAF50',
               boxShadow: '0 4px 12px rgba(76, 175, 80, 0.25)',
               borderRadius: 2,
-            }}
-          >
-            <CardContent>
+          }}
+        >
+          <CardContent>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
                 Active Accounts
               </Typography>
               <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
                 {stats.activeAccounts}
-              </Typography>
+                </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 Currently operational
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card 
-            sx={{ 
+                </Typography>
+          </CardContent>
+        </Card>
+        <Card 
+          sx={{ 
               bgcolor: '#FF9800',
               boxShadow: '0 4px 12px rgba(255, 152, 0, 0.25)',
               borderRadius: 2,
-            }}
-          >
-            <CardContent>
+          }}
+        >
+          <CardContent>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
-                Pending Approvals
-              </Typography>
+                  Pending Approvals
+                </Typography>
               <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
-                {stats.pendingApprovals}
-              </Typography>
+                  {stats.pendingApprovals}
+                </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 Awaiting review
               </Typography>
@@ -416,7 +416,7 @@ const AdminDashboard: React.FC = () => {
             sx={{ 
               bgcolor: '#F44336',
               boxShadow: '0 4px 12px rgba(244, 67, 54, 0.25)',
-              borderRadius: 2,
+                borderRadius: 2, 
             }}
           >
             <CardContent>
@@ -429,9 +429,9 @@ const AdminDashboard: React.FC = () => {
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 Not operational
               </Typography>
-            </CardContent>
-          </Card>
-        </Box>
+          </CardContent>
+        </Card>
+      </Box>
       </Paper>
 
       {/* Top-Performing Businesses Section */}
