@@ -841,6 +841,7 @@ const HomeScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [filteredPlaces, setFilteredPlaces] = useState<any[]>([]);
   const [filteredSuggestedPlaces, setFilteredSuggestedPlaces] = useState<any[]>([]);
+  const [userPreferences, setUserPreferences] = useState<string[]>([]);
 
   const filterOptions = ['All', 'Coffee Shops', 'Tourist Spots', 'Restaurants'];
 
@@ -974,6 +975,47 @@ const HomeScreen = () => {
     }
   };
 
+  // Load user preferences
+  const loadUserPreferences = async () => {
+    if (!user?.uid) return;
+    
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          setUserPreferences(userData.preferences || []);
+          console.log('✅ User preferences loaded:', userData.preferences);
+        }
+      });
+      
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error loading user preferences:', error);
+    }
+  };
+
+  // Apply preference-based filtering and sorting
+  const applyPreferenceFilter = (places: any[]) => {
+    if (!userPreferences || userPreferences.length === 0) {
+      return places; // No preferences set, return all places
+    }
+
+    // Sort places: preferred categories first, then others
+    return places.sort((a, b) => {
+      // Check if any of the business's categories match user preferences
+      const aCategories = a.categories || [];
+      const bCategories = b.categories || [];
+      
+      const aMatches = aCategories.some((cat: string) => userPreferences.includes(cat));
+      const bMatches = bCategories.some((cat: string) => userPreferences.includes(cat));
+      
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
+    });
+  };
+
   // Load suggested places from Firestore (limited for horizontal scroll)
   const loadSuggestedPlaces = async () => {
     try {
@@ -997,6 +1039,7 @@ const HomeScreen = () => {
             ? data.businessImages[0] 
             : 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2487&auto=format&fit=crop',
           businessType: data.selectedType || data.businessType,
+          categories: data.selectedCategories || (data.selectedCategory ? [data.selectedCategory] : []),
           contactNumber: data.contactNumber,
           businessHours: data.businessHours,
           businessLocation: data.businessLocation,
@@ -1007,8 +1050,12 @@ const HomeScreen = () => {
         };
       });
       
-      setSuggestedPlaces(businesses.length > 0 ? businesses : fallbackSuggestedPlaces);
-      setFilteredSuggestedPlaces(applyFilter(businesses.length > 0 ? businesses : fallbackSuggestedPlaces, selectedFilter));
+      // Apply preference-based filtering first
+      const preferenceFiltered = applyPreferenceFilter(businesses.length > 0 ? businesses : fallbackSuggestedPlaces);
+      const filtered = applyFilter(preferenceFiltered, selectedFilter);
+      
+      setSuggestedPlaces(preferenceFiltered);
+      setFilteredSuggestedPlaces(filtered);
       
       // Preload suggested places images
       const preloadPromises: Promise<void>[] = [];
@@ -1056,6 +1103,7 @@ const HomeScreen = () => {
             ? data.businessImages[0] 
             : 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2487&auto=format&fit=crop',
           businessType: data.selectedType || data.businessType,
+          categories: data.selectedCategories || (data.selectedCategory ? [data.selectedCategory] : []),
           contactNumber: data.contactNumber,
           businessHours: data.businessHours,
           businessLocation: data.businessLocation,
@@ -1063,8 +1111,12 @@ const HomeScreen = () => {
         };
       });
       
-      setPlacesToVisit(businesses);
-      setFilteredPlaces(applyFilter(businesses, selectedFilter));
+      // Apply preference-based filtering first, then regular filter
+      const preferenceFiltered = applyPreferenceFilter(businesses);
+      const filtered = applyFilter(preferenceFiltered, selectedFilter);
+      
+      setPlacesToVisit(preferenceFiltered);
+      setFilteredPlaces(filtered);
       
       // Aggressively preload all business images immediately
       console.log('🚀 HomeScreen: Starting aggressive image preloading...');
@@ -1206,13 +1258,19 @@ const HomeScreen = () => {
 
   // Update filtered places when filter changes
   useEffect(() => {
-    setFilteredPlaces(applyFilter(placesToVisit, selectedFilter));
-    setFilteredSuggestedPlaces(applyFilter(suggestedPlaces, selectedFilter));
-  }, [selectedFilter, placesToVisit, suggestedPlaces]);
+    const preferenceFiltered = applyPreferenceFilter(placesToVisit);
+    const filtered = applyFilter(preferenceFiltered, selectedFilter);
+    setFilteredPlaces(filtered);
+    
+    const prefFilteredSuggested = applyPreferenceFilter(suggestedPlaces);
+    const filteredSuggested = applyFilter(prefFilteredSuggested, selectedFilter);
+    setFilteredSuggestedPlaces(filteredSuggested);
+  }, [selectedFilter, placesToVisit, suggestedPlaces, userPreferences]);
 
   useEffect(() => {
     getUserLocation(); // Get user's real location
     loadSavedBusinesses(); // Load saved businesses
+    loadUserPreferences(); // Load user preferences
     loadSuggestedPlaces();
     loadPlacesToVisit();
     loadPromosAndDeals();
@@ -1220,7 +1278,7 @@ const HomeScreen = () => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([getUserLocation(), loadSavedBusinesses(), loadSuggestedPlaces(), loadPlacesToVisit(), loadPromosAndDeals()]).finally(() => {
+    Promise.all([getUserLocation(), loadSavedBusinesses(), loadUserPreferences(), loadSuggestedPlaces(), loadPlacesToVisit(), loadPromosAndDeals()]).finally(() => {
       setRefreshing(false);
     });
   }, []);

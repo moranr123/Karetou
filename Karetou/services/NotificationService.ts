@@ -496,7 +496,7 @@ class NotificationService {
   async notifyNewPlace(businessName: string, businessType: string, businessAddress: string) {
     try {
       const title = '🎉 New place registered!';
-      const body = `${businessName} (${businessType}) has joined PawSafety in ${businessAddress}`;
+      const body = `${businessName} (${businessType}) is now available in ${businessAddress}`;
 
       // Get all regular users (not business owners) to notify them
       const usersRef = collection(db, 'users');

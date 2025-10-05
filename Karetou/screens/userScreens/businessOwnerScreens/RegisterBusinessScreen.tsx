@@ -23,6 +23,16 @@ import LoadingImage from '../../../components/LoadingImage';
 
 const { width: screenWidth } = Dimensions.get('window');
 const businessTypes = ['Coffee Shop', 'Tourist Spot', 'Restaurant'];
+const businessCategories = [
+  'Historical Landmarks',
+  'Korean BBQ',
+  'Modern/Minimalist Cafés',
+  'Budget-Friendly Eats',
+  'Fine Dining',
+  'Heritage Cafés',
+  'Nature Spots',
+  'Amusement',
+];
 
 const RegisterBusinessScreen = () => {
   const navigation = useNavigation();
@@ -36,6 +46,7 @@ const RegisterBusinessScreen = () => {
   const [businessName, setBusinessName] = useState('');
   const [businessOwner, setBusinessOwner] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [contactNumber, setContactNumber] = useState('');
   const [optionalContactNumber, setOptionalContactNumber] = useState('');
   const [businessImages, setBusinessImages] = useState<string[]>([]);
@@ -167,6 +178,10 @@ const RegisterBusinessScreen = () => {
       Alert.alert('Missing Information', 'Please select a business type.');
       return;
     }
+    if (selectedCategories.length === 0) {
+      Alert.alert('Missing Information', 'Please select at least one business category.');
+      return;
+    }
     if (!startTime || !endTime) {
       Alert.alert('Missing Information', 'Please set your business hours.');
       return;
@@ -189,11 +204,20 @@ const RegisterBusinessScreen = () => {
       businessName,
       businessOwner,
       selectedType,
+      selectedCategories,
       businessHours,
       contactNumber,
       optionalContactNumber,
       businessImages,
     });
+  };
+
+  const toggleCategory = (category: string) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(selectedCategories.filter(item => item !== category));
+    } else {
+      setSelectedCategories([...selectedCategories, category]);
+    }
   };
 
   const generateTimeOptions = (type: 'hour' | 'minute') => {
@@ -286,6 +310,31 @@ const RegisterBusinessScreen = () => {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+
+            {/* Business Category */}
+            <Text style={styles.label}>Business Category * (Select all that apply)</Text>
+            <View style={styles.categoryListContainer}>
+              {businessCategories.map((category) => {
+                const isSelected = selectedCategories.includes(category);
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={styles.categoryCheckboxRow}
+                    onPress={() => toggleCategory(category)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.categoryCheckboxContainer}>
+                      <Ionicons
+                        name={isSelected ? 'checkbox' : 'square-outline'}
+                        size={28}
+                        color={isSelected ? '#667eea' : '#999'}
+                      />
+                    </View>
+                    <Text style={styles.categoryCheckboxLabel}>{category}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Business Hours */}
@@ -646,6 +695,29 @@ const styles = StyleSheet.create({
   },
   selectedTypeButtonText: {
     color: '#fff',
+  },
+  categoryListContainer: {
+    marginBottom: 30,
+  },
+  categoryCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  categoryCheckboxContainer: {
+    marginRight: 12,
+  },
+  categoryCheckboxLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    flex: 1,
   },
   timeContainer: {
     flexDirection: 'row',

@@ -35,6 +35,7 @@ type RootStackParamList = {
     businessName: string;
     businessOwner: string;
     selectedType: string;
+    selectedCategories: string[];
     businessHours: string;
     contactNumber: string;
     optionalContactNumber: string;

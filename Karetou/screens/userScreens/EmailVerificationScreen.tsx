@@ -16,6 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { auth } from '../../firebase';
 import { sendEmailVerification, reload, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
+import UserPreferencesModal from '../../components/UserPreferencesModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,6 +49,8 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
   const [resendAttempts, setResendAttempts] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [lastResendTime, setLastResendTime] = useState(0);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const { email, password, userType } = route.params;
   const { setUserType } = useAuth();
 
@@ -149,7 +152,7 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
         
         if (user.emailVerified) {
           // Update Firestore to mark email as verified
-          const { doc, updateDoc } = await import('firebase/firestore');
+          const { doc, updateDoc, getDoc } = await import('firebase/firestore');
           const { db } = await import('../../firebase');
           
           await updateDoc(doc(db, 'users', user.uid), {
@@ -159,6 +162,28 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
 
           // Set the correct user type
           const finalUserType = userType || 'user';
+          
+          // Check if this is a regular user who hasn't set preferences yet
+          if (finalUserType === 'user') {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              const hasSetPreferences = userData?.hasSetPreferences;
+              
+              if (hasSetPreferences === false) {
+                // Show preferences modal for first-time regular users
+                console.log('🎯 Email verified - showing preferences modal for regular user');
+                setLoading(false);
+                setCurrentUserId(user.uid);
+                setShowPreferencesModal(true);
+                return; // Don't set user type yet or show alert
+              }
+            }
+          }
+          
+          // For business users or users who already set preferences
           setUserType(finalUserType);
           
           Alert.alert(
@@ -205,7 +230,51 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
       console.error('Email verification check error:', error);
       Alert.alert('Error', 'Failed to check email verification status. Please try again.');
     } finally {
-      setLoading(false);
+      if (!showPreferencesModal) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handlePreferencesClose = async (preferences: string[]) => {
+    setShowPreferencesModal(false);
+    
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../../firebase');
+      
+      // Update user preferences in Firestore
+      if (preferences.length > 0) {
+        await updateDoc(doc(db, 'users', currentUserId), {
+          preferences: preferences,
+          hasSetPreferences: true,
+        });
+      } else {
+        // User skipped preferences
+        await updateDoc(doc(db, 'users', currentUserId), {
+          hasSetPreferences: true,
+        });
+      }
+      
+      // Now set the user type to complete verification and navigate
+      setUserType('user');
+      Alert.alert(
+        'Welcome to Karetou!',
+        'Your account is ready. Let\'s explore!',
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              // Navigation will be handled by AuthContext
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Error saving preferences:', error);
+      // Still set user type even if preferences fail
+      setUserType('user');
+      Alert.alert('Error', 'Failed to save preferences, but you can continue using the app.');
     }
   };
 
@@ -495,6 +564,11 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      <UserPreferencesModal
+        visible={showPreferencesModal}
+        onClose={handlePreferencesClose}
+      />
     </LinearGradient>
   );
 };

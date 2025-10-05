@@ -85,6 +85,8 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         userType: 'user',
         phoneNumber: phoneNumber,
         emailVerified: false,
+        preferences: [],
+        hasSetPreferences: false, // Track if user has completed preferences setup
         createdAt: new Date().toISOString(),
       });
 

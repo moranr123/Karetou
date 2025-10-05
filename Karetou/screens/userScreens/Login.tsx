@@ -147,7 +147,6 @@ export default function Login({ navigation }: Props) {
     }
   };
 
-
   const signUp = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
