@@ -22,12 +22,9 @@ import {
   DialogActions,
   CircularProgress,
   Alert,
-  Switch,
-  FormControlLabel,
 } from '@mui/material';
 import {
   Search,
-  Edit,
   Delete,
   AdminPanelSettings,
   Email,
@@ -181,23 +178,19 @@ const AdminManagement: React.FC = () => {
   };
 
   const handleToggleAdminStatus = async (adminId: string, isActive: boolean) => {
-    // Show confirmation dialog when deactivating an admin
-    if (isActive) {
-      const confirmed = window.confirm(
-        'Are you sure you want to deactivate this admin account?\n\n' +
-        'Deactivated admins will be:\n' +
-        '• Immediately signed out if currently logged in\n' +
-        '• Unable to log in until reactivated\n\n' +
-        'You can reactivate the account at any time.'
-      );
-      if (!confirmed) return;
-    }
-
     try {
       await updateDoc(doc(db, 'adminUsers', adminId), {
         isActive: !isActive,
       });
-      await fetchAdmins();
+      
+      // Update local state instead of refetching
+      setAdmins(prevAdmins => 
+        prevAdmins.map(admin => 
+          admin.id === adminId 
+            ? { ...admin, isActive: !isActive }
+            : admin
+        )
+      );
       
       if (isActive) {
         setSuccessMessage('Admin account has been deactivated. They will be signed out immediately.');
@@ -254,13 +247,33 @@ const AdminManagement: React.FC = () => {
       </Box>
 
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert 
+          severity="success" 
+          sx={{ 
+            position: 'fixed', 
+            top: 20, 
+            right: 20, 
+            zIndex: 9999,
+            minWidth: 300,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}
+        >
           {successMessage}
         </Alert>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            position: 'fixed', 
+            top: 20, 
+            right: 20, 
+            zIndex: 9999,
+            minWidth: 300,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}
+        >
           {error}
         </Alert>
       )}
@@ -336,23 +349,26 @@ const AdminManagement: React.FC = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={admin.isActive}
-                            onChange={() => handleToggleAdminStatus(admin.id, admin.isActive)}
-                            size="small"
-                          />
-                        }
-                        label=""
-                      />
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteAdmin(admin.id)}
-                      >
-                        <Delete />
-                      </IconButton>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Button
+                          variant="contained"
+                          color={admin.isActive ? "error" : "success"}
+                          size="small"
+                          onClick={() => handleToggleAdminStatus(admin.id, admin.isActive)}
+                          startIcon={admin.isActive ? <Block /> : <CheckCircle />}
+                        >
+                          {admin.isActive ? 'Deactivate' : 'Activate'}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDeleteAdmin(admin.id)}
+                          startIcon={<Delete />}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}

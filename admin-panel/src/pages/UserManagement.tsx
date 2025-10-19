@@ -15,19 +15,11 @@ import {
   Paper,
   TextField,
   InputAdornment,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   CircularProgress,
-  Switch,
-  FormControlLabel,
   Alert,
 } from '@mui/material';
 import {
   Search,
-  Edit,
   Delete,
   Person,
   Email,
@@ -54,9 +46,6 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<Partial<User>>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -93,52 +82,21 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleEditUser = (user: User) => {
-    setSelectedUser(user);
-    setEditingUser({
-      fullName: user.fullName,
-      phoneNumber: user.phoneNumber,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSaveUser = async () => {
-    if (!selectedUser) return;
-
-    try {
-      await updateDoc(doc(db, 'users', selectedUser.id), editingUser);
-      await fetchUsers();
-      setDialogOpen(false);
-      setSelectedUser(null);
-      setEditingUser({});
-      setSuccessMessage('User updated successfully');
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      console.error('Error updating user:', error);
-      setError('Failed to update user');
-      setTimeout(() => setError(''), 5000);
-    }
-  };
 
   const handleToggleUserStatus = async (userId: string, isActive: boolean) => {
-    // Show confirmation dialog when deactivating a user
-    if (isActive) {
-      const confirmed = window.confirm(
-        'Are you sure you want to deactivate this user account?\n\n' +
-        'Deactivated users will be:\n' +
-        '• Unable to access the mobile app\n' +
-        '• Unable to create new posts or businesses\n' +
-        '• Still visible in the system for record keeping\n\n' +
-        'You can reactivate the account at any time.'
-      );
-      if (!confirmed) return;
-    }
-
     try {
       await updateDoc(doc(db, 'users', userId), {
         isActive: !isActive,
       });
-      await fetchUsers();
+      
+      // Update local state instead of refetching
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, isActive: !isActive }
+            : user
+        )
+      );
       
       if (isActive) {
         setSuccessMessage('User account has been deactivated.');
@@ -188,13 +146,33 @@ const UserManagement: React.FC = () => {
       </Typography>
 
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert 
+          severity="success" 
+          sx={{ 
+            position: 'fixed', 
+            top: 20, 
+            right: 20, 
+            zIndex: 9999,
+            minWidth: 300,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}
+        >
           {successMessage}
         </Alert>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            position: 'fixed', 
+            top: 20, 
+            right: 20, 
+            zIndex: 9999,
+            minWidth: 300,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}
+        >
           {error}
         </Alert>
       )}
@@ -289,29 +267,24 @@ const UserManagement: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={1}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={user.isActive}
-                              onChange={() => handleToggleUserStatus(user.id, user.isActive)}
-                              size="small"
-                            />
-                          }
-                          label=""
-                        />
-                        <IconButton
+                        <Button
+                          variant="contained"
+                          color={user.isActive ? "error" : "success"}
                           size="small"
-                          onClick={() => handleEditUser(user)}
+                          onClick={() => handleToggleUserStatus(user.id, user.isActive)}
+                          startIcon={user.isActive ? <Block /> : <CheckCircle />}
                         >
-                          <Edit />
-                        </IconButton>
-                        <IconButton
-                          size="small"
+                          {user.isActive ? 'Deactivate' : 'Activate'}
+                        </Button>
+                        <Button
+                          variant="outlined"
                           color="error"
+                          size="small"
                           onClick={() => handleDeleteUser(user.id)}
+                          startIcon={<Delete />}
                         >
-                          <Delete />
-                        </IconButton>
+                          Delete
+                        </Button>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -322,35 +295,6 @@ const UserManagement: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit User</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={editingUser.fullName || ''}
-              onChange={(e) => setEditingUser({ ...editingUser, fullName: e.target.value })}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={editingUser.phoneNumber || ''}
-              onChange={(e) => setEditingUser({ ...editingUser, phoneNumber: e.target.value })}
-              margin="normal"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSaveUser} variant="contained">
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
