@@ -354,8 +354,8 @@ const AdminDashboard: React.FC = () => {
         </Typography>
       <Box
         display="grid"
-          gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }}
-        gap={3}
+        gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }}
+        gap={{ xs: 2, sm: 3 }}
       >
         <Card 
           sx={{ 
@@ -544,7 +544,7 @@ const AdminDashboard: React.FC = () => {
           <Box 
             display="grid" 
             gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} 
-            gap={2}
+            gap={{ xs: 1.5, sm: 2 }}
           >
             <Button
               variant="contained"
@@ -607,7 +607,7 @@ const AdminDashboard: React.FC = () => {
       <Box
         display="grid"
         gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
-        gap={3}
+        gap={{ xs: 2, sm: 3 }}
       >
         <Paper 
           sx={{ 
@@ -785,4 +785,4 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

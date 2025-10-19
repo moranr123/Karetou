@@ -12,8 +12,6 @@ import {
   DialogActions,
   TextField,
   CircularProgress,
-  Tabs,
-  Tab,
   InputAdornment,
   CardActionArea,
   Divider,
@@ -65,22 +63,40 @@ interface BusinessRegistration {
   rejectedDate?: string;
 }
 
-const BusinessApprovals: React.FC = () => {
+interface BusinessApprovalsProps {
+  tab?: 'pending' | 'approved' | 'rejected';
+}
+
+const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
   const [businesses, setBusinesses] = useState<BusinessRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRegistration | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [imageDialogTitle, setImageDialogTitle] = useState<string>('');
+  
+  // Determine initial tab value based on the tab prop
+  const getInitialTabValue = () => {
+    if (tab === 'pending') return 0;
+    if (tab === 'approved') return 1;
+    if (tab === 'rejected') return 2;
+    return 0;
+  };
+  
+  const [tabValue, setTabValue] = useState(getInitialTabValue());
 
   useEffect(() => {
     fetchBusinesses();
   }, []);
+
+  useEffect(() => {
+    // Update tab when prop changes
+    setTabValue(getInitialTabValue());
+  }, [tab]);
 
   const fetchBusinesses = async () => {
     try {
@@ -318,95 +334,45 @@ const BusinessApprovals: React.FC = () => {
     );
   }
 
+  // Get status info for header
+  const getStatusInfo = () => {
+    if (tabValue === 0) return { title: 'Business Applications', color: '#FF9800', icon: <Schedule sx={{ fontSize: 32 }} />, count: businesses.filter(b => b.status === 'pending').length };
+    if (tabValue === 1) return { title: 'Registered Business', color: '#4CAF50', icon: <CheckCircle sx={{ fontSize: 32 }} />, count: businesses.filter(b => b.status === 'approved').length };
+    if (tabValue === 2) return { title: 'Archived Business', color: '#F44336', icon: <Cancel sx={{ fontSize: 32 }} />, count: businesses.filter(b => b.status === 'rejected').length };
+    return { title: 'Business Applications', color: '#667eea', icon: <Business sx={{ fontSize: 32 }} />, count: businesses.length };
+  };
+
+  const statusInfo = getStatusInfo();
+
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Business Approvals
-      </Typography>
-
-      <Tabs 
-        value={tabValue} 
-        onChange={(_, newValue) => setTabValue(newValue)} 
+      {/* Modern Header Section */}
+      <Box 
         sx={{ 
-          mb: 3,
-          '& .MuiTabs-indicator': {
-            height: 3,
-            borderRadius: '3px 3px 0 0',
-          },
+          mb: 4,
+          p: 3,
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${statusInfo.color}15 0%, ${statusInfo.color}05 100%)`,
+          border: `1px solid ${statusInfo.color}30`,
         }}
       >
-        <Tab 
-          label={`Pending (${businesses.filter(b => b.status === 'pending').length})`}
-          icon={<Schedule />}
-          iconPosition="start"
-          sx={{
-            textTransform: 'none',
-            fontSize: '15px',
-            fontWeight: tabValue === 0 ? 700 : 500,
-            minHeight: 48,
-            px: 3,
-            color: tabValue === 0 ? '#FF9800' : '#666',
-            borderRadius: '8px 8px 0 0',
-            transition: 'all 0.3s',
-            '&:hover': {
-              bgcolor: 'rgba(255, 152, 0, 0.08)',
-              color: '#FF9800',
-            },
-            '&.Mui-selected': {
-              color: '#FF9800',
-              bgcolor: 'rgba(255, 152, 0, 0.1)',
-            },
-          }}
-        />
-        <Tab 
-          label={`Approved (${businesses.filter(b => b.status === 'approved').length})`}
-          icon={<CheckCircle />}
-          iconPosition="start"
-          sx={{
-            textTransform: 'none',
-            fontSize: '15px',
-            fontWeight: tabValue === 1 ? 700 : 500,
-            minHeight: 48,
-            px: 3,
-            color: tabValue === 1 ? '#4CAF50' : '#666',
-            borderRadius: '8px 8px 0 0',
-            transition: 'all 0.3s',
-            '&:hover': {
-              bgcolor: 'rgba(76, 175, 80, 0.08)',
-              color: '#4CAF50',
-            },
-            '&.Mui-selected': {
-              color: '#4CAF50',
-              bgcolor: 'rgba(76, 175, 80, 0.1)',
-            },
-          }}
-        />
-        <Tab 
-          label={`Rejected (${businesses.filter(b => b.status === 'rejected').length})`}
-          icon={<Cancel />}
-          iconPosition="start"
-          sx={{
-            textTransform: 'none',
-            fontSize: '15px',
-            fontWeight: tabValue === 2 ? 700 : 500,
-            minHeight: 48,
-            px: 3,
-            color: tabValue === 2 ? '#F44336' : '#666',
-            borderRadius: '8px 8px 0 0',
-            transition: 'all 0.3s',
-            '&:hover': {
-              bgcolor: 'rgba(244, 67, 54, 0.08)',
-              color: '#F44336',
-            },
-            '&.Mui-selected': {
-              color: '#F44336',
-              bgcolor: 'rgba(244, 67, 54, 0.1)',
-            },
-          }}
-        />
-      </Tabs>
+        <Box display="flex" alignItems="center" gap={2} mb={1}>
+          <Box sx={{ color: statusInfo.color }}>
+            {statusInfo.icon}
+          </Box>
+          <Box flex={1}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a2e', mb: 0.5 }}>
+              {statusInfo.title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {statusInfo.count} {statusInfo.count === 1 ? 'business' : 'businesses'} in this category
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
 
-      <Box sx={{ mb: 3 }}>
+      {/* Search Bar */}
+      <Box sx={{ mb: 4 }}>
         <TextField
           fullWidth
           placeholder="Search businesses by name, owner, type, address, contact, or permit number..."
@@ -419,6 +385,17 @@ const BusinessApprovals: React.FC = () => {
               </InputAdornment>
             ),
           }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              bgcolor: '#fff',
+              '&:hover': {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: statusInfo.color,
+                },
+              },
+            },
+          }}
         />
       </Box>
 
@@ -430,54 +407,113 @@ const BusinessApprovals: React.FC = () => {
         </Box>
       )}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 3 }}>
+      {/* Business Cards Grid */}
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { 
+          xs: '1fr', 
+          sm: 'repeat(auto-fill, minmax(350px, 1fr))',
+          md: 'repeat(auto-fill, minmax(380px, 1fr))'
+        }, 
+        gap: { xs: 2, sm: 3 } 
+      }}>
         {filteredBusinesses.map((business) => (
-          <Card key={business.id} sx={{ cursor: 'pointer', '&:hover': { elevation: 8 } }}>
+          <Card 
+            key={business.id} 
+            sx={{ 
+              cursor: 'pointer',
+              borderRadius: 3,
+              border: '1px solid #e0e0e0',
+              transition: 'all 0.3s ease',
+              '&:hover': { 
+                transform: 'translateY(-4px)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                borderColor: statusInfo.color,
+              }
+            }}
+          >
             <CardActionArea onClick={() => handleCardClick(business)}>
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                  <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                {/* Header with Business Name and Status */}
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2.5}>
+                  <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1, fontWeight: 600, color: '#1a1a2e' }}>
                     {business.businessName}
                   </Typography>
                   <Chip
-                    label={business.status}
+                    label={business.status.toUpperCase()}
                     color={getStatusColor(business.status) as any}
                     size="small"
+                    sx={{ fontWeight: 600 }}
                   />
                 </Box>
 
-                <Box mb={2}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <Person sx={{ mr: 1, fontSize: 16 }} />
-                    <Typography variant="body2">{business.businessOwner}</Typography>
+                {/* Business Details */}
+                <Box mb={2.5} sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, sm: 1.5 } }}>
+                  <Box display="flex" alignItems="center">
+                    <Person sx={{ mr: 1.5, fontSize: 18, color: statusInfo.color }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">Owner</Typography>
+                      <Typography variant="body2" fontWeight={500}>{business.businessOwner}</Typography>
                   </Box>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <Business sx={{ mr: 1, fontSize: 16 }} />
-                    <Typography variant="body2">{business.selectedType}</Typography>
                   </Box>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <Phone sx={{ mr: 1, fontSize: 16 }} />
-                    <Typography variant="body2">{business.contactNumber}</Typography>
+                  <Box display="flex" alignItems="center">
+                    <Business sx={{ mr: 1.5, fontSize: 18, color: statusInfo.color }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">Type</Typography>
+                      <Typography variant="body2" fontWeight={500}>{business.selectedType}</Typography>
                   </Box>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <LocationOn sx={{ mr: 1, fontSize: 16 }} />
-                    <Typography variant="body2" noWrap>
+                  </Box>
+                  <Box display="flex" alignItems="center">
+                    <Phone sx={{ mr: 1.5, fontSize: 18, color: statusInfo.color }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">Contact</Typography>
+                      <Typography variant="body2" fontWeight={500}>{business.contactNumber}</Typography>
+                    </Box>
+                  </Box>
+                  <Box display="flex" alignItems="flex-start">
+                    <LocationOn sx={{ mr: 1.5, fontSize: 18, color: statusInfo.color, mt: 0.5 }} />
+                    <Box flex={1}>
+                      <Typography variant="caption" color="text.secondary" display="block">Address</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ 
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}>
                       {business.businessAddress}
                     </Typography>
                   </Box>
-                  <Box display="flex" alignItems="center">
-                    <Description sx={{ mr: 1, fontSize: 16 }} />
-                    <Typography variant="body2">Permit: {business.permitNumber}</Typography>
                   </Box>
                 </Box>
 
-                <Typography variant="caption" color="text.secondary">
-                  Registered: {new Date(business.registrationDate).toLocaleDateString()}
-                </Typography>
+                <Divider sx={{ mb: 2 }} />
 
-                <Box mt={1}>
-                  <Typography variant="caption" color="primary">
-                    Click to view full details and documents
+                {/* Footer */}
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">Permit Number</Typography>
+                    <Typography variant="body2" fontWeight={600} color={statusInfo.color}>
+                      {business.permitNumber}
+                </Typography>
+                  </Box>
+                  <Box textAlign="right">
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Registered
+                    </Typography>
+                    <Typography variant="body2" fontWeight={500}>
+                      {new Date(business.registrationDate).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box mt={2} p={1.5} sx={{ 
+                  bgcolor: `${statusInfo.color}08`, 
+                  borderRadius: 2,
+                  textAlign: 'center',
+                }}>
+                  <Typography variant="caption" sx={{ color: statusInfo.color, fontWeight: 600 }}>
+                    Click to view full details and documents →
                   </Typography>
                 </Box>
               </CardContent>

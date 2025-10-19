@@ -62,6 +62,9 @@ const App: React.FC = () => {
             >
               <Route index element={<DashboardSelector />} />
               <Route path="business-approvals" element={<BusinessApprovals />} />
+              <Route path="business/pending" element={<BusinessApprovals tab="pending" />} />
+              <Route path="business/approved" element={<BusinessApprovals tab="approved" />} />
+              <Route path="business/rejected" element={<BusinessApprovals tab="rejected" />} />
               <Route 
                 path="user-management" 
                 element={

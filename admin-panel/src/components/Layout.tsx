@@ -17,6 +17,7 @@ import {
   DialogActions,
   Button,
   Tooltip,
+  Collapse,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -28,6 +29,12 @@ import {
   Logout,
   ChevronLeft,
   ChevronRight,
+  Business as BusinessIcon,
+  Schedule as PendingIcon,
+  CheckCircle as ApprovedIcon,
+  Cancel as RejectedIcon,
+  ExpandLess,
+  ExpandMore,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -38,6 +45,7 @@ const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [drawerHovered, setDrawerHovered] = useState(false);
+  const [businessMenuOpen, setBusinessMenuOpen] = useState(false);
   const { user, userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,14 +84,35 @@ const Layout: React.FC = () => {
       { text: 'User Management', icon: <PeopleIcon />, path: '/user-management' },
     ];
   } else {
-    // Regular admin menu - only Dashboard and Business Approvals
+    // Regular admin menu - Dashboard and Business with sub-items
     menuItems = [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-      { text: 'Business Approvals', icon: <ApprovalIcon />, path: '/business-approvals' },
     ];
   }
 
+  const businessSubItems = [
+    { text: 'Business Applications', icon: <PendingIcon />, path: '/business/pending' },
+    { text: 'Registered Business', icon: <ApprovedIcon />, path: '/business/approved' },
+    { text: 'Archived Business', icon: <RejectedIcon />, path: '/business/rejected' },
+  ];
+
   const isExpanded = drawerHovered;
+  const isMobileDrawer = window.innerWidth < 600; // Check if mobile
+  const showText = isMobileDrawer || isExpanded; // Show text on mobile or when hovered on desktop
+
+  // Auto-expand Business menu if on a business route
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/business')) {
+      setBusinessMenuOpen(true);
+    }
+  }, [location.pathname]);
+
+  // Auto-expand Business menu on mobile when drawer opens
+  React.useEffect(() => {
+    if (mobileOpen && window.innerWidth < 600) {
+      setBusinessMenuOpen(true);
+    }
+  }, [mobileOpen]);
 
   const drawer = (
     <Box
@@ -115,7 +144,7 @@ const Layout: React.FC = () => {
               objectFit: 'contain',
             }}
           />
-          {isExpanded && (
+          {showText && (
             <Typography
               variant="h6"
               noWrap
@@ -167,7 +196,7 @@ const Layout: React.FC = () => {
                 >
                   {item.icon}
                 </ListItemIcon>
-                {isExpanded && (
+                {showText && (
                   <ListItemText
                     primary={item.text}
                     sx={{
@@ -182,6 +211,117 @@ const Layout: React.FC = () => {
             </ListItem>
           </Tooltip>
         ))}
+        
+        {/* Business menu item with sub-items (only for regular admins) */}
+        {userRole?.role !== 'superadmin' && (
+          <>
+            <Tooltip title={!isExpanded ? 'Business' : ''} placement="right" arrow>
+              <ListItem disablePadding sx={{ mb: 1 }}>
+                <ListItemButton
+                  selected={location.pathname.startsWith('/business')}
+                  onClick={() => {
+                    // On mobile, always expand the menu when clicking Business
+                    if (window.innerWidth < 600) {
+                      setBusinessMenuOpen(!businessMenuOpen);
+                    } else if (isExpanded) {
+                      setBusinessMenuOpen(!businessMenuOpen);
+                    } else {
+                      navigate('/business/pending');
+                    }
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    minHeight: 48,
+                    justifyContent: isExpanded ? 'initial' : 'center',
+                    px: 2.5,
+                    '&.Mui-selected': {
+                      bgcolor: '#667eea',
+                      '&:hover': {
+                        bgcolor: '#5568d3',
+                      },
+                    },
+                    '&:hover': {
+                      bgcolor: 'rgba(102, 126, 234, 0.1)',
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: isExpanded ? 2 : 'auto',
+                      justifyContent: 'center',
+                      color: location.pathname.startsWith('/business') ? '#fff' : '#a0a0b0',
+                    }}
+                  >
+                    <BusinessIcon />
+                  </ListItemIcon>
+                  {showText && (
+                    <>
+                      <ListItemText
+                        primary="Business"
+                        sx={{
+                          opacity: 1,
+                          '& .MuiTypography-root': {
+                            fontWeight: location.pathname.startsWith('/business') ? 600 : 400,
+                          },
+                        }}
+                      />
+                      {businessMenuOpen ? <ExpandLess /> : <ExpandMore />}
+                    </>
+                  )}
+                </ListItemButton>
+              </ListItem>
+            </Tooltip>
+            
+            {/* Business sub-items */}
+            <Collapse in={businessMenuOpen && showText} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {businessSubItems.map((subItem) => (
+                  <ListItem key={subItem.text} disablePadding sx={{ mb: 1 }}>
+                    <ListItemButton
+                      selected={location.pathname === subItem.path}
+                      onClick={() => navigate(subItem.path)}
+                      sx={{
+                        borderRadius: 2,
+                        minHeight: 40,
+                        pl: 5,
+                        '&.Mui-selected': {
+                          bgcolor: 'rgba(102, 126, 234, 0.7)',
+                          '&:hover': {
+                            bgcolor: 'rgba(102, 126, 234, 0.6)',
+                          },
+                        },
+                        '&:hover': {
+                          bgcolor: 'rgba(102, 126, 234, 0.05)',
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 0,
+                          mr: 2,
+                          justifyContent: 'center',
+                          color: location.pathname === subItem.path ? '#fff' : '#a0a0b0',
+                        }}
+                      >
+                        {subItem.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={subItem.text}
+                        sx={{
+                          '& .MuiTypography-root': {
+                            fontSize: '0.9rem',
+                            fontWeight: location.pathname === subItem.path ? 600 : 400,
+                          },
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </>
+        )}
       </List>
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
       <List sx={{ px: 1, pb: 2 }}>
@@ -210,7 +350,7 @@ const Layout: React.FC = () => {
               >
                 <Logout />
               </ListItemIcon>
-              {isExpanded && <ListItemText primary="Logout" />}
+              {showText && <ListItemText primary="Logout" />}
             </ListItemButton>
           </ListItem>
         </Tooltip>
@@ -220,6 +360,58 @@ const Layout: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      {/* Mobile App Bar */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1200,
+          display: { xs: 'flex', sm: 'none' },
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          py: 1,
+          bgcolor: '#1a1a2e',
+          color: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="img"
+            src="/logo.png"
+            alt="Karetou Logo"
+            sx={{
+              width: 32,
+              height: 32,
+              objectFit: 'contain',
+            }}
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #667eea, #764ba2)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Karetou
+          </Typography>
+        </Box>
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={handleDrawerToggle}
+        >
+          <MenuIcon />
+        </IconButton>
+      </Box>
+
       <Box
         component="nav"
         sx={{ 
@@ -233,6 +425,7 @@ const Layout: React.FC = () => {
       >
         <Drawer
           variant="temporary"
+          anchor="right"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
@@ -244,6 +437,7 @@ const Layout: React.FC = () => {
               boxSizing: 'border-box', 
               width: drawerWidth,
               bgcolor: '#1a1a2e',
+              color: '#fff',
             },
           }}
         >
@@ -272,7 +466,8 @@ const Layout: React.FC = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 8, sm: 3 }, // Add top padding for mobile app bar
           width: { 
             xs: '100%',
             sm: `calc(100% - ${isExpanded ? drawerWidth : miniDrawerWidth}px)` 

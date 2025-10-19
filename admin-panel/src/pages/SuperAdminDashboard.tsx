@@ -197,10 +197,10 @@ const SuperAdminDashboard: React.FC = () => {
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#1a1a2e' }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#1a1a2e', fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
           Super Admin Dashboard
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           You have full system access. Manage users, businesses, and admin accounts.
         </Typography>
       </Box>
@@ -209,7 +209,7 @@ const SuperAdminDashboard: React.FC = () => {
       <Box
         display="grid"
         gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }}
-        gap={3}
+        gap={{ xs: 2, sm: 3 }}
         sx={{ mb: 4 }}
       >
         <Card sx={{ 
@@ -217,11 +217,11 @@ const SuperAdminDashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
           borderRadius: 2,
         }}>
-          <CardContent>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Total Users
             </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.totalUsers}
             </Typography>
           </CardContent>
@@ -231,11 +231,11 @@ const SuperAdminDashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(118, 75, 162, 0.25)',
           borderRadius: 2,
         }}>
-          <CardContent>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Total Businesses
             </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.totalBusinesses}
             </Typography>
           </CardContent>
@@ -245,11 +245,11 @@ const SuperAdminDashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(255, 152, 0, 0.25)',
           borderRadius: 2,
         }}>
-          <CardContent>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Pending Approvals
             </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.pendingApprovals}
             </Typography>
           </CardContent>
@@ -259,11 +259,11 @@ const SuperAdminDashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(76, 175, 80, 0.25)',
           borderRadius: 2,
         }}>
-          <CardContent>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Total Admins
             </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.totalAdmins}
             </Typography>
           </CardContent>
@@ -273,11 +273,11 @@ const SuperAdminDashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(33, 150, 243, 0.25)',
           borderRadius: 2,
         }}>
-          <CardContent>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Active Admins
             </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.activeAdmins}
             </Typography>
           </CardContent>
@@ -287,11 +287,11 @@ const SuperAdminDashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(244, 67, 54, 0.25)',
           borderRadius: 2,
         }}>
-          <CardContent>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Inactive Admins
             </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.inactiveAdmins}
             </Typography>
           </CardContent>
@@ -302,9 +302,9 @@ const SuperAdminDashboard: React.FC = () => {
       <Box
         display="grid"
         gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
-        gap={3}
+        gap={{ xs: 2, sm: 3 }}
       >
-        <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0' }}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0' }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Recent Activity
           </Typography>
@@ -343,7 +343,7 @@ const SuperAdminDashboard: React.FC = () => {
         </Paper>
         <Paper 
           sx={{ 
-            p: 3,
+            p: { xs: 2, sm: 3 },
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
             borderRadius: 3,
             border: '1px solid #e0e0e0',
@@ -352,7 +352,7 @@ const SuperAdminDashboard: React.FC = () => {
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Quick Actions
           </Typography>
-          <Box display="flex" flexDirection="column" gap={2}>
+          <Box display="flex" flexDirection="column" gap={{ xs: 1.5, sm: 2 }}>
             <Button
               variant="contained"
               fullWidth
@@ -362,7 +362,7 @@ const SuperAdminDashboard: React.FC = () => {
                 py: 1.5,
                 bgcolor: '#4CAF50',
                 textTransform: 'none',
-                fontSize: '1rem',
+                fontSize: { xs: '0.875rem', sm: '1rem' },
                 fontWeight: 600,
                 borderRadius: 2,
                 boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
@@ -383,7 +383,7 @@ const SuperAdminDashboard: React.FC = () => {
                 py: 1.5,
                 bgcolor: '#667eea',
                 textTransform: 'none',
-                fontSize: '1rem',
+                fontSize: { xs: '0.875rem', sm: '1rem' },
                 fontWeight: 600,
                 borderRadius: 2,
                 boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
@@ -404,7 +404,7 @@ const SuperAdminDashboard: React.FC = () => {
                 py: 1.5,
                 bgcolor: '#2196F3',
                 textTransform: 'none',
-                fontSize: '1rem',
+                fontSize: { xs: '0.875rem', sm: '1rem' },
                 fontWeight: 600,
                 borderRadius: 2,
                 boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
@@ -426,7 +426,7 @@ const SuperAdminDashboard: React.FC = () => {
                 borderColor: '#667eea',
                 color: '#667eea',
                 textTransform: 'none',
-                fontSize: '1rem',
+                fontSize: { xs: '0.875rem', sm: '1rem' },
                 fontWeight: 600,
                 borderRadius: 2,
                 '&:hover': {

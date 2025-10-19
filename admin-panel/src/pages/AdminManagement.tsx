@@ -31,6 +31,7 @@ import {
   CheckCircle,
   Block,
   Add,
+  CalendarToday,
 } from '@mui/icons-material';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -233,14 +234,25 @@ const AdminManagement: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        gap={{ xs: 2, sm: 0 }}
+      >
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
           Admin Management
         </Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
           onClick={() => setDialogOpen(true)}
+          sx={{ 
+            minWidth: { xs: 'auto', sm: '140px' },
+            width: { xs: '100%', sm: 'auto' }
+          }}
         >
           Create Admin
         </Button>
@@ -294,89 +306,213 @@ const AdminManagement: React.FC = () => {
         />
       </Box>
 
-      <Card>
-        <CardContent>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Admin</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAdmins.map((admin) => (
-                  <TableRow 
-                    key={admin.id}
+      {/* Desktop Table View */}
+      <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <Card>
+          <CardContent sx={{ p: 2 }}>
+            <TableContainer 
+              component={Paper}
+              sx={{ 
+                overflowX: 'auto',
+                '&::-webkit-scrollbar': {
+                  height: 8,
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1',
+                  borderRadius: 4,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#c1c1c1',
+                  borderRadius: 4,
+                  '&:hover': {
+                    backgroundColor: '#a8a8a8',
+                  },
+                },
+              }}
+            >
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Admin</TableCell>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Email</TableCell>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Created</TableCell>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredAdmins.map((admin) => (
+                    <TableRow 
+                      key={admin.id}
+                      sx={{ 
+                        opacity: admin.isActive ? 1 : 0.6,
+                        backgroundColor: admin.isActive ? 'inherit' : 'action.hover'
+                      }}
+                    >
+                      <TableCell>
+                        <Box display="flex" alignItems="center">
+                          <AdminPanelSettings sx={{ mr: 1, fontSize: 20 }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>Admin</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center">
+                          <Email sx={{ mr: 1, fontSize: 16 }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{admin.email || 'N/A'}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" flexDirection="column" alignItems="flex-start">
+                          <Chip
+                            icon={admin.isActive ? <CheckCircle /> : <Block />}
+                            label={admin.isActive ? 'Active' : 'Inactive'}
+                            color={admin.isActive ? 'success' : 'error'}
+                            size="small"
+                            sx={{ fontSize: '0.75rem' }}
+                          />
+                          {!admin.isActive && (
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.75rem' }}>
+                              Cannot log in
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Button
+                            variant="contained"
+                            color={admin.isActive ? "error" : "success"}
+                            size="small"
+                            onClick={() => handleToggleAdminStatus(admin.id, admin.isActive)}
+                            startIcon={admin.isActive ? <Block /> : <CheckCircle />}
+                            sx={{ fontSize: '0.875rem' }}
+                          >
+                            {admin.isActive ? 'Deactivate' : 'Activate'}
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={() => handleDeleteAdmin(admin.id)}
+                            startIcon={<Delete />}
+                            sx={{ fontSize: '0.875rem' }}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Mobile Card View */}
+      <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {filteredAdmins.map((admin) => (
+            <Card 
+              key={admin.id}
+              sx={{ 
+                opacity: admin.isActive ? 1 : 0.6,
+                backgroundColor: admin.isActive ? 'inherit' : 'action.hover',
+                border: '1px solid #e0e0e0',
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              }}
+            >
+              <CardContent sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AdminPanelSettings sx={{ fontSize: 24, color: '#667eea' }} />
+                    <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                      Admin
+                    </Typography>
+                  </Box>
+                  <Chip
+                    icon={admin.isActive ? <CheckCircle /> : <Block />}
+                    label={admin.isActive ? 'Active' : 'Inactive'}
+                    color={admin.isActive ? 'success' : 'error'}
+                    size="small"
+                    sx={{ fontSize: '0.75rem' }}
+                  />
+                </Box>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Email sx={{ fontSize: 16, color: '#666' }} />
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#666' }}>
+                      Email
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ fontSize: '0.875rem', ml: 3 }}>
+                    {admin.email || 'N/A'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <CalendarToday sx={{ fontSize: 16, color: '#666' }} />
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#666' }}>
+                      Created
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ fontSize: '0.875rem', ml: 3 }}>
+                    {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
+                  </Typography>
+                </Box>
+
+                {!admin.isActive && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      Cannot log in
+                    </Typography>
+                  </Box>
+                )}
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+                  <Button
+                    variant="contained"
+                    color={admin.isActive ? "error" : "success"}
+                    size="small"
+                    onClick={() => handleToggleAdminStatus(admin.id, admin.isActive)}
+                    startIcon={admin.isActive ? <Block /> : <CheckCircle />}
                     sx={{ 
-                      opacity: admin.isActive ? 1 : 0.6,
-                      backgroundColor: admin.isActive ? 'inherit' : 'action.hover'
+                      fontSize: '0.875rem',
+                      py: 1,
+                      textTransform: 'none'
                     }}
                   >
-                    <TableCell>
-                      <Box display="flex" alignItems="center">
-                        <AdminPanelSettings sx={{ mr: 1 }} />
-                        <Typography variant="body2">Admin</Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center">
-                        <Email sx={{ mr: 1, fontSize: 16 }} />
-                        <Typography variant="body2">{admin.email || 'N/A'}</Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" flexDirection="column" alignItems="flex-start">
-                        <Chip
-                          icon={admin.isActive ? <CheckCircle /> : <Block />}
-                          label={admin.isActive ? 'Active' : 'Inactive'}
-                          color={admin.isActive ? 'success' : 'error'}
-                          size="small"
-                        />
-                        {!admin.isActive && (
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                            Cannot log in
-                          </Typography>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Button
-                          variant="contained"
-                          color={admin.isActive ? "error" : "success"}
-                          size="small"
-                          onClick={() => handleToggleAdminStatus(admin.id, admin.isActive)}
-                          startIcon={admin.isActive ? <Block /> : <CheckCircle />}
-                        >
-                          {admin.isActive ? 'Deactivate' : 'Activate'}
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          onClick={() => handleDeleteAdmin(admin.id)}
-                          startIcon={<Delete />}
-                        >
-                          Delete
-                        </Button>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
+                    {admin.isActive ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleDeleteAdmin(admin.id)}
+                    startIcon={<Delete />}
+                    sx={{ 
+                      fontSize: '0.875rem',
+                      py: 1,
+                      textTransform: 'none'
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      </Box>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Create New Admin Account</DialogTitle>
