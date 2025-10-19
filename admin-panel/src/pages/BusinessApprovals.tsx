@@ -203,10 +203,12 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
       setProcessing(true);
       const approvedDate = new Date().toISOString();
       
-      // Update business status
+      // Update business status and make it visible in user app
       await updateDoc(doc(db, 'businesses', businessId), {
         status: 'approved',
         approvedDate,
+        displayInUserApp: true,
+        displayUpdatedAt: new Date().toISOString()
       });
 
       // Create notification for business owner

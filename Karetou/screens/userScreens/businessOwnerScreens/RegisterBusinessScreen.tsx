@@ -361,15 +361,21 @@ const RegisterBusinessScreen = () => {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       marginBottom: spacing.xl,
+      position: 'relative',
     },
     backButton: {
-      marginRight: spacing.md,
+      position: 'absolute',
+      left: 0,
+      zIndex: 1,
     },
     title: {
       fontSize: fontSizes.xl,
       fontWeight: 'bold',
       color: '#333',
+      textAlign: 'center',
+      flex: 1,
     },
     label: {
       fontSize: fontSizes.md,

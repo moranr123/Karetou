@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, StatusBar, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, StatusBar, Platform, ActivityIndicator, Modal, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, increment } from 'firebase/firestore';
+import NotificationService from '../../services/NotificationService';
 
 // Ultimate image cache with base64 storage for instant display
 const base64ImageCache = new Map<string, string>();
@@ -144,6 +145,8 @@ const CachedImage: React.FC<{
   );
 };
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 const FILTERS = ['All', 'Coffee Shop', 'Restaurant', 'Tourist Spot'];
 
 const SearchBarScreen = () => {
@@ -152,6 +155,14 @@ const SearchBarScreen = () => {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedBusinesses, setSavedBusinesses] = useState<string[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [userReview, setUserReview] = useState<any>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [businessRatings, setBusinessRatings] = useState<{ [businessId: string]: { average: string, count: number } }>({});
   const navigation = useNavigation();
   const { theme, user } = useAuth();
 
@@ -199,6 +210,21 @@ const SearchBarScreen = () => {
     } catch (error) {
       console.error('Error loading saved businesses:', error);
     }
+  };
+
+  // Add this function to check for existing review
+  const fetchUserReview = async (businessId: string) => {
+    if (!user?.uid) return;
+    setReviewLoading(true);
+    const reviewsRef = collection(db, 'businesses', businessId, 'reviews');
+    const q = query(reviewsRef, where('userId', '==', user.uid));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      setUserReview(snapshot.docs[0].data());
+    } else {
+      setUserReview(null);
+    }
+    setReviewLoading(false);
   };
 
   // Fetch verified/active businesses from Firebase
@@ -268,6 +294,37 @@ const SearchBarScreen = () => {
       unsubscribe();
     };
   }, []);
+
+  // Real-time listener for reviews of all loaded businesses
+  useEffect(() => {
+    if (!businesses.length) return;
+    const unsubscribes: (() => void)[] = [];
+    businesses.forEach((place) => {
+      const reviewsRef = collection(db, 'businesses', place.id, 'reviews');
+      const unsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+        let total = 0;
+        let count = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (typeof data.rating === 'number') {
+            total += data.rating;
+            count++;
+          }
+        });
+        setBusinessRatings(prev => ({
+          ...prev,
+          [place.id]: {
+            average: count > 0 ? (total / count).toFixed(1) : '0.0',
+            count,
+          },
+        }));
+      });
+      unsubscribes.push(unsubscribe);
+    });
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [businesses]);
 
   const filteredData = businesses.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
@@ -367,7 +424,27 @@ const SearchBarScreen = () => {
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingTop: 180, paddingHorizontal: 12 }}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <TouchableOpacity 
+            style={styles.card}
+            onPress={async () => {
+              // Track business view
+              try {
+                if (item.id) {
+                  const businessRef = doc(db, 'businesses', item.id);
+                  await updateDoc(businessRef, {
+                    viewCount: increment(1),
+                    lastViewedAt: new Date().toISOString(),
+                  });
+                  console.log('✅ View tracked for:', item.name);
+                }
+              } catch (error) {
+                console.log('❌ Error tracking view:', error);
+              }
+              
+              setSelectedPlace(item);
+              setDetailsModalVisible(true);
+            }}
+          >
             <View style={styles.cardRow}>
               <View style={styles.cardImagePlaceholder}>
                 {item.image ? (
@@ -380,17 +457,20 @@ const SearchBarScreen = () => {
                 <Text style={styles.cardTitle}>{item.name}</Text>
                 <Text style={styles.cardAddress}>{item.address}</Text>
                 <Text style={styles.cardType}>{item.type}</Text>
-                {item.rating > 0 && (
+                {businessRatings[item.id]?.average && (
                   <View style={styles.ratingRow}>
                     <Ionicons name="star" size={16} color="#FFD600" />
-                    <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-                    <Text style={styles.reviewText}>({item.reviews} Reviews)</Text>
+                    <Text style={styles.ratingText}>{businessRatings[item.id]?.average || item.rating?.toFixed(1) || '0.0'}</Text>
+                    <Text style={styles.reviewText}>({businessRatings[item.id]?.count || item.reviews || 0} {businessRatings[item.id]?.count === 1 ? 'Review' : 'Reviews'})</Text>
                   </View>
                 )}
               </View>
               <TouchableOpacity 
                 style={styles.saveButton}
-                onPress={() => handleSaveBusiness(item.id)}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleSaveBusiness(item.id);
+                }}
               >
                 <Ionicons 
                   name={savedBusinesses.includes(item.id) ? "bookmark" : "bookmark-outline"} 
@@ -399,7 +479,7 @@ const SearchBarScreen = () => {
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -410,6 +490,202 @@ const SearchBarScreen = () => {
           </View>
         }
       />
+
+      {/* ===== Details Modal JSX ===== */}
+      {selectedPlace && (
+        <Modal
+          visible={detailsModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => {
+            setDetailsModalVisible(false);
+          }}
+        >
+          <View style={styles.detailsOverlay}>
+            <View style={styles.detailsContainer}>
+              {/* Image Carousel */}
+              <View style={styles.carouselWrapper}>
+                <FlatList
+                  data={selectedPlace.businessImages && selectedPlace.businessImages.length > 0 ? selectedPlace.businessImages : [selectedPlace.image]}
+                  keyExtractor={(uri, idx) => uri + idx}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  renderItem={({ item, index }) => (
+                    <View style={styles.imageContainer}>
+                      <CachedImage source={{ uri: item }} style={styles.detailsImage} resizeMode="cover" />
+                      <TouchableOpacity style={styles.rateButton} onPress={async () => {
+                        console.log('Rate button pressed', selectedPlace?.id);
+                        await fetchUserReview(selectedPlace.id);
+                        setDetailsModalVisible(false);
+                        setReviewModalVisible(true);
+                      }}>
+                        <Ionicons name="star" size={16} color="#FFD700" />
+                        <Text style={styles.rateButtonText}>Rate</Text>
+                      </TouchableOpacity>
+                      {index === 0 && (selectedPlace.businessImages?.length > 1 || selectedPlace.image) && (
+                        <View style={styles.swipeIndicator}>
+                          <Ionicons name="chevron-forward" size={24} color="#fff" />
+                          <Text style={styles.swipeText}>Swipe</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                />
+              </View>
+              <View style={styles.detailsContent}>
+                <Text style={styles.detailsTitle}>{selectedPlace.name}</Text>
+                {selectedPlace.type ? (
+                  <Text style={styles.detailsSubtitle}>{selectedPlace.type}</Text>
+                ) : null}
+                {selectedPlace.address ? (
+                  <>
+                    <Text style={styles.detailsLocationLabel}>Location</Text>
+                    <Text style={styles.detailsLocation}>{selectedPlace.address}</Text>
+                  </>
+                ) : null}
+                {/* Rating Row */}
+                <View style={styles.ratingRowModal}>
+                  <Ionicons name="star" size={20} color="#FFD700" />
+                  <Text style={styles.ratingNumberModal}>{businessRatings[selectedPlace.id]?.average || selectedPlace.rating?.toFixed(1) || '0.0'}</Text>
+                  <Text style={styles.reviewsTextModal}>({businessRatings[selectedPlace.id]?.count || selectedPlace.reviews || 0} {businessRatings[selectedPlace.id]?.count === 1 ? 'Review' : 'Reviews'})</Text>
+                </View>
+                <Text style={styles.detailsSectionLabel}>Business Hours</Text>
+                <Text style={styles.detailsText}>{selectedPlace.businessHours || 'Not specified'}</Text>
+                {/* View on Map Button */}
+                { (selectedPlace.businessLocation || selectedPlace.address) && (
+                  <TouchableOpacity
+                    style={styles.viewMapBtn}
+                    onPress={() => {
+                      // Close the current modal first
+                      setDetailsModalVisible(false);
+                      
+                      // Navigate to the Navigate tab with business data
+                      (navigation as any).navigate('Navigate', { business: selectedPlace });
+                    }}
+                  >
+                    <Ionicons name="map" size={20} color="#fff" />
+                    <Text style={styles.viewMapText}> View on Map</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity style={styles.closeButtonModal} onPress={() => setDetailsModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Review Modal */}
+      <Modal
+        visible={reviewModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setReviewModalVisible(false);
+          setDetailsModalVisible(true);
+        }}
+      >
+        <View style={[styles.reviewModalOverlay]}> 
+          <View style={styles.reviewModalCard}> 
+            {/* Header */}
+            <View style={styles.reviewModalHeader}>
+              <Text style={styles.reviewModalTitle}>{selectedPlace?.name || 'Rate & Review'}</Text>
+              <TouchableOpacity onPress={() => {
+                setReviewModalVisible(false);
+                setDetailsModalVisible(true);
+              }}>
+                <Ionicons name="close" size={28} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            {reviewLoading ? (
+              <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 30 }} />
+            ) : userReview ? (
+              <View style={styles.reviewCardDisplay}>
+                <Text style={styles.reviewCardLabel}>Your Review</Text>
+                <View style={styles.reviewCardStars}>
+                  {[1,2,3,4,5].map(i => (
+                    <Ionicons key={i} name={i <= userReview.rating ? 'star' : 'star-outline'} size={30} color="#FFD700" />
+                  ))}
+                </View>
+                {userReview.comment ? <Text style={styles.reviewCardComment}>{userReview.comment}</Text> : null}
+                <Text style={styles.reviewCardDate}>{userReview.createdAt ? new Date(userReview.createdAt).toLocaleString() : ''}</Text>
+                <TouchableOpacity style={styles.reviewModalButton} onPress={() => {
+                  setReviewModalVisible(false);
+                  setDetailsModalVisible(true);
+                }}>
+                  <Text style={styles.reviewModalButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', marginTop: 10 }}>
+                <Text style={styles.reviewModalLabel}>Your Rating</Text>
+                <View style={styles.reviewModalStars}>
+                  {[1,2,3,4,5].map(i => (
+                    <TouchableOpacity key={i} onPress={() => setReviewRating(i)}>
+                      <Ionicons name={i <= reviewRating ? 'star' : 'star-outline'} size={38} color="#FFD700" style={{ marginHorizontal: 2 }} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.reviewModalInput}
+                  placeholder="Write an optional comment..."
+                  value={reviewComment}
+                  onChangeText={setReviewComment}
+                  multiline
+                  placeholderTextColor="#888"
+                />
+                <TouchableOpacity
+                  style={[styles.reviewModalButton, reviewRating === 0 || reviewLoading ? { opacity: 0.6 } : {}]} 
+                  disabled={reviewRating === 0 || reviewLoading}
+                  onPress={async () => {
+                    if (!user || !selectedPlace) return;
+                    setReviewLoading(true);
+                    // Check again for existing review
+                    const reviewsRef = collection(db, 'businesses', selectedPlace.id, 'reviews');
+                    const q = query(reviewsRef, where('userId', '==', user.uid));
+                    const snapshot = await getDocs(q);
+                    if (!snapshot.empty) {
+                      setUserReview(snapshot.docs[0].data());
+                      setReviewLoading(false);
+                      return;
+                    }
+                    // Add review
+                    await addDoc(reviewsRef, {
+                      userId: user.uid,
+                      userName: user.displayName || user.email || 'Anonymous',
+                      rating: reviewRating,
+                      comment: reviewComment,
+                      createdAt: new Date().toISOString(),
+                    });
+
+                    // Notify business owner of new review
+                    const notificationService = NotificationService.getInstance();
+                    await notificationService.notifyBusinessOwnerOfNewReview(
+                      selectedPlace.id,
+                      user.displayName || user.email || 'Anonymous User',
+                      reviewRating,
+                      reviewComment
+                    );
+
+                    setUserReview({
+                      userId: user.uid,
+                      userName: user.displayName || user.email || 'Anonymous',
+                      rating: reviewRating,
+                      comment: reviewComment,
+                      createdAt: new Date().toISOString(),
+                    });
+                    setReviewLoading(false);
+                  }}
+                >
+                  <Text style={styles.reviewModalButtonText}>{reviewLoading ? 'Submitting...' : 'Submit Review'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 };
@@ -589,6 +865,246 @@ const styles = StyleSheet.create({
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Modal styles
+  detailsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsContainer: {
+    width: screenWidth * 0.85,
+    maxHeight: screenHeight * 0.80,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  detailsImage: {
+    width: screenWidth * 0.75,
+    height: screenHeight * 0.25,
+    resizeMode: 'cover',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  detailsContent: {
+    padding: 20,
+  },
+  detailsTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  detailsSubtitle: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  detailsLocationLabel: {
+    fontWeight: '600',
+    color: '#667eea',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  detailsLocation: {
+    fontSize: 14,
+    color: '#777',
+    marginBottom: 12,
+  },
+  ratingRowModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  ratingNumberModal: {
+    marginLeft: 4,
+    fontWeight: '600',
+    color: '#333',
+  },
+  reviewsTextModal: {
+    marginLeft: 4,
+    color: '#667eea',
+  },
+  detailsSectionLabel: {
+    fontWeight: '600',
+    color: '#667eea',
+    marginTop: 16,
+  },
+  detailsText: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 4,
+  },
+  closeButtonModal: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 5,
+    zIndex: 2,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: screenWidth * 0.75,
+    height: screenHeight * 0.25,
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  carouselWrapper: {
+    width: '100%',
+    height: screenHeight * 0.29,
+    alignItems: 'center',
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    right: 10,
+    top: '50%',
+    transform: [{ translateY: -20 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+    alignItems: 'center',
+  },
+  swipeText: {
+    color: '#fff',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  viewMapBtn: {
+    marginTop: 16,
+    width: '100%',
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  viewMapText: {
+    color: '#fff',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  rateButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    zIndex: 2,
+  },
+  rateButtonText: {
+    color: '#fff',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  reviewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  reviewModalCard: {
+    width: '95%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#667eea',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  reviewModalTitle: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+    flex: 1,
+  },
+  reviewModalLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  reviewModalStars: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    justifyContent: 'center',
+  },
+  reviewModalInput: {
+    width: '90%',
+    minHeight: 60,
+    backgroundColor: '#f3f3f7',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    padding: 12,
+    color: '#222',
+    marginBottom: 20,
+  },
+  reviewModalButton: {
+    backgroundColor: '#667eea',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 4,
+    alignSelf: 'center',
+  },
+  reviewModalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  reviewCardDisplay: {
+    alignItems: 'center',
+    backgroundColor: '#f7f7fa',
+    borderRadius: 10,
+    margin: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+  },
+  reviewCardLabel: {
+    fontWeight: 'bold',
+    color: '#667eea',
+    marginBottom: 4,
+  },
+  reviewCardStars: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  reviewCardComment: {
+    fontStyle: 'italic',
+    color: '#444',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  reviewCardDate: {
+    color: '#888',
+    marginBottom: 8,
   },
 });
 

@@ -305,6 +305,9 @@ export default function Login({ navigation }: Props) {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
                 />
               </ResponsiveView>
 
@@ -318,6 +321,9 @@ export default function Login({ navigation }: Props) {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  autoComplete="password"
+                  textContentType="password"
+                  importantForAutofill="yes"
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}

@@ -33,10 +33,28 @@ const MyBusinessScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [displayToggleLoading, setDisplayToggleLoading] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string>('Registered');
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  const filterOptions = ['Registered', 'Pending'];
+
+  // Function to fix businesses that are approved but missing displayInUserApp field
+  const fixBusinessVisibility = async (business: any) => {
+    if (business.status === 'approved' && business.displayInUserApp !== true) {
+      try {
+        console.log(`🔧 Fixing visibility for business: ${business.businessName}`);
+        await updateDoc(doc(db, 'businesses', business.id), {
+          displayInUserApp: true,
+          displayUpdatedAt: new Date().toISOString()
+        });
+        console.log(`✅ Business "${business.businessName}" is now visible to users!`);
+      } catch (error) {
+        console.error(`❌ Error fixing visibility for business "${business.businessName}":`, error);
+      }
+    }
+  };
 
   // Set up real-time listener for business data
   useEffect(() => {
@@ -73,6 +91,14 @@ const MyBusinessScreen = () => {
         setLoading(false);
         
         console.log('✅ Business data updated in real-time:', businessList.length, 'businesses');
+        
+        // Auto-fix businesses that are approved but missing displayInUserApp field
+        businessList.forEach(business => {
+          if (business.status === 'approved' && business.displayInUserApp !== true) {
+            console.log(`🔧 Auto-fixing visibility for approved business: ${business.businessName}`);
+            fixBusinessVisibility(business);
+          }
+        });
       },
       (error) => {
         console.error('Error in business listener:', error);
@@ -121,6 +147,20 @@ const MyBusinessScreen = () => {
         return 'Unknown';
     }
   };
+
+  // Filter businesses based on selected filter
+  const getFilteredBusinesses = () => {
+    switch (selectedFilter) {
+      case 'Registered':
+        return businesses.filter(business => business.status === 'approved');
+      case 'Pending':
+        return businesses.filter(business => business.status === 'pending');
+      default:
+        return businesses;
+    }
+  };
+
+  const filteredBusinesses = getFilteredBusinesses();
 
   if (loading) {
     return (
@@ -186,71 +226,13 @@ const MyBusinessScreen = () => {
     }
   };
 
-  const handleEditBusiness = (business: any) => {
+  const handleChangeBusinessHours = (business: any) => {
     setModalVisible(false);
-    (navigation as any).navigate('EditBusiness', { business });
+    (navigation as any).navigate('EditBusiness', { business, focusOnHours: true });
   };
+
 
   // Function to toggle business display in user app
-  const handleToggleDisplayInUserApp = async (business: any) => {
-    try {
-      setDisplayToggleLoading(true);
-      const newDisplayStatus = !business.displayInUserApp;
-      
-      // Update business document with display status
-      await updateDoc(doc(db, 'businesses', business.id), {
-        displayInUserApp: newDisplayStatus,
-        displayUpdatedAt: new Date().toISOString()
-      });
-
-      // If enabling display, add to userAppBusinesses collection
-      if (newDisplayStatus) {
-        await setDoc(doc(db, 'userAppBusinesses', business.id), {
-          businessId: business.id,
-          businessName: business.businessName,
-          businessType: business.selectedType,
-          businessAddress: business.businessAddress,
-          contactNumber: business.contactNumber,
-          businessHours: business.businessHours,
-          businessImages: business.businessImages || [],
-          businessLocation: business.businessLocation || null,
-          rating: business.rating || 4.5,
-          reviews: business.reviews || '0 Reviews',
-          userId: business.userId,
-          status: business.status,
-          addedToUserAppAt: new Date().toISOString()
-        });
-        
-        Alert.alert(
-          '✅ Business Added to User App!', 
-          `${business.businessName} is now visible to users in the app and can be found on the map for navigation.`
-        );
-      } else {
-        // Remove from userAppBusinesses collection
-        await deleteDoc(doc(db, 'userAppBusinesses', business.id));
-        
-        Alert.alert(
-          '🚫 Business Removed from User App', 
-          `${business.businessName} is no longer visible to users in the app.`
-        );
-      }
-
-      // Update the selected business state immediately to reflect changes in the modal
-      setSelectedBusiness((prev: any) => ({
-        ...prev,
-        displayInUserApp: newDisplayStatus,
-        displayUpdatedAt: new Date().toISOString()
-      }));
-
-      // Refresh data to show updated status
-      refreshData();
-    } catch (error) {
-      console.error('Error toggling display status:', error);
-      Alert.alert('Error', 'Failed to update business display status. Please try again.');
-    } finally {
-      setDisplayToggleLoading(false);
-    }
-  };
 
   const renderImageCarousel = () => {
     if (!selectedBusiness?.businessImages || selectedBusiness.businessImages.length === 0) {
@@ -340,6 +322,7 @@ const MyBusinessScreen = () => {
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(business.status) }]}>
             <Text style={styles.statusText}>{getStatusText(business.status)}</Text>
           </View>
+          
         </View>
 
         {/* Arrow Icon */}
@@ -359,7 +342,7 @@ const MyBusinessScreen = () => {
     </View>
   );
 
-  if (businesses.length === 0 && !loading) {
+  if (filteredBusinesses.length === 0 && !loading) {
     return (
       <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
@@ -375,20 +358,47 @@ const MyBusinessScreen = () => {
               <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
             </TouchableOpacity>
             <Text style={styles.title}>My Businesses</Text>
-            <View style={styles.businessCount}>
-              <Text style={styles.businessCountText}>0 Active</Text>
-            </View>
+            <View style={styles.placeholder} />
+          </View>
+
+          {/* Filter Buttons */}
+          <View style={styles.filterContainer}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScrollView}
+            >
+              {filterOptions.map((filter, index) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[
+                    styles.filterButton,
+                    selectedFilter === filter && styles.filterButtonActive,
+                    index === filterOptions.length - 1 && styles.filterButtonLast
+                  ]}
+                  onPress={() => setSelectedFilter(filter)}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedFilter === filter && styles.filterButtonTextActive
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
             <View style={styles.noBusinessContainer}>
               <Ionicons name="business-outline" size={80} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.3)'} />
-              <Text style={styles.noBusinessTitle}>No Active Businesses</Text>
-              <Text style={styles.subtitle}>
-                You don't have any active or pending businesses. Register your business to get started.
+              <Text style={styles.noBusinessTitle}>
+                {selectedFilter === 'Registered' ? 'No Registered Businesses' : 'No Pending Businesses'}
               </Text>
-              <TouchableOpacity style={styles.registerButton}>
-                <Text style={styles.registerButtonText}>Register Business</Text>
-              </TouchableOpacity>
+              <Text style={styles.subtitle}>
+                {selectedFilter === 'Registered' ? 'You don\'t have any registered businesses yet.' : 'You don\'t have any pending businesses.'}
+              </Text>
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -411,29 +421,41 @@ const MyBusinessScreen = () => {
               <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
             </TouchableOpacity>
             <Text style={styles.title}>My Businesses</Text>
-            <View style={styles.businessCount}>
-              <Text style={styles.businessCountText}>{businesses.length} Active</Text>
-            </View>
+            <View style={styles.placeholder} />
           </View>
 
-          {/* Summary Stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{businesses.filter(b => b.status === 'approved').length}</Text>
-              <Text style={styles.statLabel}>Active</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{businesses.filter(b => b.status === 'pending').length}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{businesses.length}</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
+          {/* Filter Buttons */}
+          <View style={styles.filterContainer}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScrollView}
+            >
+              {filterOptions.map((filter, index) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[
+                    styles.filterButton,
+                    selectedFilter === filter && styles.filterButtonActive,
+                    index === filterOptions.length - 1 && styles.filterButtonLast
+                  ]}
+                  onPress={() => setSelectedFilter(filter)}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedFilter === filter && styles.filterButtonTextActive
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* Business Cards */}
-          {businesses.map((business) => renderBusinessCard(business))}
+          {filteredBusinesses.map((business) => renderBusinessCard(business))}
         </ScrollView>
 
         {/* Business Details Modal */}
@@ -458,49 +480,12 @@ const MyBusinessScreen = () => {
               <View style={styles.topButtonContainer}>
                 <TouchableOpacity 
                   style={styles.editButton}
-                  onPress={() => handleEditBusiness(selectedBusiness)}
+                  onPress={() => handleChangeBusinessHours(selectedBusiness)}
                 >
-                  <Ionicons name="create-outline" size={20} color="#667eea" />
-                  <Text style={styles.editButtonText}>Edit Profile</Text>
+                  <Ionicons name="time-outline" size={20} color="#667eea" />
+                  <Text style={styles.editButtonText}>Change Business Hours</Text>
                 </TouchableOpacity>
 
-                {selectedBusiness?.status === 'approved' && (
-                  <TouchableOpacity 
-                    style={[
-                      styles.displayButton, 
-                      selectedBusiness?.displayInUserApp && styles.displayButtonHide,
-                      displayToggleLoading && styles.displayButtonDisabled
-                    ]} 
-                    onPress={() => handleToggleDisplayInUserApp(selectedBusiness)}
-                    disabled={displayToggleLoading}
-                  >
-                    {displayToggleLoading ? (
-                      <>
-                        <ActivityIndicator size="small" color={selectedBusiness?.displayInUserApp ? "#F44336" : "#4CAF50"} />
-                        <Text style={[
-                          styles.displayButtonText,
-                          selectedBusiness?.displayInUserApp && styles.displayButtonTextHide
-                        ]}>
-                          {selectedBusiness?.displayInUserApp ? 'Hiding...' : 'Adding...'}
-                        </Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons 
-                          name={selectedBusiness?.displayInUserApp ? "eye-off-outline" : "eye-outline"} 
-                          size={20} 
-                          color={selectedBusiness?.displayInUserApp ? "#F44336" : "#4CAF50"}
-                        />
-                        <Text style={[
-                          styles.displayButtonText,
-                          selectedBusiness?.displayInUserApp && styles.displayButtonTextHide
-                        ]}>
-                          {selectedBusiness?.displayInUserApp ? 'Hide from User App' : 'Display in User App'}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
               </View>
 
               {/* Business Images Carousel */}
@@ -599,7 +584,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -616,11 +602,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 50,
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 0,
   },
   backButton: {
     width: 40,
@@ -652,6 +640,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 15,
     marginBottom: 15,
+    marginHorizontal: 0,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -795,36 +784,6 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 14,
     fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#667eea',
-    marginBottom: 5,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
   },
   imagesSection: {
     marginBottom: 15,
@@ -1001,33 +960,55 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
-  displayButton: {
-    flex: 1,
+  // Filter Styles
+  filterContainer: {
+    paddingHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 10,
+    marginHorizontal: -16, // Extend beyond parent container
+  },
+  filterScrollView: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  displayButtonText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+  filterButtonActive: {
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
-  displayButtonHide: {
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    borderColor: '#F44336',
+  filterButtonText: {
+    fontWeight: '700',
+    color: '#555',
+    fontSize: 15,
+    letterSpacing: 0.3,
   },
-  displayButtonTextHide: {
-    color: '#F44336',
+  filterButtonTextActive: {
+    color: '#fff',
+    fontWeight: '700',
   },
-  displayButtonDisabled: {
-    opacity: 0.7,
+  filterButtonLast: {
+    marginRight: 4,
   },
 });
 

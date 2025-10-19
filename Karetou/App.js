@@ -8,6 +8,7 @@ import SignupScreen from './screens/userScreens/SignupScreen';
 import EmailVerificationScreen from './screens/userScreens/EmailVerificationScreen';
 import MainTabNavigator from './components/MainTabNavigator';
 import { SearchBarScreen } from './screens/userScreens/SearchBarScreen';
+import ReviewsScreen from './screens/userScreens/ReviewsScreen';
 import BusinessLogin from './screens/userScreens/businessOwnerScreens/BusinessLogin';
 import BusinessSignUp from './screens/userScreens/businessOwnerScreens/BusinessSignUp';
 import BusinessHomeScreen from './screens/userScreens/businessOwnerScreens/BusinessHomeScreen';
@@ -60,6 +61,7 @@ const UserAppStack = () => (
   >
     <Stack.Screen name="Main" component={MainTabNavigator} />
     <Stack.Screen name="SearchBarScreen" component={SearchBarScreen} />
+    <Stack.Screen name="ReviewsScreen" component={ReviewsScreen} />
     <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
   </Stack.Navigator>
 );

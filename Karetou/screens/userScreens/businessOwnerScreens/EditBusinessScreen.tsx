@@ -32,7 +32,8 @@ const businessTypes = ['Coffee Shop', 'Tourist Spot', 'Restaurant'];
 
 type RootStackParamList = {
   EditBusiness: {
-    businessData: any;
+    business: any;
+    focusOnHours?: boolean;
   };
 };
 
@@ -54,7 +55,8 @@ const EditBusinessScreen = () => {
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
   
-  const businessData = route.params?.businessData;
+  const businessData = route.params?.business;
+  const focusOnHours = route.params?.focusOnHours || false;
   
   const [permitPhoto, setPermitPhoto] = useState<string | null>(businessData?.permitPhoto || null);
   const [permitNumber, setPermitNumber] = useState(businessData?.permitNumber || '');
@@ -382,6 +384,203 @@ const EditBusinessScreen = () => {
     }
   };
 
+  // If focusOnHours is true, show only business hours editing
+  if (focusOnHours) {
+    return (
+      <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <View style={styles.formCard}>
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                  <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+                <Text style={styles.title}>Change Business Hours</Text>
+              </View>
+
+              {/* Business Info Display */}
+              <View style={styles.businessInfoCard}>
+                <Text style={styles.businessInfoTitle}>{businessData?.businessName}</Text>
+                <Text style={styles.businessInfoSubtitle}>Update your operating hours</Text>
+              </View>
+
+              {/* Business Hours Section */}
+              <View style={styles.hoursSection}>
+                <Text style={styles.label}>Operating Hours</Text>
+                <Text style={styles.subLabel}>Set your daily opening and closing times</Text>
+                
+                <View style={styles.timeContainer}>
+                  <TouchableOpacity onPress={() => showTimepicker('start')} style={styles.timeButton}>
+                    <Ionicons name="time-outline" size={20} color="#667eea" />
+                    <View style={styles.timeButtonContent}>
+                      <Text style={styles.timeLabel}>Opening Time</Text>
+                      <Text style={styles.timeButtonText}>
+                        {formatTime(startTime)}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity onPress={() => showTimepicker('end')} style={styles.timeButton}>
+                    <Ionicons name="time-outline" size={20} color="#667eea" />
+                    <View style={styles.timeButtonContent}>
+                      <Text style={styles.timeLabel}>Closing Time</Text>
+                      <Text style={styles.timeButtonText}>
+                        {formatTime(endTime)}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Current Hours Display */}
+                {startTime && endTime && (
+                  <View style={styles.currentHoursDisplay}>
+                    <Text style={styles.currentHoursLabel}>Current Hours:</Text>
+                    <Text style={styles.currentHoursText}>
+                      {formatTime(startTime)} - {formatTime(endTime)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity 
+                style={[styles.submitButton, (!startTime || !endTime) && styles.submitButtonDisabled]} 
+                onPress={handleSave}
+                disabled={!startTime || !endTime || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={styles.submitButtonText}>Save Business Hours</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+
+        {/* Time Picker Modal - Available for both focused and full edit modes */}
+        <Modal
+          visible={showTimePicker}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={cancelTime}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.timePickerModal}>
+              <View style={styles.timePickerHeader}>
+                <TouchableOpacity onPress={cancelTime}>
+                  <Text style={styles.cancelButton}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.timePickerTitle}>
+                  {timePickerMode === 'start' ? 'Opening Time' : 'Closing Time'}
+                </Text>
+                <TouchableOpacity onPress={confirmTime}>
+                  <Text style={styles.confirmButton}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.timePickerContent}>
+                <View style={styles.timeColumn}>
+                  <Text style={styles.timeColumnLabel}>Hour</Text>
+                  <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
+                    {generateTimeOptions('hour').map((hour) => (
+                      <TouchableOpacity
+                        key={hour}
+                        style={[
+                          styles.timeOption,
+                          tempHour === hour && styles.selectedTimeOption,
+                        ]}
+                        onPress={() => setTempHour(hour)}
+                      >
+                        <Text
+                          style={[
+                            styles.timeOptionText,
+                            tempHour === hour && styles.selectedTimeOptionText,
+                          ]}
+                        >
+                          {hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+                
+                <View style={styles.timeColumn}>
+                  <Text style={styles.timeColumnLabel}>Minute</Text>
+                  <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
+                    {generateTimeOptions('minute').map((minute) => (
+                      <TouchableOpacity
+                        key={minute}
+                        style={[
+                          styles.timeOption,
+                          tempMinute === minute && styles.selectedTimeOption,
+                        ]}
+                        onPress={() => setTempMinute(minute)}
+                      >
+                        <Text
+                          style={[
+                            styles.timeOptionText,
+                            tempMinute === minute && styles.selectedTimeOptionText,
+                          ]}
+                        >
+                          {minute.toString().padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+                
+                <View style={styles.timeColumn}>
+                  <Text style={styles.timeColumnLabel}>AM/PM</Text>
+                  <View style={styles.ampmContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.ampmButton,
+                        tempHour < 12 && styles.selectedAmpmButton,
+                      ]}
+                      onPress={() => setTempHour(tempHour < 12 ? tempHour : tempHour - 12)}
+                    >
+                      <Text
+                        style={[
+                          styles.ampmButtonText,
+                          tempHour < 12 && styles.selectedAmpmButtonText,
+                        ]}
+                      >
+                        AM
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.ampmButton,
+                        tempHour >= 12 && styles.selectedAmpmButton,
+                      ]}
+                      onPress={() => setTempHour(tempHour >= 12 ? tempHour : tempHour + 12)}
+                    >
+                      <Text
+                        style={[
+                          styles.ampmButtonText,
+                          tempHour >= 12 && styles.selectedAmpmButtonText,
+                        ]}
+                      >
+                        PM
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -607,119 +806,6 @@ const EditBusinessScreen = () => {
           </LinearGradient>
         </Modal>
 
-        {/* Custom Time Picker Modal */}
-        <Modal
-          visible={showTimePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={cancelTime}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.timePickerModal}>
-              <View style={styles.timePickerHeader}>
-                <TouchableOpacity onPress={cancelTime}>
-                  <Text style={styles.cancelButton}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.timePickerTitle}>
-                  {timePickerMode === 'start' ? 'Start Time' : 'End Time'}
-                </Text>
-                <TouchableOpacity onPress={confirmTime}>
-                  <Text style={styles.confirmButton}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.timePickerContent}>
-                <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>Hour</Text>
-                  <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
-                    {generateTimeOptions('hour').map((hour) => (
-                      <TouchableOpacity
-                        key={hour}
-                        style={[
-                          styles.timeOption,
-                          tempHour === hour && styles.selectedTimeOption,
-                        ]}
-                        onPress={() => setTempHour(hour)}
-                      >
-                        <Text
-                          style={[
-                            styles.timeOptionText,
-                            tempHour === hour && styles.selectedTimeOptionText,
-                          ]}
-                        >
-                          {hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-                
-                <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>Minute</Text>
-                  <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
-                    {generateTimeOptions('minute').map((minute) => (
-                      <TouchableOpacity
-                        key={minute}
-                        style={[
-                          styles.timeOption,
-                          tempMinute === minute && styles.selectedTimeOption,
-                        ]}
-                        onPress={() => setTempMinute(minute)}
-                      >
-                        <Text
-                          style={[
-                            styles.timeOptionText,
-                            tempMinute === minute && styles.selectedTimeOptionText,
-                          ]}
-                        >
-                          {minute.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-                
-                <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>AM/PM</Text>
-                  <View style={styles.ampmContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.ampmButton,
-                        tempHour < 12 && styles.selectedAmpmButton,
-                      ]}
-                      onPress={() => setTempHour(tempHour < 12 ? tempHour : tempHour - 12)}
-                    >
-                      <Text
-                        style={[
-                          styles.ampmButtonText,
-                          tempHour < 12 && styles.selectedAmpmButtonText,
-                        ]}
-                      >
-                        AM
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.ampmButton,
-                        tempHour >= 12 && styles.selectedAmpmButton,
-                      ]}
-                      onPress={() => setTempHour(tempHour >= 12 ? tempHour : tempHour + 12)}
-                    >
-                      <Text
-                        style={[
-                          styles.ampmButtonText,
-                          tempHour >= 12 && styles.selectedAmpmButtonText,
-                        ]}
-                      >
-                        PM
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -1110,6 +1196,55 @@ const styles = StyleSheet.create({
   },
   selectedAmpmButtonText: {
     color: '#fff',
+  },
+  // Focused Business Hours Styles
+  businessInfoCard: {
+    backgroundColor: '#f8f9ff',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 25,
+    borderLeftWidth: 4,
+    borderLeftColor: '#667eea',
+  },
+  businessInfoTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  businessInfoSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  hoursSection: {
+    marginBottom: 30,
+  },
+  timeButtonContent: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  timeLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  currentHoursDisplay: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#e0e8ff',
+  },
+  currentHoursLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  currentHoursText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
 });
 

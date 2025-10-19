@@ -216,12 +216,9 @@ const HomeScreen = () => {
   const [userLocation, setUserLocation] = useState<string>('Silay City'); // Default fallback
   const [locationLoading, setLocationLoading] = useState(true);
   const [savedBusinesses, setSavedBusinesses] = useState<string[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<string>('All');
-  const [filteredPlaces, setFilteredPlaces] = useState<any[]>([]);
-  const [filteredSuggestedPlaces, setFilteredSuggestedPlaces] = useState<any[]>([]);
   const [userPreferences, setUserPreferences] = useState<string[]>([]);
-
-  const filterOptions = ['All', 'Coffee Shops', 'Tourist Spots', 'Restaurants'];
+  const [allReviews, setAllReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   // --- Styles ---
   const styles = StyleSheet.create({
@@ -767,66 +764,73 @@ const HomeScreen = () => {
     placeImageContainer: {
       position: 'relative',
     },
-    filterContainer: {
+    // Reviews section styles
+    reviewsSection: {
+      marginTop: spacing.xl,
       paddingHorizontal: spacing.lg,
-      marginTop: spacing.md,
+    },
+    reviewsSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    reviewCard: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      borderLeftWidth: 3,
+      borderLeftColor: '#667eea',
+    },
+    reviewHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: spacing.sm,
     },
-    filterScrollView: {
-      flexDirection: 'row',
+    reviewUserInfo: {
+      flex: 1,
     },
-    filterButton: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.xl,
-      marginRight: spacing.sm,
-      borderWidth: 1,
-      borderColor: '#ddd',
-      backgroundColor: '#fff',
-    },
-    filterButtonActive: {
-      backgroundColor: '#667eea',
-      borderColor: '#667eea',
-    },
-    filterButtonText: {
+    reviewUserName: {
       fontWeight: '600',
       color: '#333',
     },
-    filterButtonTextActive: {
-      color: '#fff',
+    reviewBusinessName: {
+      color: '#667eea',
+      marginTop: spacing.xs,
+    },
+    reviewStarsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    reviewComment: {
+      color: '#555',
+      lineHeight: fontSizes.md * 1.4,
+      marginBottom: spacing.sm,
+    },
+    reviewDate: {
+      color: '#888',
+    },
+    reviewsLoadingContainer: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    reviewsEmptyContainer: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    reviewsEmptyText: {
+      color: '#888',
+      marginTop: spacing.sm,
     },
   });
 
-  // Filter places based on selected filter
-  const applyFilter = (places: any[], filter: string) => {
-    if (filter === 'All') {
-      return places;
-    }
-    
-    return places.filter(place => {
-      const businessType = place.businessType?.toLowerCase() || '';
-      
-      switch (filter) {
-        case 'Coffee Shops':
-          return businessType.includes('coffee shop') || 
-                 businessType.includes('coffee') || 
-                 businessType.includes('cafe') || 
-                 businessType.includes('café');
-        case 'Tourist Spots':
-          return businessType.includes('tourist spot') ||
-                 businessType.includes('tourist') || 
-                 businessType.includes('attraction') || 
-                 businessType.includes('resort') || 
-                 businessType.includes('hotel');
-        case 'Restaurants':
-          return businessType.includes('restaurant') || 
-                 businessType.includes('food') || 
-                 businessType.includes('dining');
-        default:
-          return true;
-      }
-    });
-  };
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -1002,12 +1006,10 @@ const HomeScreen = () => {
         };
       });
       
-      // Apply preference-based filtering first
+      // Apply preference-based filtering
       const preferenceFiltered = applyPreferenceFilter(businesses.length > 0 ? businesses : fallbackSuggestedPlaces);
-      const filtered = applyFilter(preferenceFiltered, selectedFilter);
       
       setSuggestedPlaces(preferenceFiltered);
-      setFilteredSuggestedPlaces(filtered);
       
       // Preload suggested places images
       const preloadPromises: Promise<void>[] = [];
@@ -1026,7 +1028,6 @@ const HomeScreen = () => {
       console.error('Error loading suggested places:', error);
       // Fallback to dummy data if there's an error
       setSuggestedPlaces(fallbackSuggestedPlaces);
-      setFilteredSuggestedPlaces(applyFilter(fallbackSuggestedPlaces, selectedFilter));
     } finally {
       setLoadingSuggested(false);
     }
@@ -1063,12 +1064,10 @@ const HomeScreen = () => {
         };
       });
       
-      // Apply preference-based filtering first, then regular filter
+      // Apply preference-based filtering
       const preferenceFiltered = applyPreferenceFilter(businesses);
-      const filtered = applyFilter(preferenceFiltered, selectedFilter);
       
       setPlacesToVisit(preferenceFiltered);
-      setFilteredPlaces(filtered);
       
       // Aggressively preload all business images immediately
       console.log('🚀 HomeScreen: Starting aggressive image preloading...');
@@ -1108,7 +1107,6 @@ const HomeScreen = () => {
         }
       ];
       setPlacesToVisit(fallbackData);
-      setFilteredPlaces(applyFilter(fallbackData, selectedFilter));
     } finally {
       setLoadingPlaces(false);
     }
@@ -1208,16 +1206,6 @@ const HomeScreen = () => {
     }
   };
 
-  // Update filtered places when filter changes
-  useEffect(() => {
-    const preferenceFiltered = applyPreferenceFilter(placesToVisit);
-    const filtered = applyFilter(preferenceFiltered, selectedFilter);
-    setFilteredPlaces(filtered);
-    
-    const prefFilteredSuggested = applyPreferenceFilter(suggestedPlaces);
-    const filteredSuggested = applyFilter(prefFilteredSuggested, selectedFilter);
-    setFilteredSuggestedPlaces(filteredSuggested);
-  }, [selectedFilter, placesToVisit, suggestedPlaces, userPreferences]);
 
   useEffect(() => {
     getUserLocation(); // Get user's real location
@@ -1226,11 +1214,12 @@ const HomeScreen = () => {
     loadSuggestedPlaces();
     loadPlacesToVisit();
     loadPromosAndDeals();
+    loadAllReviews(); // Load all reviews
   }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([getUserLocation(), loadSavedBusinesses(), loadUserPreferences(), loadSuggestedPlaces(), loadPlacesToVisit(), loadPromosAndDeals()]).finally(() => {
+    Promise.all([getUserLocation(), loadSavedBusinesses(), loadUserPreferences(), loadSuggestedPlaces(), loadPlacesToVisit(), loadPromosAndDeals(), loadAllReviews()]).finally(() => {
       setRefreshing(false);
     });
   }, []);
@@ -1248,6 +1237,54 @@ const HomeScreen = () => {
       setUserReview(null);
     }
     setReviewLoading(false);
+  };
+
+  // Load all reviews from all businesses
+  const loadAllReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const allReviewsList: any[] = [];
+      
+      // Get all approved businesses
+      const businessesQuery = query(
+        collection(db, 'businesses'),
+        where('status', '==', 'approved'),
+        where('displayInUserApp', '==', true)
+      );
+      const businessesSnapshot = await getDocs(businessesQuery);
+      
+      // For each business, get their reviews
+      for (const businessDoc of businessesSnapshot.docs) {
+        const businessData = businessDoc.data();
+        const reviewsRef = collection(db, 'businesses', businessDoc.id, 'reviews');
+        const reviewsSnapshot = await getDocs(reviewsRef);
+        
+        reviewsSnapshot.forEach(reviewDoc => {
+          const reviewData = reviewDoc.data();
+          allReviewsList.push({
+            id: reviewDoc.id,
+            businessId: businessDoc.id,
+            businessName: businessData.businessName,
+            ...reviewData,
+          });
+        });
+      }
+      
+      // Sort by date (newest first) and limit to 5
+      allReviewsList.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      setAllReviews(allReviewsList.slice(0, 5));
+      console.log('✅ Loaded', allReviewsList.length, 'total reviews');
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setAllReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
   };
 
   // Real-time listener for reviews of all loaded businesses
@@ -1330,37 +1367,6 @@ const HomeScreen = () => {
             </ResponsiveView>
           </ResponsiveView>
 
-          {/* --- Filter Buttons --- */}
-          <ResponsiveView style={styles.filterContainer}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterScrollView}
-            >
-              {filterOptions.map((filter) => (
-                <TouchableOpacity
-                  key={filter}
-                  style={[
-                    styles.filterButton,
-                    selectedFilter === filter && styles.filterButtonActive
-                  ]}
-                  onPress={() => setSelectedFilter(filter)}
-                >
-                  <ResponsiveText
-                    size="sm"
-                    weight="600"
-                    color={selectedFilter === filter ? '#fff' : '#333'}
-                    style={[
-                      styles.filterButtonText,
-                      selectedFilter === filter && styles.filterButtonTextActive
-                    ]}
-                  >
-                    {filter}
-                  </ResponsiveText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </ResponsiveView>
 
           {/* --- Search Bar --- */}
           <TouchableOpacity onPress={() => navigation.navigate('SearchBarScreen')}>
@@ -1384,25 +1390,19 @@ const HomeScreen = () => {
                   Loading suggested places...
                 </ResponsiveText>
               </ResponsiveView>
-            ) : filteredSuggestedPlaces.length === 0 ? (
+            ) : suggestedPlaces.length === 0 ? (
               <ResponsiveView style={styles.emptyContainer}>
                 <Ionicons name="business-outline" size={iconSizes.xxxxl} color="#999" />
                 <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
-                  {selectedFilter === 'All' 
-                    ? 'No suggested places available' 
-                    : `No ${selectedFilter.toLowerCase()} in suggestions`
-                  }
+                  No suggested places available
                 </ResponsiveText>
                 <ResponsiveText size="md" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.emptySubText}>
-                  {selectedFilter === 'All' 
-                    ? 'Check back later for suggestions!' 
-                    : 'Try selecting a different filter!'
-                  }
+                  Check back later for suggestions!
                 </ResponsiveText>
               </ResponsiveView>
             ) : (
               <FlatList
-                data={filteredSuggestedPlaces}
+                data={suggestedPlaces}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
@@ -1550,24 +1550,18 @@ const HomeScreen = () => {
                   Loading places to visit...
                 </ResponsiveText>
               </ResponsiveView>
-            ) : filteredPlaces.length === 0 ? (
+            ) : placesToVisit.length === 0 ? (
               <ResponsiveView style={styles.emptyContainer}>
                 <Ionicons name="business-outline" size={iconSizes.xxxxl} color="#999" />
                 <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
-                  {selectedFilter === 'All' 
-                    ? 'No businesses available yet' 
-                    : `No ${selectedFilter.toLowerCase()} found`
-                  }
+                  No businesses available yet
                 </ResponsiveText>
                 <ResponsiveText size="md" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.emptySubText}>
-                  {selectedFilter === 'All' 
-                    ? 'Check back later for new places to visit!' 
-                    : 'Try selecting a different filter or check back later!'
-                  }
+                  Check back later for new places to visit!
                 </ResponsiveText>
               </ResponsiveView>
             ) : (
-              filteredPlaces.map((item) => (
+              placesToVisit.slice(0, 3).map((item) => (
               <TouchableOpacity 
                 key={item.id} 
                 style={styles.placeCard}
@@ -1630,6 +1624,74 @@ const HomeScreen = () => {
                   />
                 </TouchableOpacity>
               </TouchableOpacity>
+              ))
+            )}
+          </ResponsiveView>
+
+          {/* --- Reviews Section --- */}
+          <ResponsiveView style={styles.reviewsSection}>
+            <ResponsiveView style={styles.reviewsSectionHeader}>
+              <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.sectionTitle}>
+                Recent Reviews
+              </ResponsiveText>
+              <TouchableOpacity onPress={() => (navigation as any).navigate('ReviewsScreen')}>
+                <View style={styles.seeAllButton}>
+                  <ResponsiveText size="sm" weight="600" color={theme === 'dark' ? '#FFF' : '#4B0082'} style={styles.seeAllText}>
+                    See All
+                  </ResponsiveText>
+                </View>
+              </TouchableOpacity>
+            </ResponsiveView>
+            
+            {loadingReviews ? (
+              <ResponsiveView style={styles.reviewsLoadingContainer}>
+                <ActivityIndicator size="large" color="#667eea" />
+                <ResponsiveText size="md" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.loadingText}>
+                  Loading reviews...
+                </ResponsiveText>
+              </ResponsiveView>
+            ) : allReviews.length === 0 ? (
+              <ResponsiveView style={styles.reviewsEmptyContainer}>
+                <Ionicons name="chatbubbles-outline" size={iconSizes.xxxxl} color="#999" />
+                <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
+                  No reviews yet
+                </ResponsiveText>
+                <ResponsiveText size="md" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.reviewsEmptyText}>
+                  Be the first to leave a review!
+                </ResponsiveText>
+              </ResponsiveView>
+            ) : (
+              allReviews.map((review) => (
+                <ResponsiveView key={review.id} style={styles.reviewCard}>
+                  <ResponsiveView style={styles.reviewHeader}>
+                    <ResponsiveView style={styles.reviewUserInfo}>
+                      <ResponsiveText size="md" weight="600" color="#333" style={styles.reviewUserName}>
+                        {review.userName || 'Anonymous'}
+                      </ResponsiveText>
+                      <ResponsiveText size="sm" color="#667eea" style={styles.reviewBusinessName}>
+                        {review.businessName}
+                      </ResponsiveText>
+                    </ResponsiveView>
+                    <ResponsiveView style={styles.reviewStarsContainer}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons
+                          key={star}
+                          name={star <= review.rating ? 'star' : 'star-outline'}
+                          size={iconSizes.sm}
+                          color="#FFD700"
+                        />
+                      ))}
+                    </ResponsiveView>
+                  </ResponsiveView>
+                  {review.comment && (
+                    <ResponsiveText size="sm" color="#555" style={styles.reviewComment} numberOfLines={3}>
+                      {review.comment}
+                    </ResponsiveText>
+                  )}
+                  <ResponsiveText size="xs" color="#888" style={styles.reviewDate}>
+                    {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                  </ResponsiveText>
+                </ResponsiveView>
               ))
             )}
           </ResponsiveView>
