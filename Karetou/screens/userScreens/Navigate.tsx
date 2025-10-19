@@ -177,6 +177,8 @@ interface Place {
   address?: string;
   contactNumber?: string;
   businessHours?: string;
+  openingTime?: string;
+  closingTime?: string;
   businessLocation: {
     latitude: number;
     longitude: number;
@@ -295,6 +297,7 @@ const Navigate = () => {
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedTravelMode, setSelectedTravelMode] = useState('walking');
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isBusinessClosed, setIsBusinessClosed] = useState(false);
   const [routeCoordinates, setRouteCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const [selectedBusinessDetails, setSelectedBusinessDetails] = useState<BusinessDetails | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -335,6 +338,8 @@ const Navigate = () => {
           address: data.businessAddress,
           contactNumber: data.contactNumber,
           businessHours: data.businessHours,
+          openingTime: data.openingTime,
+          closingTime: data.closingTime,
           businessLocation: data.businessLocation,
           allImages: data.businessImages || [],
           image: data.businessImages && data.businessImages.length > 0 ? data.businessImages[0] : '',
@@ -386,19 +391,22 @@ const Navigate = () => {
             address: data.businessAddress,
             contactNumber: data.contactNumber,
             businessHours: data.businessHours,
+            openingTime: data.openingTime,
+            closingTime: data.closingTime,
             businessLocation: data.businessLocation,
             allImages: data.businessImages || [], // Map businessImages from Firestore to allImages
             image: data.businessImages && data.businessImages.length > 0 ? data.businessImages[0] : '', // First image as main image
             location: data.businessAddress || data.location
           };
           
-          // Log business coordinates for debugging
-          console.log(`🏢 Loaded business "${business.name}":`, {
-            lat: business.latitude,
-            lon: business.longitude,
-            hasBusinessLocation: !!data.businessLocation,
-            businessLocation: data.businessLocation
-          });
+          // Log business coordinates and hours for debugging
+          console.log('=======================================');
+          console.log(`🏢 BUSINESS: ${business.name}`);
+          console.log('📋 ALL AVAILABLE FIELDS:', Object.keys(data));
+          console.log('🕐 openingTime:', data.openingTime);
+          console.log('🕐 closingTime:', data.closingTime);
+          console.log('⏰ businessHours:', data.businessHours);
+          console.log('=======================================');
           
           return business;
         }).filter(place => place !== null) as Place[];
@@ -488,6 +496,74 @@ const Navigate = () => {
       }
     } catch (error) {
       console.error('Error requesting location permission:', error);
+    }
+  };
+
+  // Check if business is currently closed based on operating hours
+  const checkIfBusinessClosed = (business: any) => {
+    console.log('🕐 Checking business hours for:', business.name);
+    console.log('🕐 businessHours:', business.businessHours);
+    console.log('🕐 Opening time:', business.openingTime);
+    console.log('🕐 Closing time:', business.closingTime);
+
+    // Try to get opening and closing times from businessHours if individual fields are missing
+    let openingTime = business.openingTime;
+    let closingTime = business.closingTime;
+
+    // If openingTime/closingTime are missing, try to parse from businessHours (format: "8:00 AM - 5:00 PM")
+    if ((!openingTime || !closingTime) && business.businessHours) {
+      const hoursMatch = business.businessHours.match(/^(.+?)\s*-\s*(.+?)$/);
+      if (hoursMatch) {
+        openingTime = hoursMatch[1].trim();
+        closingTime = hoursMatch[2].trim();
+        console.log('✅ Parsed from businessHours:', { openingTime, closingTime });
+      }
+    }
+
+    if (!openingTime || !closingTime) {
+      console.log('⚠️ Missing opening or closing time, assuming business is open');
+      setIsBusinessClosed(false);
+      return false;
+    }
+
+    try {
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      console.log('🕐 Current time in minutes:', currentTime, `(${now.getHours()}:${now.getMinutes()})`);
+
+      const parseTime = (timeString: string) => {
+        const parts = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (!parts) throw new Error('Invalid time format');
+        let hours = parseInt(parts[1]);
+        const minutes = parseInt(parts[2]);
+        const period = parts[3].toUpperCase();
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      };
+
+      const openingTimeInMinutes = parseTime(openingTime);
+      const closingTimeInMinutes = parseTime(closingTime);
+      console.log('🕐 Opening time in minutes:', openingTimeInMinutes);
+      console.log('🕐 Closing time in minutes:', closingTimeInMinutes);
+
+      let isClosed = false;
+      if (closingTimeInMinutes < openingTimeInMinutes) {
+        // Overnight business (e.g., 10 PM - 6 AM)
+        isClosed = currentTime < openingTimeInMinutes && currentTime > closingTimeInMinutes;
+        console.log('🌙 Overnight business detected');
+      } else {
+        // Regular business (e.g., 9 AM - 5 PM)
+        isClosed = currentTime < openingTimeInMinutes || currentTime > closingTimeInMinutes;
+      }
+
+      console.log('🕐 Business is closed?', isClosed);
+      setIsBusinessClosed(isClosed);
+      return isClosed;
+    } catch (error) {
+      console.log('❌ Error checking business hours:', error);
+      setIsBusinessClosed(false);
+      return false;
     }
   };
 
@@ -1189,6 +1265,9 @@ const Navigate = () => {
   const handlePlaceSelect = async (business: Place) => {
     setSelectedPlace(business);
     
+    // Check if business is closed
+    checkIfBusinessClosed(business);
+    
     // Create business details object for the modal
     const businessDetails = {
       name: business.name,
@@ -1201,6 +1280,8 @@ const Navigate = () => {
       latitude: business.latitude,
       longitude: business.longitude,
       description: business.description,
+      openingTime: business.openingTime,
+      closingTime: business.closingTime,
     };
     
     setSelectedBusinessDetails(businessDetails);
@@ -1339,10 +1420,12 @@ const Navigate = () => {
     
     setSelectedPlace(business);
     setDetailsModalVisible(true);
+    checkIfBusinessClosed(business);
     if (business.businessLocation) {
       calculateDistance(business);
     }
   };
+
 
   const calculateDistance = async (destination: Place) => {
     if (!location) {
@@ -2269,6 +2352,7 @@ const Navigate = () => {
                 style={styles.closeButtonModal} 
                 onPress={() => {
                   setDetailsModalVisible(false);
+                  setIsBusinessClosed(false); // Reset business closed status
                   // Keep selectedPlace and selectedBusinessDetails for faster reopening
                   setCurrentImageIndex(0);
                   // Preserve distance info when modal closes, only clear detailed coordinates
@@ -2492,11 +2576,19 @@ const Navigate = () => {
                       )}
                     </View>
 
+                    {/* Business Closed Status */}
+                    {isBusinessClosed && (
+                      <View style={styles.closedStatusContainer}>
+                        <Ionicons name="time-outline" size={20} color="#d32f2f" />
+                        <Text style={styles.closedStatusText}>This business is currently closed</Text>
+                      </View>
+                    )}
+
                     {/* Navigate Button */}
                     <TouchableOpacity 
-                      style={[styles.navigateButton, (isLoading || isNavigationLoading) && styles.navigateButtonDisabled]} 
+                      style={[styles.navigateButton, (isLoading || isNavigationLoading || isBusinessClosed) && styles.navigateButtonDisabled]} 
                       onPress={handleStartNavigation}
-                      disabled={isLoading || isNavigationLoading}
+                      disabled={isLoading || isNavigationLoading || isBusinessClosed}
                     >
                       {isNavigationLoading ? (
                         <ActivityIndicator size="small" color="#fff" />
@@ -2504,7 +2596,7 @@ const Navigate = () => {
                         <Ionicons name="navigate" size={20} color="#fff" />
                       )}
                       <Text style={styles.navigateButtonText}>
-                        {isNavigationLoading ? 'Starting Navigation...' : isLoading ? 'Calculating...' : 'Navigate'}
+                        {isBusinessClosed ? 'Business Closed' : isNavigationLoading ? 'Starting Navigation...' : isLoading ? 'Calculating...' : 'Navigate'}
                       </Text>
                     </TouchableOpacity>
                   </ScrollView>
@@ -2914,6 +3006,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     marginTop: screenHeight < 667 ? 8 : 12,
     shadowRadius: 1.41,
+  },
+  closedStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffebee',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#ef5350',
+  },
+  closedStatusText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   navigateButtonText: {
     color: '#fff',
