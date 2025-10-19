@@ -25,6 +25,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { db, storage } from '../../../firebase';
 import { doc, setDoc, collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -66,9 +68,19 @@ const BusinessLocationScreen = () => {
   const navigation = useNavigation<BusinessLocationScreenNavigationProp>();
   const route = useRoute<BusinessLocationScreenRouteProp>();
   const { user, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  // Progress tracking
+  const registrationSteps = [
+    { id: 1, title: 'Business Info', description: 'Basic details' },
+    { id: 2, title: 'Verification', description: 'ID verification' },
+    { id: 3, title: 'Location', description: 'Set location' },
+    { id: 4, title: 'Complete', description: 'Final review' }
+  ];
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
@@ -79,71 +91,20 @@ const BusinessLocationScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const mapRef = useRef<MapView>(null);
 
-  // Default location (Manila coordinates)
-  const defaultLocation: LocationData = {
-    latitude: 14.5995,
-    longitude: 120.9842,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  };
-
   useEffect(() => {
     getCurrentLocation();
   }, []);
 
-  const getAddressFromCoordinates = async (latitude: number, longitude: number) => {
-    try {
-      const results = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
-
-      if (results.length > 0) {
-        const result = results[0];
-        const addressParts = [
-          result.street,
-          result.district,
-          result.city,
-          result.region,
-          result.country,
-        ].filter(Boolean);
-        
-        return addressParts.join(', ');
-      }
-      return 'Unknown location';
-    } catch (error) {
-      console.error('Error getting address:', error);
-      return 'Unknown location';
-    }
-  };
-
-  const animateToLocation = (location: LocationData) => {
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(location, 1000);
-    }
-  };
-
   const getCurrentLocation = async () => {
     try {
-      setIsLoading(true);
-      
-      // Request location permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Location permission is required to set your business location.');
-        setCurrentLocation(defaultLocation);
-        setSelectedLocation(defaultLocation);
-        const address = await getAddressFromCoordinates(defaultLocation.latitude, defaultLocation.longitude);
-        setLocationAddress(address);
         setIsLoading(false);
         return;
       }
 
-      // Get current location
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
+      const location = await Location.getCurrentPositionAsync({});
       const newLocation: LocationData = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -154,20 +115,33 @@ const BusinessLocationScreen = () => {
       setCurrentLocation(newLocation);
       setSelectedLocation(newLocation);
       
-      // Get address for current location
       const address = await getAddressFromCoordinates(newLocation.latitude, newLocation.longitude);
       setLocationAddress(address);
-      
-      // Animate map to the location
-      animateToLocation(newLocation);
     } catch (error) {
-      console.error('Error getting location:', error);
-      setCurrentLocation(defaultLocation);
-      setSelectedLocation(defaultLocation);
-      const address = await getAddressFromCoordinates(defaultLocation.latitude, defaultLocation.longitude);
-      setLocationAddress(address);
+      console.error('Error getting current location:', error);
+      Alert.alert('Error', 'Failed to get your current location. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getAddressFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
+    try {
+      const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (reverseGeocode.length > 0) {
+        const address = reverseGeocode[0];
+        return `${address.street || ''} ${address.city || ''} ${address.region || ''} ${address.country || ''}`.trim();
+      }
+      return 'Location selected';
+    } catch (error) {
+      console.error('Error getting address:', error);
+      return 'Location selected';
+    }
+  };
+
+  const animateToLocation = (location: LocationData) => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(location, 1000);
     }
   };
 
@@ -182,11 +156,9 @@ const BusinessLocationScreen = () => {
     
     setSelectedLocation(newLocation);
     
-    // Get address for the selected location
     const address = await getAddressFromCoordinates(latitude, longitude);
     setLocationAddress(address);
     
-    // Animate map to the location
     animateToLocation(newLocation);
   };
 
@@ -197,7 +169,6 @@ const BusinessLocationScreen = () => {
     }
 
     try {
-      // Use expo-location geocoding to search for location
       const results = await Location.geocodeAsync(searchQuery);
       
       if (results.length > 0) {
@@ -222,14 +193,11 @@ const BusinessLocationScreen = () => {
     
     setSelectedLocation(newLocation);
     
-    // Get address for the selected location
     const address = await getAddressFromCoordinates(result.latitude, result.longitude);
     setLocationAddress(address);
     
-    // Animate map to the location
     animateToLocation(newLocation);
     
-    // Clear search results
     setSearchQuery('');
     setSearchResults([]);
     setShowSearchResults(false);
@@ -241,48 +209,22 @@ const BusinessLocationScreen = () => {
       const address = await getAddressFromCoordinates(currentLocation.latitude, currentLocation.longitude);
       setLocationAddress(address);
       animateToLocation(currentLocation);
-    } else {
-      getCurrentLocation();
     }
   };
 
   const uploadImageToStorage = async (imageUri: string, imageName: string): Promise<string> => {
     try {
-      console.log('Starting upload for:', imageName, 'URI:', imageUri);
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
       
-      // Convert the image URI to a blob using XMLHttpRequest (better compatibility with RN)
-      const response = await new Promise<Blob>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.onload = function () {
-          resolve(xhr.response);
-        };
-        xhr.onerror = function (e) {
-          console.log('XHR Error:', e);
-          reject(new TypeError('Network request failed'));
-        };
-        xhr.responseType = 'blob';
-        xhr.open('GET', imageUri, true);
-        xhr.send(null);
-      });
-
-      console.log('Blob created, size:', response.size);
+      const imageRef = ref(storage, `business_registrations/${user?.uid}/${imageName}`);
+      await uploadBytes(imageRef, blob);
       
-      // Create a reference to the storage location
-      const imageRef = ref(storage, `business-images/${user?.uid}/${imageName}_${Date.now()}`);
-      
-      console.log('Uploading to Firebase Storage...');
-      // Upload the blob to Firebase Storage
-      await uploadBytes(imageRef, response);
-      
-      console.log('Getting download URL...');
-      // Get the download URL
       const downloadURL = await getDownloadURL(imageRef);
-      console.log('Upload successful, URL:', downloadURL);
-      
       return downloadURL;
     } catch (error) {
       console.error('Error uploading image:', error);
-      throw new Error(`Failed to upload ${imageName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   };
 
@@ -300,28 +242,22 @@ const BusinessLocationScreen = () => {
     setIsSubmitting(true);
 
     try {
-      // Validate that all required images are present
       if (!route.params.permitPhoto || !route.params.frontIDPhoto || !route.params.backIDPhoto) {
         Alert.alert('Missing Images', 'Please ensure all required photos (permit, front ID, back ID) are uploaded before submitting.');
         setIsSubmitting(false);
         return;
       }
 
-      // Validate business images (minimum 3)
       if (!route.params.businessImages || route.params.businessImages.length < 3) {
         Alert.alert('Missing Business Images', 'Please upload at least 3 business images before submitting.');
         setIsSubmitting(false);
         return;
       }
 
-      // Upload images to Firebase Storage first
-      console.log('Uploading images to Firebase Storage...');
       const permitPhotoURL = await uploadImageToStorage(route.params.permitPhoto, 'permit');
       const frontIDPhotoURL = await uploadImageToStorage(route.params.frontIDPhoto, 'front_id');
       const backIDPhotoURL = await uploadImageToStorage(route.params.backIDPhoto, 'back_id');
       
-      // Upload business images
-      console.log('Uploading business images...');
       const businessImageURLs: string[] = [];
       for (let i = 0; i < route.params.businessImages.length; i++) {
         const businessImageURL = await uploadImageToStorage(route.params.businessImages[i], `business_image_${i + 1}`);
@@ -330,38 +266,30 @@ const BusinessLocationScreen = () => {
       
       const completeFormData = {
         ...route.params,
-        // Replace local file URIs with Firebase Storage URLs
         permitPhoto: permitPhotoURL,
         frontIDPhoto: frontIDPhotoURL,
         backIDPhoto: backIDPhotoURL,
         businessImages: businessImageURLs,
         businessLocation: selectedLocation,
         businessAddress: locationAddress,
-        userId: user.uid,
-        userEmail: user.email,
-        registrationDate: new Date().toISOString(),
-        status: 'pending', // pending, approved, rejected
+        status: 'pending',
+        userId: user.uid, // Add userId field for backward compatibility
+        registrationDate: new Date().toISOString(), // Save as ISO string for admin panel compatibility
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      // Save to businesses collection
-      const businessRef = await addDoc(collection(db, 'businesses'), completeFormData);
-
-      // Update user document to include business registration
-      await setDoc(doc(db, 'users', user.uid), {
-        hasBusinessRegistration: true,
-        businessId: businessRef.id,
-        lastUpdated: new Date().toISOString(),
-      }, { merge: true });
-
-      console.log('Business registration saved successfully:', businessRef.id);
+      await setDoc(doc(db, 'businesses', user.uid), completeFormData);
       
       Alert.alert(
-        'Registration Complete!', 
-        'Your business registration has been submitted successfully. We will review your application and contact you soon.',
+        'Registration Submitted!',
+        'Your business registration has been submitted for review. You will be notified once it\'s approved.',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('BusinessMain' as any)
+            onPress: () => {
+              navigation.navigate('BusinessMain' as any);
+            }
           }
         ]
       );
@@ -379,6 +307,315 @@ const BusinessLocationScreen = () => {
       );
     }
   };
+
+  // Calculate current progress (Step 3 - Location)
+  const calculateProgress = () => {
+    // Step 3 is always 75% complete when on this screen
+    // It only becomes 100% when user completes registration
+    return 75;
+  };
+
+  const currentProgress = calculateProgress();
+  const currentStep = 3; // We're on step 3
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    backButton: {
+      marginRight: spacing.md,
+    },
+    title: {
+      fontSize: fontSizes.xl,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    progressContainer: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    progressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    progressTitle: {
+      flex: 1,
+    },
+    progressPercentage: {
+      fontWeight: '600',
+    },
+    progressBarContainer: {
+      height: 8,
+      backgroundColor: '#f0f0f0',
+      borderRadius: 4,
+      marginBottom: spacing.lg,
+      overflow: 'hidden',
+    },
+    progressBar: {
+      height: '100%',
+      backgroundColor: '#667eea',
+      borderRadius: 4,
+    },
+    stepsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    stepItem: {
+      flex: 1,
+      alignItems: 'center',
+      position: 'relative',
+    },
+    stepCircle: {
+      width: getResponsiveWidth(8),
+      height: getResponsiveWidth(8),
+      borderRadius: getResponsiveWidth(4),
+      backgroundColor: '#f0f0f0',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    stepCircleCompleted: {
+      backgroundColor: '#4CAF50',
+    },
+    stepCircleCurrent: {
+      backgroundColor: '#667eea',
+    },
+    stepCircleUpcoming: {
+      backgroundColor: '#f0f0f0',
+    },
+    stepTextContainer: {
+      alignItems: 'center',
+      maxWidth: getResponsiveWidth(20),
+    },
+    stepTitle: {
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+    stepDescription: {
+      textAlign: 'center',
+      lineHeight: fontSizes.xs * 1.2,
+    },
+    stepConnector: {
+      position: 'absolute',
+      top: getResponsiveWidth(4),
+      left: '50%',
+      width: '100%',
+      height: 2,
+      backgroundColor: '#f0f0f0',
+      zIndex: -1,
+    },
+    stepConnectorCompleted: {
+      backgroundColor: '#4CAF50',
+    },
+    searchContainer: {
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    searchInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    searchIcon: {
+      marginRight: spacing.sm,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: fontSizes.md,
+      color: '#333',
+    },
+    searchButton: {
+      backgroundColor: '#667eea',
+      borderRadius: borderRadius.sm,
+      padding: spacing.sm,
+      marginLeft: spacing.sm,
+    },
+    searchResultsContainer: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.md,
+      marginTop: spacing.sm,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    searchResultItem: {
+      padding: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    searchResultText: {
+      fontSize: fontSizes.md,
+      color: '#333',
+    },
+    mapContainer: {
+      height: getResponsiveHeight(40),
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+    },
+    map: {
+      flex: 1,
+    },
+    locationInfo: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    locationInfoTitle: {
+      fontSize: fontSizes.lg,
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: spacing.sm,
+    },
+    locationInfoText: {
+      fontSize: fontSizes.md,
+      color: '#666',
+      lineHeight: fontSizes.md * 1.4,
+    },
+    nextButton: {
+      backgroundColor: '#667eea',
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.xl,
+      alignItems: 'center',
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    nextButtonDisabled: {
+      backgroundColor: '#ccc',
+    },
+    nextButtonText: {
+      color: '#fff',
+      fontSize: fontSizes.lg,
+      fontWeight: 'bold',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingIndicator: {
+      marginBottom: spacing.lg,
+    },
+    loadingText: {
+      fontSize: fontSizes.lg,
+      color: '#333',
+    },
+  });
+
+  // Progress Bar Component
+  const ProgressBar = () => (
+    <ResponsiveView style={styles.progressContainer}>
+      <ResponsiveView style={styles.progressHeader}>
+        <ResponsiveText size="lg" weight="600" color="#333" style={styles.progressTitle}>
+          Registration Progress
+        </ResponsiveText>
+        <ResponsiveText size="sm" color="#666" style={styles.progressPercentage}>
+          {Math.round(currentProgress)}% Complete
+        </ResponsiveText>
+      </ResponsiveView>
+      
+      {/* Progress Bar */}
+      <ResponsiveView style={styles.progressBarContainer}>
+        <ResponsiveView style={[styles.progressBar, { width: `${currentProgress}%` }]}>
+          <></>
+        </ResponsiveView>
+      </ResponsiveView>
+      
+      {/* Steps */}
+      <ResponsiveView style={styles.stepsContainer}>
+        {registrationSteps.map((step, index) => {
+          const isCompleted = index < currentStep;
+          const isCurrent = index === currentStep - 1;
+          const isUpcoming = index > currentStep - 1;
+          
+          return (
+            <ResponsiveView key={step.id} style={styles.stepItem}>
+              <ResponsiveView style={[
+                styles.stepCircle,
+                isCompleted && styles.stepCircleCompleted,
+                isCurrent && styles.stepCircleCurrent,
+                isUpcoming && styles.stepCircleUpcoming
+              ]}>
+                {isCompleted ? (
+                  <Ionicons name="checkmark" size={iconSizes.sm} color="#fff" />
+                ) : (
+                  <ResponsiveText size="xs" weight="600" color={isCurrent ? "#667eea" : "#999"}>
+                    {step.id}
+                  </ResponsiveText>
+                )}
+              </ResponsiveView>
+              <ResponsiveView style={styles.stepTextContainer}>
+                <ResponsiveText 
+                  size="xs" 
+                  weight={isCurrent ? "600" : "500"} 
+                  color={isCompleted || isCurrent ? "#333" : "#999"}
+                  style={styles.stepTitle}
+                >
+                  {step.title}
+                </ResponsiveText>
+                <ResponsiveText 
+                  size="xs" 
+                  color={isCompleted || isCurrent ? "#666" : "#999"}
+                  style={styles.stepDescription}
+                >
+                  {step.description}
+                </ResponsiveText>
+              </ResponsiveView>
+              {index < registrationSteps.length - 1 && (
+                <ResponsiveView style={[
+                  styles.stepConnector,
+                  isCompleted && styles.stepConnectorCompleted
+                ]}>
+                  <></>
+                </ResponsiveView>
+              )}
+            </ResponsiveView>
+          );
+        })}
+      </ResponsiveView>
+    </ResponsiveView>
+  );
 
   if (isLoading) {
     return (
@@ -405,6 +642,9 @@ const BusinessLocationScreen = () => {
             <Text style={styles.title}>Business Location</Text>
           </View>
 
+          {/* Progress Bar */}
+          <ProgressBar />
+
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
@@ -425,321 +665,73 @@ const BusinessLocationScreen = () => {
             {/* Search Results Dropdown */}
             {showSearchResults && searchResults.length > 0 && (
               <View style={styles.searchResultsContainer}>
-                <ScrollView style={styles.searchResultsList} showsVerticalScrollIndicator={false}>
-                  {searchResults.map((result, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.searchResultItem}
-                      onPress={() => handleSelectSearchResult(result, index)}
-                    >
-                      <Ionicons name="location-outline" size={20} color="#667eea" />
-                      <View style={styles.searchResultText}>
-                        <Text style={styles.searchResultTitle}>
-                          {searchQuery} (Result {index + 1})
-                        </Text>
-                        <Text style={styles.searchResultSubtitle}>
-                          Lat: {result.latitude.toFixed(4)}, Lng: {result.longitude.toFixed(4)}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity
-                  style={styles.closeSearchResults}
-                  onPress={() => {
-                    setShowSearchResults(false);
-                    setSearchResults([]);
-                  }}
-                >
-                  <Ionicons name="close" size={20} color="#666" />
-                </TouchableOpacity>
+                {searchResults.map((result, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.searchResultItem}
+                    onPress={() => handleSelectSearchResult(result, index)}
+                  >
+                    <Text style={styles.searchResultText}>
+                      {result.name || `${result.latitude.toFixed(4)}, ${result.longitude.toFixed(4)}`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
 
           {/* Map */}
           <View style={styles.mapContainer}>
-            {selectedLocation && (
-              <MapView
-                ref={mapRef}
-                style={styles.map}
-                initialRegion={selectedLocation}
-                onPress={handleMapPress}
-              >
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              initialRegion={selectedLocation || currentLocation || {
+                latitude: 10.6407,
+                longitude: 122.9689,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+              onPress={handleMapPress}
+              showsUserLocation={true}
+              showsMyLocationButton={false}
+            >
+              {selectedLocation && (
                 <Marker
                   coordinate={{
                     latitude: selectedLocation.latitude,
                     longitude: selectedLocation.longitude,
                   }}
                   title="Business Location"
-                  description="Tap to select this location"
+                  description={locationAddress}
                 />
-              </MapView>
-            )}
-            
-            {/* Floating Current Location Button */}
-            <TouchableOpacity onPress={handleUseCurrentLocation} style={styles.floatingLocationButton}>
-              <Ionicons name="location" size={24} color="#667eea" />
-            </TouchableOpacity>
+              )}
+            </MapView>
           </View>
 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.bottomContainer}
-          >
-            {/* Location Info */}
+          {/* Location Info */}
+          {selectedLocation && (
             <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Selected Location:</Text>
-              <Text style={styles.locationText}>
-                {locationAddress || 'No location selected'}
-              </Text>
-              <Text style={styles.instructionText}>
-                Tap on the map to select your business location or search for a specific address.
-              </Text>
+              <Text style={styles.locationInfoTitle}>Selected Location</Text>
+              <Text style={styles.locationInfoText}>{locationAddress}</Text>
             </View>
+          )}
 
-            {/* Next Button */}
-            <TouchableOpacity 
-              onPress={handleNext} 
-              style={[styles.nextButton, isSubmitting && styles.nextButtonDisabled]}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <View style={styles.buttonLoadingContainer}>
-                  <ActivityIndicator size="small" color="white" style={styles.loadingIndicator} />
-                  <Text style={styles.nextButtonText}>Saving Registration...</Text>
-                </View>
-              ) : (
-                <Text style={styles.nextButtonText}>Complete Registration</Text>
-              )}
-            </TouchableOpacity>
-          </KeyboardAvoidingView>
+          {/* Next Button */}
+          <TouchableOpacity
+            style={[styles.nextButton, isSubmitting && styles.nextButtonDisabled]}
+            onPress={handleNext}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.nextButtonText}>Complete Registration</Text>
+            )}
+          </TouchableOpacity>
         </SafeAreaView>
       </TouchableWithoutFeedback>
     </LinearGradient>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    marginHorizontal: 20,
-    marginVertical: 20,
-    borderRadius: 20,
-    padding: 40,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#333',
-    fontWeight: '600',
-    marginTop: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-    color: '#333',
-  },
-  searchButton: {
-    backgroundColor: '#667eea',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mapContainer: {
-    flex: 1,
-    marginHorizontal: 20,
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    minHeight: 300,
-  },
-  map: {
-    flex: 1,
-  },
-  bottomContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  locationInfo: {
-    marginTop: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 15,
-    marginBottom: 15,
-  },
-  locationLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  instructionText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  nextButton: {
-    backgroundColor: '#667eea',
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  nextButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  nextButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  floatingLocationButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  searchResultsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 15,
-    marginTop: 10,
-    maxHeight: 200,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  searchResultsList: {
-    maxHeight: 200,
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  searchResultText: {
-    marginLeft: 10,
-    flex: 1,
-  },
-  searchResultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  searchResultSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  closeSearchResults: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonLoadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingIndicator: {
-    marginRight: 10,
-  },
-});
-
-export default BusinessLocationScreen; 
+export default BusinessLocationScreen;

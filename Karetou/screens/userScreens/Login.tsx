@@ -21,6 +21,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView, ResponsiveButton, ResponsiveInput } from '../../components';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,13 +40,155 @@ interface Props {
   navigation: LoginScreenNavigationProp;
 }
 
-
 export default function Login({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { setUserType } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  
+  // Device size detection
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
+  const isSmallDevice = screenWidth < 375 || screenHeight < 667; // iPhone SE, small Android
+  const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
+  const isLargeDevice = screenWidth > 414 || screenHeight > 844; // iPhone Pro Max, Plus models
+  const isTablet = screenWidth > 768; // Tablets
+  
+  // Platform-specific adjustments
+  const isIOS = Platform.OS === 'ios';
+  
+  // Responsive calculations
+  const spacingMultiplier = isSmallDevice ? 0.8 : isMediumDevice ? 1 : isTablet ? 1.5 : 1.1;
+  const logoSizePercent = isSmallDevice ? 16 : isMediumDevice ? 20 : isTablet ? 30 : 22;
+  const inputHeight = isSmallDevice ? 6 : isMediumDevice ? 6.5 : isTablet ? 8 : 7;
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg * spacingMultiplier,
+      paddingTop: spacing.lg * spacingMultiplier,
+      paddingBottom: spacing.md * spacingMultiplier,
+      justifyContent: 'flex-start',
+      width: '100%',
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: spacing.lg * spacingMultiplier,
+    },
+    logoContainer: {
+      width: getResponsiveWidth(logoSizePercent),
+      height: getResponsiveWidth(logoSizePercent),
+      borderRadius: getResponsiveWidth(logoSizePercent / 2),
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md * spacingMultiplier,
+    },
+    logoImage: {
+      width: '80%',
+      height: '80%',
+      resizeMode: 'contain',
+    },
+    title: {
+      marginBottom: spacing.sm * spacingMultiplier,
+      textAlign: 'center',
+    },
+    subtitle: {
+      textAlign: 'center',
+      paddingHorizontal: spacing.md * spacingMultiplier,
+      marginBottom: spacing.sm * spacingMultiplier,
+    },
+    formContainer: {
+      width: '100%',
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      marginBottom: spacing.lg * spacingMultiplier,
+      paddingHorizontal: spacing.lg,
+      height: getResponsiveHeight(inputHeight),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+    },
+    inputIcon: {
+      marginRight: spacing.sm,
+    },
+    input: {
+      flex: 1,
+      fontSize: fontSizes.md,
+      color: '#000',
+    },
+    eyeIcon: {
+      padding: spacing.xs,
+    },
+    button: {
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md * spacingMultiplier,
+      minHeight: getResponsiveHeight(inputHeight),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+    },
+    loginButton: {
+      backgroundColor: '#667eea',
+    },
+    signupButton: {
+      backgroundColor: '#4CAF50',
+      borderWidth: 0,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+    },
+    signupButtonText: {
+      color: '#fff',
+    },
+    forgotPasswordButton: {
+      alignItems: 'center',
+      paddingVertical: spacing.sm * spacingMultiplier,
+      marginBottom: spacing.md * spacingMultiplier,
+    },
+    forgotPasswordText: {
+      fontSize: fontSizes.sm,
+    },
+    footer: {
+      alignItems: 'center',
+      marginTop: spacing.xl * spacingMultiplier,
+      paddingTop: spacing.lg * spacingMultiplier,
+      paddingBottom: spacing.lg,
+    },
+    footerText: {
+      fontSize: fontSizes.xs,
+      textAlign: 'center',
+      lineHeight: fontSizes.xs * 1.4,
+    },
+  });
 
   const signIn = async () => {
     if (!email || !password) {
@@ -57,44 +201,13 @@ export default function Login({ navigation }: Props) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Check email verification status
-      if (!user.emailVerified) {
-        // Sign out the user and redirect to email verification
-        await auth.signOut();
-        Alert.alert(
-          'Email Not Verified',
-          'Please verify your email address before signing in. Check your inbox for the verification email.',
-          [
-            {
-              text: 'Resend Email',
-              onPress: () => navigation.navigate('EmailVerification', { email, password, userType: 'user' }),
-            },
-            {
-              text: 'OK',
-              style: 'cancel',
-            },
-          ]
-        );
-        return;
-      }
+      console.log('✅ Login Debug - User signed in successfully:', user.uid);
       
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      // Debug logging
-      console.log('🔍 Login Debug - User UID:', user.uid);
-      console.log('🔍 Login Debug - Email verified:', user.emailVerified);
-      console.log('🔍 Login Debug - User doc exists:', userDoc.exists());
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        console.log('🔍 Login Debug - User data:', userData);
-        console.log('🔍 Login Debug - User type:', userData.userType);
-        console.log('🔍 Login Debug - User type typeof:', typeof userData.userType);
-      }
-
-      // Check if the user is a regular user or doesn't have a type (for legacy accounts)
+      // Check if user has a Firestore document
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      
       if (!userDoc.exists()) {
-        console.log('✅ Login Debug - User doc does not exist, treating as regular user');
+        console.log('✅ Login Debug - No Firestore document found, treating as regular user');
         // Set user type as regular user for accounts without Firestore document
         setUserType('user');
         Alert.alert('Success', 'Welcome back!');
@@ -147,28 +260,6 @@ export default function Login({ navigation }: Props) {
     }
   };
 
-  const signUp = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-    
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const user = await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert('Success', 'Account created successfully!');
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <LinearGradient
       colors={['#F5F5F5', '#F5F5F5']}
@@ -179,24 +270,32 @@ export default function Login({ navigation }: Props) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
+            <ResponsiveView style={styles.header}>
+              <ResponsiveView style={styles.logoContainer}>
                 <Image 
                   source={require('../../assets/logo.png')} 
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-              </View>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Sign in to continue your journey</Text>
-            </View>
+              </ResponsiveView>
+              <ResponsiveText size={isSmallDevice ? "xl" : isTablet ? "xxxl" : "xxl"} weight="bold" color="#000" style={styles.title}>
+                Welcome Back
+              </ResponsiveText>
+              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} color="#666" style={styles.subtitle}>
+                Sign in to continue your journey
+              </ResponsiveText>
+            </ResponsiveView>
 
             {/* Form */}
-            <View style={styles.formContainer}>
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.formContainer}>
+              <ResponsiveView style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
@@ -207,10 +306,10 @@ export default function Login({ navigation }: Props) {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-              </View>
+              </ResponsiveView>
 
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
+              <ResponsiveView style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
@@ -226,11 +325,11 @@ export default function Login({ navigation }: Props) {
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
+                    size={iconSizes.md}
                     color="#667eea"
                   />
                 </TouchableOpacity>
-              </View>
+              </ResponsiveView>
 
               {/* Buttons */}
               <TouchableOpacity
@@ -238,9 +337,9 @@ export default function Login({ navigation }: Props) {
                 onPress={signIn}
                 disabled={loading}
               >
-                <Text style={styles.buttonText}>
+                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={styles.buttonText}>
                   {loading ? 'Signing In...' : 'Sign In'}
-                </Text>
+                </ResponsiveText>
               </TouchableOpacity>
 
               {/* Forgot Password */}
@@ -248,14 +347,18 @@ export default function Login({ navigation }: Props) {
                 style={styles.forgotPasswordButton}
                 onPress={handleForgotPassword}
               >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#667eea" style={styles.forgotPasswordText}>
+                  Forgot Password?
+                </ResponsiveText>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.forgotPasswordButton}
                 onPress={() => navigation.navigate('BusinessLogin')}
               >
-                <Text style={styles.forgotPasswordText}>Business Owner? Register here.</Text>
+                <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#667eea" style={styles.forgotPasswordText}>
+                  Business Owner? Register here.
+                </ResponsiveText>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -263,153 +366,22 @@ export default function Login({ navigation }: Props) {
                 onPress={() => navigation.navigate('Signup')}
                 disabled={loading}
               >
-                <Text style={[styles.buttonText, styles.signupButtonText]}>
+                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#667eea" style={[styles.buttonText, styles.signupButtonText]}>
                   Create Account
-                </Text>
+                </ResponsiveText>
               </TouchableOpacity>
 
-            </View>
+            </ResponsiveView>
 
             {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
+            <ResponsiveView style={styles.footer}>
+              <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "xs"} color="#999" style={styles.footerText}>
                 By continuing, you agree to our Terms of Service and Privacy Policy
-              </Text>
-            </View>
+              </ResponsiveText>
+            </ResponsiveView>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: '80%',
-    height: '80%',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  formContainer: {
-    flex: 1,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: 56,
-    fontSize: 16,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 8,
-  },
-  button: {
-    borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  loginButton: {
-    backgroundColor: '#667eea',
-  },
-  signupButton: {
-    backgroundColor: '#667eea',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  signupButtonText: {
-    color: '#fff',
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    color: '#666',
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  forgotPasswordText: {
-    color: '#667eea',
-    fontSize: 14,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-});

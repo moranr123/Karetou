@@ -25,6 +25,8 @@ import { db } from '../../firebase';
 import { collection, query, getDocs, where, doc, getDoc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import LoadingImage from '../../components/LoadingImage';
 import { useRoute, RouteProp } from '@react-navigation/native';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../components';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -272,7 +274,13 @@ type NavigateRouteProp = RouteProp<{ Navigate: NavigateRouteParams }, 'Navigate'
 const Navigate = () => {
   const route = useRoute<NavigateRouteProp>();
   const { theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
   const mapRef = useRef<MapView>(null);
+  
+  // Device size detection
+  const isSmallDevice = screenWidth < 375 || screenHeight < 667;
+  const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
+  const isLargeDevice = screenWidth > 414 || screenHeight > 844;
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2516,49 +2524,55 @@ const Navigate = () => {
           <View style={styles.nearbyOverlay}>
             <View style={styles.nearbyModal}>
               <Text style={styles.nearbyTitle}>Discover What's Just Steps Away!</Text>
-              {nearbyBusinesses.map((biz, idx) => {
-                const rating = businessRatings[biz.id];
-                const reviews = businessReviews[biz.id] || [];
-                const averageRating = rating?.average || '0.0';
-                const reviewCount = rating?.count || 0;
-                
-                const businessImageUri = biz.allImages?.[0] || biz.image || 'https://via.placeholder.com/54';
-                
-                return (
-                  <View key={biz.id} style={styles.nearbyCard}>
-                    <CachedImage
-                      source={{ uri: businessImageUri }}
-                      style={styles.nearbyImage}
-                      resizeMode="cover"
-                    />
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.nearbyName}>{biz.name}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                        <Ionicons name="location" size={14} color="#1976d2" />
-                        <Text style={styles.nearbyDistance}>{
-                          `${Math.round(haversineDistance(location?.coords?.latitude || 0, location?.coords?.longitude || 0, biz.businessLocation.latitude, biz.businessLocation.longitude) * 1000)} Meters`
-                        }</Text>
+              <ScrollView
+                style={{ width: '100%', maxHeight: screenHeight * 0.35 }}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={{ paddingBottom: 4 }}
+              >
+                {nearbyBusinesses.map((biz, idx) => {
+                  const rating = businessRatings[biz.id];
+                  const reviews = businessReviews[biz.id] || [];
+                  const averageRating = rating?.average || '0.0';
+                  const reviewCount = rating?.count || 0;
+                  
+                  const businessImageUri = biz.allImages?.[0] || biz.image || 'https://via.placeholder.com/54';
+                  
+                  return (
+                    <View key={biz.id} style={styles.nearbyCard}>
+                      <CachedImage
+                        source={{ uri: businessImageUri }}
+                        style={styles.nearbyImage}
+                        resizeMode="cover"
+                      />
+                      <View style={{ flex: 1, marginLeft: screenWidth < 375 ? 6 : 8 }}>
+                        <Text style={styles.nearbyName}>{biz.name}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
+                          <Ionicons name="location" size={screenWidth < 375 ? 12 : 14} color="#1976d2" />
+                          <Text style={styles.nearbyDistance}>{
+                            `${Math.round(haversineDistance(location?.coords?.latitude || 0, location?.coords?.longitude || 0, biz.businessLocation.latitude, biz.businessLocation.longitude) * 1000)}m`
+                          }</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
+                          <Ionicons name="star" size={screenWidth < 375 ? 12 : 14} color="#FFD700" />
+                          <Text style={styles.nearbyRating}>
+                            {averageRating} ({reviewCount})
+                          </Text>
+                        </View>
                       </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                        <Ionicons name="star" size={14} color="#FFD700" />
-                        <Text style={styles.nearbyRating}>
-                          {averageRating} ({reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'})
-                        </Text>
-                      </View>
+                      <TouchableOpacity 
+                        style={styles.nearbyNavigateBtn} 
+                        onPress={() => { 
+                          setShowNearbyModal(false); 
+                          handlePlaceSelect(biz);
+                        }}
+                      >
+                        <Ionicons name="navigate" size={18} color="#8D5C2C" />
+                        <Text style={styles.nearbyNavigateText}>Navigate</Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity 
-                      style={styles.nearbyNavigateBtn} 
-                      onPress={() => { 
-                        setShowNearbyModal(false); 
-                        handlePlaceSelect(biz);
-                      }}
-                    >
-                      <Ionicons name="navigate" size={18} color="#8D5C2C" />
-                      <Text style={styles.nearbyNavigateText}>Navigate</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </ScrollView>
               <TouchableOpacity style={styles.nearbyCloseBtn} onPress={() => setShowNearbyModal(false)}>
                 <View style={styles.nearbyCloseSolid}>
                   <Text style={styles.nearbyCloseText}>Close</Text>
@@ -2706,11 +2720,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
   },
   detailsContainer: {
     width: '100%',
     maxWidth: 400,
-    maxHeight: '90%',
+    maxHeight: screenHeight * 0.90,
     backgroundColor: '#fff',
     borderRadius: 15,
     overflow: 'hidden',
@@ -2719,35 +2739,38 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.34,
     shadowRadius: 6.27,
+    zIndex: 1000,
   },
   contentContainer: {
-    padding: 16,
+    padding: screenHeight < 667 ? 8 : 12,
+    backgroundColor: '#fff',
+    minHeight: 180,
   },
   businessInfo: {
-    marginBottom: 16,
+    marginBottom: screenHeight < 667 ? 8 : 12,
     alignItems: 'center',
   },
   businessName: {
-    fontSize: 20,
+    fontSize: screenHeight < 667 ? 14 : 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 4,
     textAlign: 'center',
   },
   businessType: {
-    fontSize: 14,
+    fontSize: screenHeight < 667 ? 10 : 12,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: screenHeight < 667 ? 6 : 8,
     textAlign: 'center',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: screenHeight < 667 ? 3 : 4,
     alignSelf: 'stretch',
   },
   locationText: {
-    fontSize: 14,
+    fontSize: screenHeight < 667 ? 11 : 12,
     color: '#666',
     marginLeft: 8,
     flex: 1,
@@ -2756,41 +2779,41 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: screenHeight < 667 ? 3 : 4,
     alignSelf: 'stretch',
   },
   timeText: {
-    fontSize: 14,
+    fontSize: screenHeight < 667 ? 11 : 12,
     color: '#666',
     marginLeft: 8,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: screenHeight < 667 ? 6 : 8,
     alignSelf: 'stretch',
   },
   infoText: {
-    fontSize: 14,
+    fontSize: screenHeight < 667 ? 11 : 12,
     color: '#666',
     marginLeft: 8,
     flex: 1,
   },
   travelModesContainer: {
-    marginBottom: 16,
+    marginBottom: screenHeight < 667 ? 6 : 8,
     backgroundColor: '#f5f5f5',
     borderRadius: 12,
-    padding: 8,
+    padding: screenHeight < 667 ? 4 : 6,
   },
   travelModeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: screenHeight < 667 ? 2 : 3,
   },
   travelModeButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: screenHeight < 667 ? 6 : 8,
     marginHorizontal: 4,
     borderRadius: 8,
   },
@@ -2803,9 +2826,9 @@ const styles = StyleSheet.create({
     shadowRadius: 1.41,
   },
   travelModeText: {
-    fontSize: 12,
+    fontSize: screenHeight < 667 ? 9 : 10,
     color: '#666',
-    marginTop: 4,
+    marginTop: screenHeight < 667 ? 2 : 4,
   },
   selectedModeText: {
     color: '#007AFF',
@@ -2814,9 +2837,9 @@ const styles = StyleSheet.create({
   routeInfo: {
     backgroundColor: '#f5f5f5',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    minHeight: 80,
+    padding: screenHeight < 667 ? 8 : 10,
+    marginBottom: screenHeight < 667 ? 8 : 12,
+    minHeight: screenHeight < 667 ? 50 : 70,
     justifyContent: 'center',
   },
   routeInfoCentered: {
@@ -2836,45 +2859,45 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   routeInfoText: {
-    fontSize: 14,
+    fontSize: screenHeight < 667 ? 11 : 12,
     color: '#666',
     marginLeft: 8,
   },
   trafficContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 10,
-    marginTop: 8,
+    padding: screenHeight < 667 ? 6 : 8,
+    marginTop: screenHeight < 667 ? 4 : 6,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
   trafficHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: screenHeight < 667 ? 4 : 6,
   },
   trafficHeaderText: {
-    fontSize: 12,
+    fontSize: screenHeight < 667 ? 9 : 10,
     color: '#666',
     fontWeight: '600',
     marginLeft: 6,
     textTransform: 'uppercase',
   },
   trafficContent: {
-    paddingLeft: 4,
+    paddingLeft: screenHeight < 667 ? 2 : 4,
   },
   trafficRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: screenHeight < 667 ? 2 : 3,
   },
   trafficText: {
-    fontSize: 13,
+    fontSize: screenHeight < 667 ? 10 : 11,
     fontWeight: '600',
     marginLeft: 6,
   },
   trafficDetailText: {
-    fontSize: 12,
+    fontSize: screenHeight < 667 ? 9 : 10,
     color: '#666',
     marginLeft: 6,
   },
@@ -2883,17 +2906,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: screenHeight < 667 ? 12 : 14,
     borderRadius: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
+    marginTop: screenHeight < 667 ? 8 : 12,
     shadowRadius: 1.41,
   },
   navigateButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: screenHeight < 667 ? 12 : 14,
     fontWeight: '600',
     marginLeft: 8,
   },
@@ -3104,7 +3128,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   imageCarouselContainer: {
-    height: 220,
+    height: screenHeight < 667 ? 120 : 150,
     backgroundColor: '#f0f0f0',
     alignItems: 'center',
   },
@@ -3113,7 +3137,7 @@ const styles = StyleSheet.create({
   },
   carouselImage: {
     width: screenWidth * 0.85,
-    height: 200,
+    height: screenHeight < 667 ? 120 : 150,
     marginTop: 10,
     marginLeft: 10,
     borderRadius: 10,
@@ -3275,9 +3299,10 @@ const styles = StyleSheet.create({
   nearbyModal: {
     backgroundColor: '#fff',
     borderRadius: 24,
-    padding: 18,
+    padding: screenWidth < 375 ? 10 : 14,
     width: '90%',
     maxWidth: 400,
+    maxHeight: screenHeight * 0.65,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.12,
@@ -3286,19 +3311,19 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   nearbyTitle: {
-    fontSize: 18,
+    fontSize: screenWidth < 375 ? 16 : 18,
     fontWeight: '700',
     color: '#222',
-    marginBottom: 12,
+    marginBottom: screenWidth < 375 ? 8 : 12,
     textAlign: 'center',
   },
   nearbyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F8F8',
-    borderRadius: 16,
-    padding: 10,
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: screenWidth < 375 ? 6 : 8,
+    marginBottom: screenWidth < 375 ? 6 : 8,
     width: '100%',
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -3307,58 +3332,58 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   nearbyImage: {
-    width: 54,
-    height: 54,
-    borderRadius: 10,
+    width: screenWidth < 375 ? 40 : 48,
+    height: screenWidth < 375 ? 40 : 48,
+    borderRadius: 8,
     backgroundColor: '#eee',
   },
   nearbyName: {
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: screenWidth < 375 ? 14 : 16,
     color: '#181848',
   },
   nearbyDistance: {
-    fontSize: 13,
+    fontSize: screenWidth < 375 ? 12 : 13,
     color: '#1976d2',
     marginLeft: 4,
   },
   nearbyRating: {
-    fontSize: 13,
+    fontSize: screenWidth < 375 ? 12 : 13,
     color: '#888',
     marginLeft: 4,
   },
   nearbyNavigateBtn: {
     backgroundColor: '#F6E3D1',
-    borderRadius: 8,
+    borderRadius: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginLeft: 8,
+    paddingVertical: screenWidth < 375 ? 4 : 5,
+    paddingHorizontal: screenWidth < 375 ? 8 : 10,
+    marginLeft: screenWidth < 375 ? 4 : 6,
   },
   nearbyNavigateText: {
     color: '#8D5C2C',
     fontWeight: '600',
-    marginLeft: 4,
-    fontSize: 14,
+    marginLeft: 2,
+    fontSize: screenWidth < 375 ? 12 : 13,
   },
   nearbyCloseBtn: {
     width: '100%',
-    marginTop: 8,
-    borderRadius: 12,
+    marginTop: screenWidth < 375 ? 4 : 6,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   nearbyCloseSolid: {
     backgroundColor: '#3B2FEA',
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: screenWidth < 375 ? 6 : 8,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nearbyCloseText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: screenWidth < 375 ? 14 : 16,
     textAlign: 'center',
   },
 

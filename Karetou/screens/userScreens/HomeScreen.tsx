@@ -24,6 +24,8 @@ import { collection, query, getDocs, where, orderBy, limit, addDoc, doc, onSnaps
 import LoadingImage from '../../components/LoadingImage';
 import NotificationService from '../../services/NotificationService';
 import * as Location from 'expo-location';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView, ResponsiveCard, ResponsiveButton, ResponsiveImage } from '../../components';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -190,636 +192,12 @@ const fallbackSuggestedPlaces = [
 ];
 
 // --- Styles ---
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: screenWidth * 0.05,
-    paddingTop: screenHeight * 0.02,
-    paddingBottom: screenHeight * 0.01,
-  },
-  avatar: {
-    width: screenWidth * 0.1,
-    height: screenWidth * 0.1,
-    borderRadius: screenWidth * 0.05,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  locationText: {
-    marginLeft: screenWidth * 0.02,
-    fontSize: screenWidth * 0.045,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  logoWrapper: {
-    padding: 2,
-  },
-  logoContainer: {
-    width: screenWidth * 0.1,
-    height: screenWidth * 0.1,
-    borderRadius: (screenWidth * 0.1) / 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoImage: {
-    width: '70%',
-    height: '70%',
-    resizeMode: 'contain',
-  },
-  headerRightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  notificationButton: {
-    position: 'relative',
-    padding: 8,
-    marginRight: 12,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#FF5733',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  notificationBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: screenWidth * 0.037,
-    marginHorizontal: screenWidth * 0.05,
-    paddingHorizontal: screenWidth * 0.037,
-    paddingVertical: screenHeight * 0.012,
-    marginTop: screenHeight * 0.012,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  searchIcon: {
-    marginRight: screenWidth * 0.025,
-  },
-  searchInputPlaceholder: {
-    flex: 1,
-    fontSize: screenWidth * 0.04,
-    color: '#888',
-  },
-  section: {
-    marginTop: screenHeight * 0.03,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: screenWidth * 0.05,
-  },
-  sectionTitle: {
-    fontSize: screenWidth * 0.05,
-    fontWeight: 'bold',
-    color: '#333',
-    paddingHorizontal: screenWidth * 0.05,
-  },
-  seeAllButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: screenWidth * 0.04,
-    paddingVertical: screenHeight * 0.01,
-    borderRadius: 15,
-  },
-  seeAllText: {
-    fontSize: screenWidth * 0.035,
-    fontWeight: '600',
-  },
-  suggestedCard: {
-    width: screenWidth * 0.7,
-    height: screenHeight * 0.22,
-    marginLeft: screenWidth * 0.05,
-    marginTop: screenHeight * 0.018,
-    justifyContent: 'flex-end',
-  },
-  suggestedCardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: screenWidth * 0.05,
-  },
-  ratingContainer: {
-    position: 'absolute',
-    top: screenHeight * 0.018,
-    left: screenWidth * 0.037,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: screenWidth * 0.02,
-    paddingVertical: screenHeight * 0.005,
-    borderRadius: screenWidth * 0.03,
-  },
-  ratingText: {
-    color: '#fff',
-    marginLeft: screenWidth * 0.012,
-    fontWeight: 'bold',
-    fontSize: screenWidth * 0.035,
-  },
-  suggestedCardContent: {
-    padding: screenWidth * 0.037,
-  },
-  suggestedTitle: {
-    fontSize: screenWidth * 0.045,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  suggestedLocation: {
-    fontSize: screenWidth * 0.035,
-    color: '#fff',
-  },
-  saveButton: {
-    position: 'absolute',
-    bottom: screenHeight * 0.018,
-    right: screenWidth * 0.037,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    padding: screenWidth * 0.02,
-    borderRadius: screenWidth * 0.05,
-  },
-  placeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: screenWidth * 0.037,
-    marginHorizontal: screenWidth * 0.05,
-    marginTop: screenHeight * 0.018,
-    padding: screenWidth * 0.025,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  placeImage: {
-    width: screenWidth * 0.2,
-    height: screenWidth * 0.2,
-    borderRadius: screenWidth * 0.025,
-  },
-  placeInfo: {
-    flex: 1,
-    marginLeft: screenWidth * 0.037,
-  },
-  placeName: {
-    fontSize: screenWidth * 0.04,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  placeLocation: {
-    fontSize: screenWidth * 0.032,
-    color: '#666',
-    marginTop: screenHeight * 0.005,
-  },
-  placeRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: screenHeight * 0.01,
-  },
-  placeRatingText: {
-    marginLeft: screenWidth * 0.012,
-    fontSize: screenWidth * 0.03,
-    color: '#666',
-  },
-  placeCardSaveButton: {
-    padding: screenWidth * 0.02,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: screenWidth * 0.05,
-  },
-  loadingText: {
-    marginLeft: screenWidth * 0.02,
-    fontSize: screenWidth * 0.04,
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: screenWidth * 0.05,
-  },
-  emptyText: {
-    fontSize: screenWidth * 0.05,
-    fontWeight: 'bold',
-    marginBottom: screenHeight * 0.02,
-  },
-  emptySubText: {
-    fontSize: screenWidth * 0.035,
-    color: '#888',
-  },
-  businessType: {
-    fontSize: screenWidth * 0.035,
-    color: '#667eea',
-    marginTop: screenHeight * 0.005,
-  },
-  promoCard: {
-    width: screenWidth * 0.7,
-    height: screenHeight * 0.22,
-    marginLeft: screenWidth * 0.05,
-    marginTop: screenHeight * 0.018,
-    justifyContent: 'flex-end',
-  },
-  promoCardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: screenWidth * 0.05,
-  },
-  promoCardContent: {
-    padding: screenWidth * 0.037,
-  },
-  promoTitle: {
-    fontSize: screenWidth * 0.045,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  promoBusinessName: {
-    fontSize: screenWidth * 0.035,
-    color: '#fff',
-    fontWeight: '600',
-    marginBottom: screenHeight * 0.005,
-    opacity: 0.9,
-  },
-  promoDescription: {
-    fontSize: screenWidth * 0.032,
-    color: '#fff',
-    lineHeight: screenWidth * 0.045,
-    marginBottom: screenHeight * 0.005,
-  },
-  promoBusinessType: {
-    fontSize: screenWidth * 0.030,
-    color: '#FFD700',
-    fontWeight: '600',
-  },
-  promoValidUntil: {
-    fontSize: screenWidth * 0.030,
-    color: '#fff',
-    opacity: 0.8,
-    fontStyle: 'italic',
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: screenHeight * 0.018,
-    left: screenWidth * 0.037,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: screenWidth * 0.02,
-    paddingVertical: screenHeight * 0.005,
-    borderRadius: screenWidth * 0.03,
-  },
-  discountText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: screenWidth * 0.035,
-  },
-  promoFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: screenHeight * 0.01,
-  },
-  loadingPromoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: screenWidth * 0.05,
-    marginTop: screenHeight * 0.02,
-  },
-  emptyPromoContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: screenWidth * 0.05,
-    marginTop: screenHeight * 0.02,
-  },
-  businessNameBadge: {
-    position: 'absolute',
-    top: screenHeight * 0.018,
-    right: screenWidth * 0.037,
-    backgroundColor: '#FFD700',
-    paddingHorizontal: screenWidth * 0.025,
-    paddingVertical: screenHeight * 0.005,
-    borderRadius: screenWidth * 0.02,
-    elevation: 3,
-  },
-  businessNameText: {
-    color: '#333',
-    fontWeight: '700',
-    fontSize: screenWidth * 0.034,
-  },
-  /* ===== Details Modal Styles ===== */
-  detailsOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailsContainer: {
-    width: screenWidth * 0.85,
-    maxHeight: screenHeight * 0.8,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  detailsImage: {
-    width: screenWidth * 0.75,
-    height: screenHeight * 0.25,
-    resizeMode: 'cover',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  detailsContent: {
-    padding: screenWidth * 0.05,
-  },
-  detailsTitle: {
-    fontSize: screenWidth * 0.05,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: screenHeight * 0.005,
-    textAlign: 'center',
-  },
-  detailsSectionLabel: {
-    fontSize: screenWidth * 0.04,
-    fontWeight: '600',
-    color: '#667eea',
-    marginTop: screenHeight * 0.015,
-  },
-  detailsText: {
-    fontSize: screenWidth * 0.036,
-    color: '#333',
-    marginTop: screenHeight * 0.005,
-  },
-  closeButtonModal: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    padding: 5,
-    zIndex: 2,
-  },
-  detailsSubtitle: {
-    fontSize: screenWidth * 0.042,
-    color: '#555',
-    marginBottom: screenHeight * 0.002,
-    textAlign: 'center',
-  },
-  detailsLocation: {
-    fontSize: screenWidth * 0.038,
-    color: '#777',
-    marginBottom: screenHeight * 0.008,
-  },
-  detailsLocationLabel: {
-    fontSize: screenWidth * 0.04,
-    fontWeight: '600',
-    color: '#667eea',
-    marginTop: screenHeight * 0.015,
-    marginBottom: screenHeight * 0.005,
-  },
-  ratingRowModal: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight * 0.01,
-  },
-  ratingNumberModal: {
-    marginLeft: screenWidth * 0.015,
-    fontSize: screenWidth * 0.038,
-    fontWeight: '600',
-    color: '#333',
-  },
-  reviewsTextModal: {
-    marginLeft: screenWidth * 0.015,
-    fontSize: screenWidth * 0.032,
-    color: '#667eea',
-  },
-  imageContainer: {
-    position: 'relative',
-    width: screenWidth * 0.75,
-    height: screenHeight * 0.25,
-    marginHorizontal: screenWidth * 0.05,
-    marginTop: screenHeight * 0.02,
-  },
-  carouselWrapper: {
-    width: '100%',
-    height: screenHeight * 0.29,
-    alignItems: 'center',
-  },
-  swipeIndicator: {
-    position: 'absolute',
-    right: 10,
-    top: '50%',
-    transform: [{ translateY: -20 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 20,
-    padding: 8,
-    alignItems: 'center',
-  },
-  swipeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  viewMapBtn: {
-    marginTop: screenHeight * 0.02,
-    width: '100%',
-    backgroundColor: '#007AFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: screenWidth * 0.05,
-    paddingVertical: screenHeight * 0.018,
-    borderRadius: screenWidth * 0.04,
-  },
-  viewMapText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: screenWidth * 0.04,
-    marginLeft: screenWidth * 0.02,
-  },
-  rateButton: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    zIndex: 2,
-  },
-  rateButtonText: {
-    color: '#fff',
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  reviewModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  reviewModalCard: {
-    width: '95%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    overflow: 'hidden',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-  },
-  reviewModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#667eea',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-  },
-  reviewModalTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  reviewModalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
-  reviewModalStars: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    justifyContent: 'center',
-  },
-  reviewModalInput: {
-    width: '90%',
-    minHeight: 60,
-    backgroundColor: '#f3f3f7',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    padding: 10,
-    fontSize: 15,
-    color: '#222',
-    marginBottom: 18,
-  },
-  reviewModalButton: {
-    backgroundColor: '#667eea',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-    alignSelf: 'center',
-  },
-  reviewModalButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  reviewCardDisplay: {
-    alignItems: 'center',
-    backgroundColor: '#f7f7fa',
-    borderRadius: 12,
-    margin: 18,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-  },
-  reviewCardLabel: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: '#667eea',
-    marginBottom: 6,
-  },
-  reviewCardStars: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  reviewCardComment: {
-    fontStyle: 'italic',
-    color: '#444',
-    fontSize: 15,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  reviewCardDate: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 8,
-  },
-  placeImageContainer: {
-    position: 'relative',
-  },
-  filterContainer: {
-    paddingHorizontal: screenWidth * 0.05,
-    marginTop: screenHeight * 0.015,
-    marginBottom: screenHeight * 0.01,
-  },
-  filterScrollView: {
-    flexDirection: 'row',
-  },
-  filterButton: {
-    paddingHorizontal: screenWidth * 0.04,
-    paddingVertical: screenHeight * 0.01,
-    borderRadius: 20,
-    marginRight: screenWidth * 0.025,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  filterButtonActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
-  },
-  filterButtonText: {
-    fontSize: screenWidth * 0.035,
-    fontWeight: '600',
-    color: '#333',
-  },
-  filterButtonTextActive: {
-    color: '#fff',
-  },
-});
 
 // --- Component ---
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { theme, user, notifications, unreadNotificationCount } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
   const [refreshing, setRefreshing] = useState(false);
   const [placesToVisit, setPlacesToVisit] = useState<any[]>([]);
   const [loadingPlaces, setLoadingPlaces] = useState(true);
@@ -844,6 +222,580 @@ const HomeScreen = () => {
   const [userPreferences, setUserPreferences] = useState<string[]>([]);
 
   const filterOptions = ['All', 'Coffee Shops', 'Tourist Spots', 'Restaurants'];
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    locationContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    locationText: {
+      marginLeft: spacing.xs,
+    },
+    logoWrapper: {
+      padding: 2,
+    },
+    logoContainer: {
+      width: iconSizes.xxxxl,
+      height: iconSizes.xxxxl,
+      borderRadius: iconSizes.xxxxl / 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoImage: {
+      width: '70%',
+      height: '70%',
+      resizeMode: 'contain',
+    },
+    headerRightContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    notificationButton: {
+      position: 'relative',
+      padding: spacing.sm,
+      marginRight: spacing.md,
+    },
+    notificationBadge: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      backgroundColor: '#FF5733',
+      borderRadius: 10,
+      minWidth: 20,
+      height: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: '#FFF',
+    },
+    notificationBadgeText: {
+      textAlign: 'center',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FFFFFF',
+      borderRadius: borderRadius.lg,
+      marginHorizontal: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      marginTop: spacing.md,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    searchIcon: {
+      marginRight: spacing.sm,
+    },
+    searchInputPlaceholder: {
+      flex: 1,
+    },
+    section: {
+      marginTop: spacing.xl,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    sectionTitle: {
+      paddingHorizontal: spacing.lg,
+    },
+    seeAllButton: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 15,
+    },
+    seeAllText: {
+      fontWeight: '600',
+    },
+    suggestedCard: {
+      width: getResponsiveWidth(70),
+      height: getResponsiveHeight(22),
+      marginLeft: spacing.lg,
+      marginTop: spacing.md,
+      justifyContent: 'flex-end',
+    },
+    suggestedCardOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: borderRadius.lg,
+    },
+    ratingContainer: {
+      position: 'absolute',
+      top: spacing.md,
+      left: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      paddingHorizontal: spacing.xs,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
+    },
+    ratingText: {
+      color: '#fff',
+      marginLeft: spacing.xs,
+      fontWeight: 'bold',
+    },
+    suggestedCardContent: {
+      padding: spacing.lg,
+    },
+    suggestedTitle: {
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    suggestedLocation: {
+      color: '#fff',
+    },
+    saveButton: {
+      position: 'absolute',
+      bottom: spacing.md,
+      right: spacing.lg,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      padding: spacing.xs,
+      borderRadius: borderRadius.lg,
+    },
+    placeCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      padding: spacing.sm,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    placeImage: {
+      width: getResponsiveWidth(20),
+      height: getResponsiveWidth(20),
+      borderRadius: borderRadius.sm,
+    },
+    placeInfo: {
+      flex: 1,
+      marginLeft: spacing.lg,
+    },
+    placeName: {
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    placeLocation: {
+      color: '#666',
+      marginTop: spacing.xs,
+    },
+    placeRating: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    placeRatingText: {
+      marginLeft: spacing.xs,
+      color: '#666',
+    },
+    placeCardSaveButton: {
+      padding: spacing.xs,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.lg,
+    },
+    loadingText: {
+      marginLeft: spacing.xs,
+      fontWeight: 'bold',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    emptyText: {
+      fontWeight: 'bold',
+      marginBottom: spacing.lg,
+    },
+    emptySubText: {
+      color: '#888',
+    },
+    businessType: {
+      color: '#667eea',
+      marginTop: spacing.xs,
+    },
+    promoCard: {
+      width: getResponsiveWidth(70),
+      height: getResponsiveHeight(22),
+      marginLeft: spacing.lg,
+      marginTop: spacing.md,
+      justifyContent: 'flex-end',
+    },
+    promoCardOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: borderRadius.lg,
+    },
+    promoCardContent: {
+      padding: spacing.lg,
+    },
+    promoTitle: {
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    promoBusinessName: {
+      color: '#fff',
+      fontWeight: '600',
+      marginBottom: spacing.xs,
+      opacity: 0.9,
+    },
+    promoDescription: {
+      color: '#fff',
+      lineHeight: fontSizes.md * 1.2,
+      marginBottom: spacing.xs,
+    },
+    promoBusinessType: {
+      color: '#FFD700',
+      fontWeight: '600',
+    },
+    promoValidUntil: {
+      color: '#fff',
+      opacity: 0.8,
+      fontStyle: 'italic',
+    },
+    discountBadge: {
+      position: 'absolute',
+      top: spacing.md,
+      left: spacing.lg,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      paddingHorizontal: spacing.xs,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
+    },
+    discountText: {
+      color: '#fff',
+      fontWeight: 'bold',
+    },
+    promoFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    loadingPromoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.lg,
+      marginTop: spacing.lg,
+    },
+    emptyPromoContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+      marginTop: spacing.lg,
+    },
+    businessNameBadge: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.lg,
+      backgroundColor: '#FFD700',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.xs,
+      elevation: 3,
+    },
+    businessNameText: {
+      color: '#333',
+      fontWeight: '700',
+    },
+    // Modal styles
+    detailsOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    detailsContainer: {
+      width: getResponsiveWidth(85),
+      maxHeight: getResponsiveHeight(80),
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+    },
+    detailsImage: {
+      width: getResponsiveWidth(75),
+      height: getResponsiveHeight(25),
+      resizeMode: 'cover',
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: '#000',
+    },
+    detailsContent: {
+      padding: spacing.lg,
+    },
+    detailsTitle: {
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: spacing.xs,
+      textAlign: 'center',
+    },
+    detailsSectionLabel: {
+      fontWeight: '600',
+      color: '#667eea',
+      marginTop: spacing.md,
+    },
+    detailsText: {
+      color: '#333',
+      marginTop: spacing.xs,
+    },
+    closeButtonModal: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      padding: 5,
+      zIndex: 2,
+    },
+    detailsSubtitle: {
+      color: '#555',
+      marginBottom: spacing.xs,
+      textAlign: 'center',
+    },
+    detailsLocation: {
+      color: '#777',
+      marginBottom: spacing.sm,
+    },
+    detailsLocationLabel: {
+      fontWeight: '600',
+      color: '#667eea',
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    ratingRowModal: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    ratingNumberModal: {
+      marginLeft: spacing.xs,
+      fontWeight: '600',
+      color: '#333',
+    },
+    reviewsTextModal: {
+      marginLeft: spacing.xs,
+      color: '#667eea',
+    },
+    imageContainer: {
+      position: 'relative',
+      width: getResponsiveWidth(75),
+      height: getResponsiveHeight(25),
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.lg,
+    },
+    carouselWrapper: {
+      width: '100%',
+      height: getResponsiveHeight(29),
+      alignItems: 'center',
+    },
+    swipeIndicator: {
+      position: 'absolute',
+      right: 10,
+      top: '50%',
+      transform: [{ translateY: -20 }],
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.sm,
+      alignItems: 'center',
+    },
+    swipeText: {
+      color: '#fff',
+      fontWeight: '500',
+      marginTop: 2,
+    },
+    viewMapBtn: {
+      marginTop: spacing.lg,
+      width: '100%',
+      backgroundColor: '#007AFF',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+    },
+    viewMapText: {
+      color: '#fff',
+      fontWeight: '600',
+      marginLeft: spacing.xs,
+    },
+    rateButton: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.xl,
+      zIndex: 2,
+    },
+    rateButtonText: {
+      color: '#fff',
+      marginLeft: 4,
+      fontWeight: '600',
+    },
+    reviewModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    reviewModalCard: {
+      width: '95%',
+      maxWidth: 400,
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+    },
+    reviewModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#667eea',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.lg,
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
+    },
+    reviewModalTitle: {
+      color: '#fff',
+      fontWeight: 'bold',
+      flex: 1,
+    },
+    reviewModalLabel: {
+      fontWeight: '600',
+      marginBottom: spacing.sm,
+      color: '#333',
+    },
+    reviewModalStars: {
+      flexDirection: 'row',
+      marginBottom: spacing.lg,
+      justifyContent: 'center',
+    },
+    reviewModalInput: {
+      width: '90%',
+      minHeight: 60,
+      backgroundColor: '#f3f3f7',
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+      padding: spacing.sm,
+      color: '#222',
+      marginBottom: spacing.lg,
+    },
+    reviewModalButton: {
+      backgroundColor: '#667eea',
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xl,
+      alignItems: 'center',
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+      alignSelf: 'center',
+    },
+    reviewModalButtonText: {
+      color: '#fff',
+      fontWeight: 'bold',
+    },
+    reviewCardDisplay: {
+      alignItems: 'center',
+      backgroundColor: '#f7f7fa',
+      borderRadius: borderRadius.md,
+      margin: spacing.lg,
+      padding: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+    },
+    reviewCardLabel: {
+      fontWeight: 'bold',
+      color: '#667eea',
+      marginBottom: spacing.xs,
+    },
+    reviewCardStars: {
+      flexDirection: 'row',
+      marginBottom: spacing.sm,
+    },
+    reviewCardComment: {
+      fontStyle: 'italic',
+      color: '#444',
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+    },
+    reviewCardDate: {
+      color: '#888',
+      marginBottom: spacing.sm,
+    },
+    placeImageContainer: {
+      position: 'relative',
+    },
+    filterContainer: {
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    filterScrollView: {
+      flexDirection: 'row',
+    },
+    filterButton: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.xl,
+      marginRight: spacing.sm,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      backgroundColor: '#fff',
+    },
+    filterButtonActive: {
+      backgroundColor: '#667eea',
+      borderColor: '#667eea',
+    },
+    filterButtonText: {
+      fontWeight: '600',
+      color: '#333',
+    },
+    filterButtonTextActive: {
+      color: '#fff',
+    },
+  });
 
   // Filter places based on selected filter
   const applyFilter = (places: any[], filter: string) => {
@@ -1344,27 +1296,29 @@ const HomeScreen = () => {
           }
         >
           {/* --- Header --- */}
-          <View style={styles.header}>
-            <View style={styles.locationContainer}>
-              <Ionicons name="location-sharp" size={screenWidth * 0.06} color="#FF5733" />
+          <ResponsiveView style={styles.header}>
+            <ResponsiveView style={styles.locationContainer}>
+              <Ionicons name="location-sharp" size={iconSizes.lg} color="#FF5733" />
               {locationLoading ? (
                 <ActivityIndicator size="small" color={theme === 'dark' ? '#FFF' : '#333'} />
               ) : (
-                <Text style={[styles.locationText, { color: theme === 'dark' ? '#FFF' : '#333' }]}>{userLocation}</Text>
+                <ResponsiveText size="md" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.locationText}>
+                  {userLocation}
+                </ResponsiveText>
               )}
-            </View>
-            <View style={styles.headerRightContainer}>
+            </ResponsiveView>
+            <ResponsiveView style={styles.headerRightContainer}>
               <TouchableOpacity 
                 style={styles.notificationButton}
                 onPress={() => (navigation as any).navigate('NotificationScreen')}
               >
-                <Ionicons name="notifications-outline" size={screenWidth * 0.06} color={theme === 'dark' ? '#FFF' : '#333'} />
+                <Ionicons name="notifications-outline" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#333'} />
                 {/* Notification Badge */}
                 {unreadNotificationCount > 0 && (
                   <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>
+                    <ResponsiveText size="xs" weight="bold" color="#FFF" style={styles.notificationBadgeText}>
                       {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                    </Text>
+                    </ResponsiveText>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1373,11 +1327,11 @@ const HomeScreen = () => {
                   <Image source={require('../../assets/logo.png')} style={styles.logoImage} />
                 </View>
               </TouchableOpacity>
-            </View>
-          </View>
+            </ResponsiveView>
+          </ResponsiveView>
 
           {/* --- Filter Buttons --- */}
-          <View style={styles.filterContainer}>
+          <ResponsiveView style={styles.filterContainer}>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
@@ -1392,53 +1346,60 @@ const HomeScreen = () => {
                   ]}
                   onPress={() => setSelectedFilter(filter)}
                 >
-                  <Text
+                  <ResponsiveText
+                    size="sm"
+                    weight="600"
+                    color={selectedFilter === filter ? '#fff' : '#333'}
                     style={[
                       styles.filterButtonText,
                       selectedFilter === filter && styles.filterButtonTextActive
                     ]}
                   >
                     {filter}
-                  </Text>
+                  </ResponsiveText>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </ResponsiveView>
 
           {/* --- Search Bar --- */}
           <TouchableOpacity onPress={() => navigation.navigate('SearchBarScreen')}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={screenWidth * 0.05} color="#888" style={styles.searchIcon} />
-              <Text style={styles.searchInputPlaceholder}>Search establishment</Text>
-            </View>
-            </TouchableOpacity>
+            <ResponsiveView style={styles.searchContainer}>
+              <Ionicons name="search" size={iconSizes.md} color="#888" style={styles.searchIcon} />
+              <ResponsiveText size="md" color="#888" style={styles.searchInputPlaceholder}>
+                Search establishment
+              </ResponsiveText>
+            </ResponsiveView>
+          </TouchableOpacity>
 
           {/* --- Suggested Places --- */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Suggested places</Text>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.sectionTitle}>
+              Suggested places
+            </ResponsiveText>
             {loadingSuggested ? (
-              <View style={styles.loadingContainer}>
+              <ResponsiveView style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#667eea" />
-                <Text style={[styles.loadingText, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+                <ResponsiveText size="md" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.loadingText}>
                   Loading suggested places...
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             ) : filteredSuggestedPlaces.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="business-outline" size={60} color="#999" />
-                <Text style={[styles.emptyText, { color: theme === 'dark' ? '#CCC' : '#666' }]}>
+              <ResponsiveView style={styles.emptyContainer}>
+                <Ionicons name="business-outline" size={iconSizes.xxxxl} color="#999" />
+                <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
                   {selectedFilter === 'All' 
                     ? 'No suggested places available' 
                     : `No ${selectedFilter.toLowerCase()} in suggestions`
                   }
-                </Text>
-                <Text style={[styles.emptySubText, { color: theme === 'dark' ? '#AAA' : '#888' }]}>
+                </ResponsiveText>
+                <ResponsiveText size="md" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.emptySubText}>
                   {selectedFilter === 'All' 
                     ? 'Check back later for suggestions!' 
                     : 'Try selecting a different filter!'
                   }
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             ) : (
               <FlatList
                 data={filteredSuggestedPlaces}
@@ -1460,12 +1421,18 @@ const HomeScreen = () => {
                       />
                       <View style={styles.suggestedCardOverlay} />
                       <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={screenWidth * 0.04} color="#FFD700" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
+                        <Ionicons name="star" size={iconSizes.sm} color="#FFD700" />
+                        <ResponsiveText size="sm" weight="bold" color="#fff" style={styles.ratingText}>
+                          {item.rating}
+                        </ResponsiveText>
                       </View>
                       <View style={styles.suggestedCardContent}>
-                        <Text style={styles.suggestedTitle}>{item.title}</Text>
-                        <Text style={styles.suggestedLocation}>{item.location}</Text>
+                        <ResponsiveText size="md" weight="bold" color="#fff" style={styles.suggestedTitle}>
+                          {item.title}
+                        </ResponsiveText>
+                        <ResponsiveText size="sm" color="#fff" style={styles.suggestedLocation}>
+                          {item.location}
+                        </ResponsiveText>
                       </View>
                        <TouchableOpacity 
                          style={styles.saveButton}
@@ -1476,7 +1443,7 @@ const HomeScreen = () => {
                        >
                           <Ionicons 
                             name={savedBusinesses.includes(item.id) ? "bookmark" : "bookmark-outline"} 
-                            size={screenWidth * 0.05} 
+                            size={iconSizes.md} 
                             color={savedBusinesses.includes(item.id) ? "#FFD700" : "#fff"} 
                           />
                         </TouchableOpacity>
@@ -1485,28 +1452,30 @@ const HomeScreen = () => {
                 )}
               />
             )}
-          </View>
+          </ResponsiveView>
 
           {/* --- Promos and Deals --- */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Promos & Deals</Text>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.sectionTitle}>
+              Promos & Deals
+            </ResponsiveText>
             {loadingPromos ? (
-              <View style={styles.loadingPromoContainer}>
+              <ResponsiveView style={styles.loadingPromoContainer}>
                 <ActivityIndicator size="large" color={theme === 'light' ? '#667eea' : '#fff'} />
-                <Text style={[styles.loadingText, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+                <ResponsiveText size="md" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.loadingText}>
                   Loading promotions...
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             ) : promosAndDeals.length === 0 ? (
-              <View style={styles.emptyPromoContainer}>
-                <Ionicons name="pricetag-outline" size={60} color={theme === 'dark' ? '#CCC' : '#999'} />
-                <Text style={[styles.emptyText, { color: theme === 'dark' ? '#CCC' : '#666' }]}>
+              <ResponsiveView style={styles.emptyPromoContainer}>
+                <Ionicons name="pricetag-outline" size={iconSizes.xxxxl} color={theme === 'dark' ? '#CCC' : '#999'} />
+                <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
                   No active promotions
-                </Text>
-                <Text style={[styles.emptySubText, { color: theme === 'dark' ? '#AAA' : '#888' }]}>
+                </ResponsiveText>
+                <ResponsiveText size="md" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.emptySubText}>
                   Check back later for new deals!
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             ) : (
               <FlatList
                 data={promosAndDeals}
@@ -1524,20 +1493,32 @@ const HomeScreen = () => {
                       
                       {/* Discount Badge */}
                       <View style={styles.discountBadge}>
-                        <Text style={styles.discountText}>{item.discount}</Text>
+                        <ResponsiveText size="sm" weight="bold" color="#fff" style={styles.discountText}>
+                          {item.discount}
+                        </ResponsiveText>
                       </View>
 
                       {/* Business Name Badge */}
                       <View style={styles.businessNameBadge}>
-                        <Text style={styles.businessNameText}>{item.businessName}</Text>
+                        <ResponsiveText size="sm" weight="700" color="#333" style={styles.businessNameText}>
+                          {item.businessName}
+                        </ResponsiveText>
                       </View>
                       
                       <View style={styles.promoCardContent}>
-                        <Text style={styles.promoTitle}>{item.title}</Text>
-                        <Text style={styles.promoDescription} numberOfLines={2}>{item.description}</Text>
+                        <ResponsiveText size="md" weight="bold" color="#fff" style={styles.promoTitle}>
+                          {item.title}
+                        </ResponsiveText>
+                        <ResponsiveText size="sm" color="#fff" style={styles.promoDescription} numberOfLines={2}>
+                          {item.description}
+                        </ResponsiveText>
                         <View style={styles.promoFooter}>
-                          <Text style={styles.promoBusinessType}>{item.businessType}</Text>
-                          <Text style={styles.promoValidUntil}>Until {new Date(item.validUntil).toLocaleDateString()}</Text>
+                          <ResponsiveText size="xs" weight="600" color="#FFD700" style={styles.promoBusinessType}>
+                            {item.businessType}
+                          </ResponsiveText>
+                          <ResponsiveText size="xs" color="#fff" style={styles.promoValidUntil}>
+                            Until {new Date(item.validUntil).toLocaleDateString()}
+                          </ResponsiveText>
                         </View>
                       </View>
                     </ImageBackground>
@@ -1545,42 +1526,46 @@ const HomeScreen = () => {
                 )}
               />
             )}
-          </View>
+          </ResponsiveView>
 
           {/* --- Places to Visit --- */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Places to visit</Text>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveView style={styles.sectionHeader}>
+              <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.sectionTitle}>
+                Places to visit
+              </ResponsiveText>
               <TouchableOpacity onPress={() => navigation.navigate('SearchBarScreen')}>
                 <View style={styles.seeAllButton}>
-                  <Text style={[styles.seeAllText, { color: theme === 'dark' ? '#FFF' : '#4B0082' }]}>See All</Text>
+                  <ResponsiveText size="sm" weight="600" color={theme === 'dark' ? '#FFF' : '#4B0082'} style={styles.seeAllText}>
+                    See All
+                  </ResponsiveText>
                 </View>
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
             
             {loadingPlaces ? (
-              <View style={styles.loadingContainer}>
+              <ResponsiveView style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#667eea" />
-                <Text style={[styles.loadingText, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+                <ResponsiveText size="md" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.loadingText}>
                   Loading places to visit...
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             ) : filteredPlaces.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="business-outline" size={60} color="#999" />
-                <Text style={[styles.emptyText, { color: theme === 'dark' ? '#CCC' : '#666' }]}>
+              <ResponsiveView style={styles.emptyContainer}>
+                <Ionicons name="business-outline" size={iconSizes.xxxxl} color="#999" />
+                <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
                   {selectedFilter === 'All' 
                     ? 'No businesses available yet' 
                     : `No ${selectedFilter.toLowerCase()} found`
                   }
-                </Text>
-                <Text style={[styles.emptySubText, { color: theme === 'dark' ? '#AAA' : '#888' }]}>
+                </ResponsiveText>
+                <ResponsiveText size="md" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.emptySubText}>
                   {selectedFilter === 'All' 
                     ? 'Check back later for new places to visit!' 
                     : 'Try selecting a different filter or check back later!'
                   }
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             ) : (
               filteredPlaces.map((item) => (
               <TouchableOpacity 
@@ -1613,20 +1598,22 @@ const HomeScreen = () => {
                   />
                 </View>
                 <View style={styles.placeInfo}>
-                  <Text style={styles.placeName}>{item.name}</Text>
-                  <Text style={styles.placeLocation} numberOfLines={2}>
-                    <Ionicons name="location-sharp" size={screenWidth * 0.035} color="#888" /> {item.location}
-                  </Text>
+                  <ResponsiveText size="md" weight="bold" color="#333" style={styles.placeName}>
+                    {item.name}
+                  </ResponsiveText>
+                  <ResponsiveText size="sm" color="#666" style={styles.placeLocation} numberOfLines={2}>
+                    <Ionicons name="location-sharp" size={iconSizes.xs} color="#888" /> {item.location}
+                  </ResponsiveText>
                   <View style={styles.placeRating}>
-                    <Ionicons name="star" size={screenWidth * 0.04} color="#FFD700" />
-                    <Text style={styles.placeRatingText}>
+                    <Ionicons name="star" size={iconSizes.sm} color="#FFD700" />
+                    <ResponsiveText size="xs" color="#666" style={styles.placeRatingText}>
                       {businessRatings[item.id]?.average || item.rating} ({businessRatings[item.id]?.count ?? item.reviews} {businessRatings[item.id]?.count === 1 ? 'Review' : 'Reviews'})
-                    </Text>
+                    </ResponsiveText>
                   </View>
                     {item.businessType && (
-                      <Text style={styles.businessType}>
-                        <Ionicons name="business" size={screenWidth * 0.035} color="#667eea" /> {item.businessType}
-                      </Text>
+                      <ResponsiveText size="xs" color="#667eea" style={styles.businessType}>
+                        <Ionicons name="business" size={iconSizes.xs} color="#667eea" /> {item.businessType}
+                      </ResponsiveText>
                     )}
                 </View>
                 <TouchableOpacity 
@@ -1638,14 +1625,14 @@ const HomeScreen = () => {
                 >
                   <Ionicons 
                     name={savedBusinesses.includes(item.id) ? "bookmark" : "bookmark-outline"} 
-                    size={screenWidth * 0.06} 
+                    size={iconSizes.md} 
                     color={savedBusinesses.includes(item.id) ? "#667eea" : "#888"} 
                   />
                 </TouchableOpacity>
               </TouchableOpacity>
               ))
             )}
-          </View>
+          </ResponsiveView>
         </ScrollView>
       </SafeAreaView>
       {/* ===== Details Modal JSX ===== */}

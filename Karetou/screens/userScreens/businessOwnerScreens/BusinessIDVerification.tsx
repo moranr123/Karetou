@@ -17,6 +17,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import LoadingImage from '../../../components/LoadingImage';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -49,11 +51,20 @@ const BusinessIDVerificationScreen = () => {
   const navigation = useNavigation<BusinessIDVerificationScreenNavigationProp>();
   const route = useRoute<BusinessIDVerificationScreenRouteProp>();
   const { theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
   const [frontIDPhoto, setFrontIDPhoto] = useState<string | null>(null);
   const [backIDPhoto, setBackIDPhoto] = useState<string | null>(null);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  // Progress tracking
+  const registrationSteps = [
+    { id: 1, title: 'Business Info', description: 'Basic details' },
+    { id: 2, title: 'Verification', description: 'ID verification' },
+    { id: 3, title: 'Location', description: 'Set location' },
+    { id: 4, title: 'Complete', description: 'Final review' }
+  ];
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -64,24 +75,8 @@ const BusinessIDVerificationScreen = () => {
     return true;
   };
 
-  const requestCameraPermissions = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Sorry, we need camera permissions to make this work!');
-      return false;
-    }
-    return true;
-  };
-
   const handleChoosePhoto = async (type: 'front' | 'back', source: 'camera' | 'gallery') => {
-    let hasPermission = false;
-    
-    if (source === 'camera') {
-      hasPermission = await requestCameraPermissions();
-    } else {
-      hasPermission = await requestPermissions();
-    }
-
+    const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
     let result;
@@ -125,6 +120,285 @@ const BusinessIDVerificationScreen = () => {
     navigation.navigate('BusinessLocation' as any, completeFormData);
   };
 
+  // Calculate current progress (Step 2 - Verification)
+  const calculateProgress = () => {
+    // Step 2 is always 50% complete when on this screen
+    // It only becomes 100% when user navigates to next step
+    return 50;
+  };
+
+  const currentProgress = calculateProgress();
+  const currentStep = 2; // We're on step 2
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      padding: spacing.lg,
+    },
+    progressContainer: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    progressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    progressTitle: {
+      flex: 1,
+    },
+    progressPercentage: {
+      fontWeight: '600',
+    },
+    progressBarContainer: {
+      height: 8,
+      backgroundColor: '#f0f0f0',
+      borderRadius: 4,
+      marginBottom: spacing.lg,
+      overflow: 'hidden',
+    },
+    progressBar: {
+      height: '100%',
+      backgroundColor: '#667eea',
+      borderRadius: 4,
+    },
+    stepsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    stepItem: {
+      flex: 1,
+      alignItems: 'center',
+      position: 'relative',
+    },
+    stepCircle: {
+      width: getResponsiveWidth(8),
+      height: getResponsiveWidth(8),
+      borderRadius: getResponsiveWidth(4),
+      backgroundColor: '#f0f0f0',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    stepCircleCompleted: {
+      backgroundColor: '#4CAF50',
+    },
+    stepCircleCurrent: {
+      backgroundColor: '#667eea',
+    },
+    stepCircleUpcoming: {
+      backgroundColor: '#f0f0f0',
+    },
+    stepTextContainer: {
+      alignItems: 'center',
+      maxWidth: getResponsiveWidth(20),
+    },
+    stepTitle: {
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+    stepDescription: {
+      textAlign: 'center',
+      lineHeight: fontSizes.xs * 1.2,
+    },
+    stepConnector: {
+      position: 'absolute',
+      top: getResponsiveWidth(4),
+      left: '50%',
+      width: '100%',
+      height: 2,
+      backgroundColor: '#f0f0f0',
+      zIndex: -1,
+    },
+    stepConnectorCompleted: {
+      backgroundColor: '#4CAF50',
+    },
+    formCard: {
+      backgroundColor: 'white',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xl,
+    },
+    backButton: {
+      marginRight: spacing.md,
+    },
+    title: {
+      fontSize: fontSizes.xl,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    description: {
+      fontSize: fontSizes.md,
+      color: '#666',
+      marginBottom: spacing.xl,
+      lineHeight: fontSizes.md * 1.4,
+    },
+    photoSection: {
+      marginBottom: spacing.xl,
+    },
+    photoLabel: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: spacing.sm,
+    },
+    photoContainer: {
+      marginBottom: spacing.sm,
+    },
+    photoPlaceholder: {
+      height: getResponsiveHeight(20),
+      backgroundColor: '#f8f9fa',
+      borderRadius: borderRadius.md,
+      borderWidth: 2,
+      borderColor: '#ddd',
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    photoText: {
+      marginTop: spacing.sm,
+      fontSize: fontSizes.md,
+      color: '#666',
+    },
+    photoPreview: {
+      height: getResponsiveHeight(20),
+      borderRadius: borderRadius.md,
+      width: '100%',
+    },
+    photoOptions: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
+    photoOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#f8f9fa',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    photoOptionText: {
+      marginLeft: spacing.xs,
+      fontSize: fontSizes.sm,
+      color: '#667eea',
+      fontWeight: '500',
+    },
+    submitButton: {
+      backgroundColor: '#667eea',
+      height: getResponsiveHeight(6),
+      borderRadius: borderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: spacing.lg,
+    },
+    submitButtonText: {
+      color: '#fff',
+      fontSize: fontSizes.lg,
+      fontWeight: 'bold',
+    },
+  });
+
+  // Progress Bar Component
+  const ProgressBar = () => (
+    <ResponsiveView style={styles.progressContainer}>
+      <ResponsiveView style={styles.progressHeader}>
+        <ResponsiveText size="lg" weight="600" color="#333" style={styles.progressTitle}>
+          Registration Progress
+        </ResponsiveText>
+        <ResponsiveText size="sm" color="#666" style={styles.progressPercentage}>
+          {Math.round(currentProgress)}% Complete
+        </ResponsiveText>
+      </ResponsiveView>
+      
+      {/* Progress Bar */}
+      <ResponsiveView style={styles.progressBarContainer}>
+        <ResponsiveView style={[styles.progressBar, { width: `${currentProgress}%` }]}>
+          <></>
+        </ResponsiveView>
+      </ResponsiveView>
+      
+      {/* Steps */}
+      <ResponsiveView style={styles.stepsContainer}>
+        {registrationSteps.map((step, index) => {
+          const isCompleted = index < currentStep;
+          const isCurrent = index === currentStep - 1;
+          const isUpcoming = index > currentStep - 1;
+          
+          return (
+            <ResponsiveView key={step.id} style={styles.stepItem}>
+              <ResponsiveView style={[
+                styles.stepCircle,
+                isCompleted && styles.stepCircleCompleted,
+                isCurrent && styles.stepCircleCurrent,
+                isUpcoming && styles.stepCircleUpcoming
+              ]}>
+                {isCompleted ? (
+                  <Ionicons name="checkmark" size={iconSizes.sm} color="#fff" />
+                ) : (
+                  <ResponsiveText size="xs" weight="600" color={isCurrent ? "#667eea" : "#999"}>
+                    {step.id}
+                  </ResponsiveText>
+                )}
+              </ResponsiveView>
+              <ResponsiveView style={styles.stepTextContainer}>
+                <ResponsiveText 
+                  size="xs" 
+                  weight={isCurrent ? "600" : "500"} 
+                  color={isCompleted || isCurrent ? "#333" : "#999"}
+                  style={styles.stepTitle}
+                >
+                  {step.title}
+                </ResponsiveText>
+                <ResponsiveText 
+                  size="xs" 
+                  color={isCompleted || isCurrent ? "#666" : "#999"}
+                  style={styles.stepDescription}
+                >
+                  {step.description}
+                </ResponsiveText>
+              </ResponsiveView>
+              {index < registrationSteps.length - 1 && (
+                <ResponsiveView style={[
+                  styles.stepConnector,
+                  isCompleted && styles.stepConnectorCompleted
+                ]}>
+                  <></>
+                </ResponsiveView>
+              )}
+            </ResponsiveView>
+          );
+        })}
+      </ResponsiveView>
+    </ResponsiveView>
+  );
+
   const renderPhotoSection = (type: 'front' | 'back', photo: string | null, setPhoto: (uri: string) => void) => (
     <View style={styles.photoSection}>
       <Text style={styles.photoLabel}>{type === 'front' ? 'Front' : 'Back'} Photo</Text>
@@ -136,7 +410,7 @@ const BusinessIDVerificationScreen = () => {
           <LoadingImage source={{ uri: photo }} style={styles.photoPreview} />
         ) : (
           <View style={styles.photoPlaceholder}>
-            <Ionicons name="id-card-outline" size={40} color="#666" />
+            <Ionicons name="document-outline" size={40} color="#666" />
             <Text style={styles.photoText}>Upload {type === 'front' ? 'Front' : 'Back'} Photo</Text>
           </View>
         )}
@@ -166,6 +440,9 @@ const BusinessIDVerificationScreen = () => {
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Progress Bar */}
+          <ProgressBar />
+          
           <View style={styles.formCard}>
             {/* Header */}
             <View style={styles.header}>
@@ -179,13 +456,9 @@ const BusinessIDVerificationScreen = () => {
               Please upload clear photos of your valid ID (front and back) for verification purposes.
             </Text>
 
-            {/* Front ID Photo */}
             {renderPhotoSection('front', frontIDPhoto, setFrontIDPhoto)}
-
-            {/* Back ID Photo */}
             {renderPhotoSection('back', backIDPhoto, setBackIDPhoto)}
 
-            {/* Submit Button */}
             <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
               <Text style={styles.submitButtonText}>Next</Text>
             </TouchableOpacity>
@@ -196,114 +469,4 @@ const BusinessIDVerificationScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 20,
-  },
-  formCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  description: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  photoSection: {
-    marginBottom: 30,
-  },
-  photoLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
-  },
-  photoContainer: {
-    marginBottom: 15,
-  },
-  photoPlaceholder: {
-    height: 200,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoText: {
-    marginTop: 8,
-    fontSize: 16,
-    color: '#666',
-  },
-  photoPreview: {
-    height: 200,
-    borderRadius: 10,
-    width: '100%',
-  },
-  photoOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  photoOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  photoOptionText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  submitButton: {
-    backgroundColor: '#667eea',
-    height: 50,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
-
-export default BusinessIDVerificationScreen; 
+export default BusinessIDVerificationScreen;

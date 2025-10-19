@@ -44,6 +44,7 @@ const MyBusinessScreen = () => {
 
     console.log('🔄 Setting up real-time business listener for user:', user.uid);
     
+    // Query for businesses using the old userId field structure (for backward compatibility)
     const businessQuery = query(
       collection(db, 'businesses'),
       where('userId', '==', user.uid)
@@ -66,7 +67,7 @@ const MyBusinessScreen = () => {
         });
         
         // Sort by registration date (newest first)
-        businessList.sort((a, b) => new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime());
+        businessList.sort((a, b) => new Date(b.registrationDate || b.createdAt || 0).getTime() - new Date(a.registrationDate || a.createdAt || 0).getTime());
         
         setBusinesses(businessList);
         setLoading(false);

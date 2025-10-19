@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView, ResponsiveButton } from '../../components';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,6 +48,136 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { setUserType } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  
+  // Device size detection
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
+  const isSmallDevice = screenWidth < 375 || screenHeight < 667; // iPhone SE, small Android
+  const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
+  const isLargeDevice = screenWidth > 414 || screenHeight > 844; // iPhone Pro Max, Plus models
+  const isTablet = screenWidth > 768; // Tablets
+  
+  // Platform-specific adjustments
+  const isIOS = Platform.OS === 'ios';
+  
+  // Responsive calculations
+  const spacingMultiplier = isSmallDevice ? 0.8 : isMediumDevice ? 1 : isTablet ? 1.5 : 1.1;
+  const logoSizePercent = isSmallDevice ? 16 : isMediumDevice ? 20 : isTablet ? 30 : 22;
+  const inputHeight = isSmallDevice ? 6 : isMediumDevice ? 6.5 : isTablet ? 8 : 7;
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg * spacingMultiplier,
+      paddingTop: spacing.lg * spacingMultiplier,
+      paddingBottom: spacing.md * spacingMultiplier,
+      justifyContent: 'flex-start',
+      width: '100%',
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: spacing.lg * spacingMultiplier,
+    },
+    logoContainer: {
+      width: getResponsiveWidth(logoSizePercent),
+      height: getResponsiveWidth(logoSizePercent),
+      borderRadius: getResponsiveWidth(logoSizePercent / 2),
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md * spacingMultiplier,
+    },
+    logoImage: {
+      width: '80%',
+      height: '80%',
+      resizeMode: 'contain',
+    },
+    title: {
+      marginBottom: spacing.sm * spacingMultiplier,
+      textAlign: 'center',
+    },
+    subtitle: {
+      textAlign: 'center',
+      paddingHorizontal: spacing.md * spacingMultiplier,
+      marginBottom: spacing.sm * spacingMultiplier,
+    },
+    formContainer: {
+      width: '100%',
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      marginBottom: spacing.lg * spacingMultiplier,
+      paddingHorizontal: spacing.lg,
+      height: getResponsiveHeight(inputHeight),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+    },
+    inputIcon: {
+      marginRight: spacing.sm,
+    },
+    input: {
+      flex: 1,
+      fontSize: fontSizes.md,
+      color: '#000',
+    },
+    eyeIcon: {
+      padding: spacing.xs,
+    },
+    button: {
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md * spacingMultiplier,
+      minHeight: getResponsiveHeight(inputHeight),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+    },
+    signupButton: {
+      backgroundColor: '#4CAF50',
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+      color: '#fff',
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: spacing.xl * spacingMultiplier,
+      paddingTop: spacing.lg * spacingMultiplier,
+    },
+    footerText: {
+      color: '#666',
+      fontSize: fontSizes.md,
+    },
+    linkText: {
+      color: '#667eea',
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+    },
+  });
 
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword || !phoneNumber) {
@@ -120,24 +252,32 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
+          <ResponsiveView style={styles.header}>
+            <ResponsiveView style={styles.logoContainer}>
               <Image 
                 source={require('../../assets/logo.png')} 
                 style={styles.logoImage}
                 resizeMode="contain"
               />
-            </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join us and start your journey</Text>
-          </View>
+            </ResponsiveView>
+            <ResponsiveText size={isSmallDevice ? "xl" : isTablet ? "xxxl" : "xxl"} weight="bold" color="#000" style={styles.title}>
+              Create Account
+            </ResponsiveText>
+            <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} color="#666" style={styles.subtitle}>
+              Join us and start your journey
+            </ResponsiveText>
+          </ResponsiveView>
 
           {/* Form */}
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#667eea" style={styles.inputIcon} />
+          <ResponsiveView style={styles.formContainer}>
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Full Name"
@@ -146,10 +286,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={setFullName}
                 autoCapitalize="words"
               />
-            </View>
+            </ResponsiveView>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
@@ -160,10 +300,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-            </View>
+            </ResponsiveView>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="call-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="call-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Phone Number"
@@ -173,10 +313,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="phone-pad"
                 autoCapitalize="none"
               />
-            </View>
+            </ResponsiveView>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -192,14 +332,14 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
+                  size={iconSizes.md}
                   color="#667eea"
                 />
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Confirm Password"
@@ -215,11 +355,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons
                   name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
+                  size={iconSizes.md}
                   color="#667eea"
                 />
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
 
             {/* Buttons */}
             <TouchableOpacity
@@ -227,138 +367,27 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleSignup}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>
+              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={styles.buttonText}>
                 {loading ? 'Creating Account...' : 'Create Account'}
-              </Text>
+              </ResponsiveText>
             </TouchableOpacity>
 
-
             {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
+            <ResponsiveView style={styles.footer}>
+              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} color="#666" style={styles.footerText}>
+                Already have an account? 
+              </ResponsiveText>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.linkText}>Sign In</Text>
+                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} weight="600" color="#667eea" style={styles.linkText}>
+                  Sign In
+                </ResponsiveText>
               </TouchableOpacity>
-            </View>
-          </View>
+            </ResponsiveView>
+          </ResponsiveView>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: '80%',
-    height: '80%',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  formContainer: {
-    flex: 1,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: 56,
-    fontSize: 16,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 8,
-  },
-  button: {
-    borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  signupButton: {
-    backgroundColor: '#667eea',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  linkText: {
-    color: '#667eea',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
 
 export default SignupScreen; 

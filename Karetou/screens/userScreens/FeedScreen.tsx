@@ -7,6 +7,8 @@ import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, getDoc } from 'firebase/firestore';
 import LoadingImage from '../../components/LoadingImage';
 import NotificationService from '../../services/NotificationService';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView, ResponsiveCard, ResponsiveButton } from '../../components';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -39,6 +41,7 @@ const FeedScreen = () => {
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
   
   const { theme, user } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -328,27 +331,33 @@ const FeedScreen = () => {
     const isSaved = (item.savedBy || []).includes(user?.uid || '');
     
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.avatarContainer}>
+      <ResponsiveView style={styles.card}>
+        <ResponsiveView style={styles.cardHeader}>
+          <ResponsiveView style={styles.avatarContainer}>
             {item.businessImage && item.businessImage.trim() !== '' && item.businessImage.startsWith('http') ? (
               <LoadingImage source={{ uri: item.businessImage }} style={styles.avatar} />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="storefront" size={20} color="#667eea" />
-              </View>
+              <ResponsiveView style={styles.avatarPlaceholder}>
+                <Ionicons name="storefront" size={iconSizes.md} color="#667eea" />
+              </ResponsiveView>
             )}
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.userName}>{item.businessName}</Text>
-            <Text style={styles.time}>{formatTime(item.createdAt)}</Text>
-          </View>
-        </View>
+          </ResponsiveView>
+          <ResponsiveView style={styles.headerText}>
+            <ResponsiveText size="md" weight="600" color="#000" style={styles.userName}>
+              {item.businessName}
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#666" style={styles.time}>
+              {formatTime(item.createdAt)}
+            </ResponsiveText>
+          </ResponsiveView>
+        </ResponsiveView>
         
-        <Text style={styles.postText}>{item.content}</Text>
+        <ResponsiveText size="md" color="#000" style={styles.postText}>
+          {item.content}
+        </ResponsiveText>
         
         {item.imageUrl && item.imageUrl.trim() !== '' && (
-          <View style={styles.imageWrapper}>
+          <ResponsiveView style={styles.imageWrapper}>
             {item.imageUrl.startsWith('http') ? (
               <LoadingImage 
                 source={{ uri: item.imageUrl }} 
@@ -357,24 +366,26 @@ const FeedScreen = () => {
                 placeholder="image"
               />
             ) : (
-              <View style={[styles.postImage, styles.invalidImageContainer]}>
-                <Ionicons name="image-outline" size={40} color="#999" />
-                <Text style={styles.invalidImageText}>Invalid image URL</Text>
-              </View>
+              <ResponsiveView style={[styles.postImage, styles.invalidImageContainer]}>
+                <Ionicons name="image-outline" size={iconSizes.xl} color="#999" />
+                <ResponsiveText size="sm" color="#999" style={styles.invalidImageText}>
+                  Invalid image URL
+                </ResponsiveText>
+              </ResponsiveView>
             )}
-          </View>
+          </ResponsiveView>
         )}
         
-        <View style={styles.actions}>
+        <ResponsiveView style={styles.actions}>
           <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
             <Ionicons 
               name={isLiked ? "heart" : "heart-outline"} 
-              size={22} 
+              size={iconSizes.lg} 
               color={isLiked ? "#e91e63" : "#888"} 
             />
-            <Text style={[styles.actionCount, isLiked && { color: "#e91e63" }]}>
+            <ResponsiveText size="sm" color={isLiked ? "#e91e63" : "#888"} style={[styles.actionCount, isLiked && { color: "#e91e63" }]}>
               {item.likes.length}
-            </Text>
+            </ResponsiveText>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -384,32 +395,36 @@ const FeedScreen = () => {
               setCommentModalVisible(true);
             }}
           >
-            <Ionicons name="chatbubble-outline" size={22} color="#888" />
-            <Text style={styles.actionCount}>{item.comments.length}</Text>
+            <Ionicons name="chatbubble-outline" size={iconSizes.lg} color="#888" />
+            <ResponsiveText size="sm" color="#888" style={styles.actionCount}>
+              {item.comments.length}
+            </ResponsiveText>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.id)}>
             <Feather 
               name={isSaved ? "bookmark" : "bookmark"} 
-              size={22} 
+              size={iconSizes.lg} 
               color={isSaved ? "#667eea" : "#888"} 
             />
           </TouchableOpacity>
-        </View>
-      </View>
+        </ResponsiveView>
+      </ResponsiveView>
     );
   };
 
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.gradient}>
       {/* Fixed Header */}
-      <View style={[styles.headerFixed, { backgroundColor: 'transparent' }]}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Feed</Text>
-        </View>
+      <ResponsiveView style={[styles.headerFixed, { backgroundColor: 'transparent' }]}>
+        <ResponsiveView style={styles.headerContent}>
+          <ResponsiveText size="xl" weight="bold" color="#000" style={styles.headerTitle}>
+            Feed
+          </ResponsiveText>
+        </ResponsiveView>
         {/* Search Bar */}
-        <View style={styles.searchBarContainer}>
-          <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 8 }} />
+        <ResponsiveView style={styles.searchBarContainer}>
+          <Ionicons name="search" size={iconSizes.md} color="#888" style={{ marginLeft: spacing.sm }} />
           <TextInput
             style={styles.searchBar}
             placeholder="Search posts..."
@@ -418,16 +433,18 @@ const FeedScreen = () => {
             placeholderTextColor="#888"
           />
           <TouchableOpacity>
-            <Ionicons name="filter" size={22} color="#888" style={{ marginLeft: 8, marginRight: 4 }} />
+            <Ionicons name="filter" size={iconSizes.lg} color="#888" style={{ marginLeft: spacing.sm, marginRight: spacing.xs }} />
           </TouchableOpacity>
-        </View>
-      </View>
+        </ResponsiveView>
+      </ResponsiveView>
 
       {/* Feed List */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading posts...</Text>
-        </View>
+        <ResponsiveView style={styles.loadingContainer}>
+          <ResponsiveText size="lg" weight="600" color="#000" style={styles.loadingText}>
+            Loading posts...
+          </ResponsiveText>
+        </ResponsiveView>
       ) : (
       <FlatList
           data={filteredPosts}
@@ -442,11 +459,15 @@ const FeedScreen = () => {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="newspaper-outline" size={60} color="#ccc" />
-              <Text style={styles.emptyText}>No posts yet</Text>
-              <Text style={styles.emptySubtext}>Posts from businesses will appear here</Text>
-            </View>
+            <ResponsiveView style={styles.emptyContainer}>
+              <Ionicons name="newspaper-outline" size={iconSizes.xxxl} color="#ccc" />
+              <ResponsiveText size="lg" weight="600" color="#000" style={styles.emptyText}>
+                No posts yet
+              </ResponsiveText>
+              <ResponsiveText size="md" color="#666" style={styles.emptySubtext}>
+                Posts from businesses will appear here
+              </ResponsiveText>
+            </ResponsiveView>
           }
         />
       )}
@@ -462,13 +483,15 @@ const FeedScreen = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <View style={styles.commentModal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Comments</Text>
+          <ResponsiveView style={styles.commentModal}>
+            <ResponsiveView style={styles.modalHeader}>
+              <ResponsiveText size="xl" weight="bold" color="#000" style={styles.modalTitle}>
+                Comments
+              </ResponsiveText>
               <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={iconSizes.lg} color="#333" />
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
             
             <FlatList
               data={selectedPost?.comments || []}
@@ -487,57 +510,57 @@ const FeedScreen = () => {
                 }
                 
                 return (
-                  <View style={[
+                  <ResponsiveView style={[
                     styles.commentItem, 
                     isOwnComment && styles.ownCommentItem,
                     isAuthorComment && !isOwnComment && styles.authorCommentItem
                   ]}>
-                    <View style={styles.commentHeader}>
-                      <View style={styles.commentUserInfo}>
-                        <Text style={[
+                    <ResponsiveView style={styles.commentHeader}>
+                      <ResponsiveView style={styles.commentUserInfo}>
+                        <ResponsiveText size="sm" weight="600" color={isOwnComment ? "#667eea" : isAuthorComment ? "#FFD700" : "#000"} style={[
                           styles.commentUser,
                           isOwnComment && styles.ownCommentUser,
                           isAuthorComment && !isOwnComment && styles.authorCommentUser
                         ]}>
                           {displayName}
-                        </Text>
-                        <Text style={styles.commentTime}>
+                        </ResponsiveText>
+                        <ResponsiveText size="xs" color="#666" style={styles.commentTime}>
                           {new Date(item.createdAt).toLocaleDateString()}
-                          {item.editedAt && <Text style={styles.editedText}> (edited)</Text>}
-                        </Text>
-                      </View>
+                          {item.editedAt && <ResponsiveText size="xs" color="#999" style={styles.editedText}> (edited)</ResponsiveText>}
+                        </ResponsiveText>
+                      </ResponsiveView>
                     {item.userId === user?.uid && (
-                      <View style={styles.commentMenuContainer}>
+                      <ResponsiveView style={styles.commentMenuContainer}>
                         <TouchableOpacity
                           onPress={() => setShowDropdown(showDropdown === item.id ? null : item.id)}
                           style={styles.menuButton}
                         >
-                          <Ionicons name="ellipsis-horizontal" size={16} color="#888" />
+                          <Ionicons name="ellipsis-horizontal" size={iconSizes.sm} color="#888" />
                         </TouchableOpacity>
                         {showDropdown === item.id && (
-                          <View style={styles.dropdown}>
+                          <ResponsiveView style={styles.dropdown}>
                             <TouchableOpacity
                               style={styles.dropdownItem}
                               onPress={() => startEditComment(item)}
                             >
-                              <Ionicons name="create-outline" size={16} color="#667eea" />
-                              <Text style={styles.dropdownText}>Edit</Text>
+                              <Ionicons name="create-outline" size={iconSizes.sm} color="#667eea" />
+                              <ResponsiveText size="sm" color="#667eea" style={styles.dropdownText}>Edit</ResponsiveText>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={styles.dropdownItem}
                               onPress={() => handleDeleteComment(item.id)}
                             >
-                              <Ionicons name="trash-outline" size={16} color="#e91e63" />
-                              <Text style={[styles.dropdownText, { color: '#e91e63' }]}>Delete</Text>
+                              <Ionicons name="trash-outline" size={iconSizes.sm} color="#e91e63" />
+                              <ResponsiveText size="sm" color="#e91e63" style={[styles.dropdownText, { color: '#e91e63' }]}>Delete</ResponsiveText>
                             </TouchableOpacity>
-                          </View>
+                          </ResponsiveView>
                         )}
-                      </View>
+                      </ResponsiveView>
                     )}
-                  </View>
+                  </ResponsiveView>
                   
                   {editingCommentId === item.id ? (
-                    <View style={styles.editCommentContainer}>
+                    <ResponsiveView style={styles.editCommentContainer}>
                       <TextInput
                         style={styles.editCommentInput}
                         value={editCommentText}
@@ -545,7 +568,7 @@ const FeedScreen = () => {
                         multiline
                         autoFocus
                       />
-                      <View style={styles.editCommentActions}>
+                      <ResponsiveView style={styles.editCommentActions}>
                         <TouchableOpacity
                           style={styles.editCancelButton}
                           onPress={() => {
@@ -553,34 +576,34 @@ const FeedScreen = () => {
                             setEditCommentText('');
                           }}
                         >
-                          <Text style={styles.editCancelText}>Cancel</Text>
+                          <ResponsiveText size="sm" color="#666" style={styles.editCancelText}>Cancel</ResponsiveText>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.editSaveButton}
                           onPress={() => handleEditComment(item.id)}
                         >
-                          <Text style={styles.editSaveText}>Save</Text>
+                          <ResponsiveText size="sm" color="#fff" style={styles.editSaveText}>Save</ResponsiveText>
                         </TouchableOpacity>
-                      </View>
-                    </View>
+                      </ResponsiveView>
+                    </ResponsiveView>
                   ) : (
-                    <Text style={[
+                    <ResponsiveText size="sm" color="#000" style={[
                       styles.commentText,
                       isOwnComment && styles.ownCommentText,
                       isAuthorComment && !isOwnComment && styles.authorCommentText
                     ]}>
                       {item.text}
-                    </Text>
+                    </ResponsiveText>
                   )}
-                  </View>
+                  </ResponsiveView>
                 );
               }}
               ListEmptyComponent={
-                <Text style={styles.noCommentsText}>No comments yet</Text>
+                <ResponsiveText size="md" color="#666" style={styles.noCommentsText}>No comments yet</ResponsiveText>
               }
             />
             
-            <View style={styles.commentInputContainer}>
+            <ResponsiveView style={styles.commentInputContainer}>
               <TextInput
                 style={styles.commentInput}
                 placeholder="Add a comment..."
@@ -594,15 +617,15 @@ const FeedScreen = () => {
                 disabled={submittingComment || !commentText.trim()}
               >
                 {submittingComment ? (
-                  <View style={styles.loadingSpinner}>
-                    <Ionicons name="sync" size={20} color="#667eea" />
-                  </View>
+                  <ResponsiveView style={styles.loadingSpinner}>
+                    <Ionicons name="sync" size={iconSizes.md} color="#667eea" />
+                  </ResponsiveView>
                 ) : (
-                  <Ionicons name="send" size={20} color={commentText.trim() ? "#667eea" : "#ccc"} />
+                  <Ionicons name="send" size={iconSizes.md} color={commentText.trim() ? "#667eea" : "#ccc"} />
                 )}
               </TouchableOpacity>
-            </View>
-          </View>
+            </ResponsiveView>
+          </ResponsiveView>
         </KeyboardAvoidingView>
       </Modal>
     </LinearGradient>

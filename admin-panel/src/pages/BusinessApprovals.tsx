@@ -46,7 +46,7 @@ interface BusinessRegistration {
   optionalContactNumber?: string;
   businessAddress: string;
   permitNumber: string;
-  registrationDate: string;
+  registrationDate: string | any;
   status: 'pending' | 'approved' | 'rejected';
   userId: string;
   userEmail: string;
@@ -59,8 +59,8 @@ interface BusinessRegistration {
     longitude: number;
   };
   rejectionReason?: string;
-  approvedDate?: string;
-  rejectedDate?: string;
+  approvedDate?: string | any;
+  rejectedDate?: string | any;
 }
 
 interface BusinessApprovalsProps {
@@ -499,10 +499,15 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                   </Box>
                   <Box textAlign="right">
                     <Typography variant="caption" color="text.secondary" display="block">
-                      Registered
+                      Applied Date
                     </Typography>
                     <Typography variant="body2" fontWeight={500}>
-                      {new Date(business.registrationDate).toLocaleDateString()}
+                      {business.registrationDate ? 
+                        (business.registrationDate.toDate ? 
+                          business.registrationDate.toDate().toLocaleDateString() : 
+                          new Date(business.registrationDate).toLocaleDateString()
+                        ) : 'N/A'
+                      }
                     </Typography>
                   </Box>
                 </Box>
@@ -656,7 +661,14 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                     <CalendarToday sx={{ mr: 1, color: 'text.secondary' }} />
                     <Box>
                       <Typography variant="body2" color="text.secondary">Registration Date</Typography>
-                      <Typography variant="body1">{new Date(selectedBusiness.registrationDate).toLocaleString()}</Typography>
+                      <Typography variant="body1">
+                        {selectedBusiness.registrationDate ? 
+                          (selectedBusiness.registrationDate.toDate ? 
+                            selectedBusiness.registrationDate.toDate().toLocaleString() : 
+                            new Date(selectedBusiness.registrationDate).toLocaleString()
+                          ) : 'N/A'
+                        }
+                      </Typography>
                     </Box>
                   </Box>
                   {selectedBusiness.approvedDate && (
@@ -664,7 +676,14 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                       <CheckCircle sx={{ mr: 1, color: 'success.main' }} />
                       <Box>
                         <Typography variant="body2" color="text.secondary">Approved Date</Typography>
-                        <Typography variant="body1">{new Date(selectedBusiness.approvedDate).toLocaleString()}</Typography>
+                        <Typography variant="body1">
+                          {selectedBusiness.approvedDate ? 
+                            (selectedBusiness.approvedDate.toDate ? 
+                              selectedBusiness.approvedDate.toDate().toLocaleString() : 
+                              new Date(selectedBusiness.approvedDate).toLocaleString()
+                            ) : 'N/A'
+                          }
+                        </Typography>
                       </Box>
                     </Box>
                   )}
@@ -673,7 +692,14 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                       <Cancel sx={{ mr: 1, color: 'error.main' }} />
                       <Box>
                         <Typography variant="body2" color="text.secondary">Rejected Date</Typography>
-                        <Typography variant="body1">{new Date(selectedBusiness.rejectedDate).toLocaleString()}</Typography>
+                        <Typography variant="body1">
+                          {selectedBusiness.rejectedDate ? 
+                            (selectedBusiness.rejectedDate.toDate ? 
+                              selectedBusiness.rejectedDate.toDate().toLocaleString() : 
+                              new Date(selectedBusiness.rejectedDate).toLocaleString()
+                            ) : 'N/A'
+                          }
+                        </Typography>
                       </Box>
                     </Box>
                   )}

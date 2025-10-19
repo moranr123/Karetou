@@ -20,6 +20,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { db } from '../../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import LoadingImage from '../../../components/LoadingImage';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth } = Dimensions.get('window');
 const businessTypes = ['Coffee Shop', 'Tourist Spot', 'Restaurant'];
@@ -37,9 +39,18 @@ const businessCategories = [
 const RegisterBusinessScreen = () => {
   const navigation = useNavigation();
   const { user, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  // Progress tracking
+  const registrationSteps = [
+    { id: 1, title: 'Business Info', description: 'Basic details' },
+    { id: 2, title: 'Verification', description: 'ID verification' },
+    { id: 3, title: 'Location', description: 'Set location' },
+    { id: 4, title: 'Complete', description: 'Final review' }
+  ];
   
   const [permitPhoto, setPermitPhoto] = useState<string | null>(null);
   const [permitNumber, setPermitNumber] = useState('');
@@ -228,10 +239,523 @@ const RegisterBusinessScreen = () => {
     }
   };
 
+  // Calculate current progress - only based on step completion, not individual fields
+  const calculateProgress = () => {
+    // Step 1 is always 25% complete when on this screen
+    // It only becomes 100% when user navigates to next step
+    return 25;
+  };
+
+  const currentProgress = calculateProgress();
+  const currentStep = Math.ceil((currentProgress / 100) * registrationSteps.length);
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      padding: spacing.lg,
+    },
+    progressContainer: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    progressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    progressTitle: {
+      flex: 1,
+    },
+    progressPercentage: {
+      fontWeight: '600',
+    },
+    progressBarContainer: {
+      height: 8,
+      backgroundColor: '#f0f0f0',
+      borderRadius: 4,
+      marginBottom: spacing.lg,
+      overflow: 'hidden',
+    },
+    progressBar: {
+      height: '100%',
+      backgroundColor: '#667eea',
+      borderRadius: 4,
+    },
+    stepsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    stepItem: {
+      flex: 1,
+      alignItems: 'center',
+      position: 'relative',
+    },
+    stepCircle: {
+      width: getResponsiveWidth(8),
+      height: getResponsiveWidth(8),
+      borderRadius: getResponsiveWidth(4),
+      backgroundColor: '#f0f0f0',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    stepCircleCompleted: {
+      backgroundColor: '#4CAF50',
+    },
+    stepCircleCurrent: {
+      backgroundColor: '#667eea',
+    },
+    stepCircleUpcoming: {
+      backgroundColor: '#f0f0f0',
+    },
+    stepTextContainer: {
+      alignItems: 'center',
+      maxWidth: getResponsiveWidth(20),
+    },
+    stepTitle: {
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+    stepDescription: {
+      textAlign: 'center',
+      lineHeight: fontSizes.xs * 1.2,
+    },
+    stepConnector: {
+      position: 'absolute',
+      top: getResponsiveWidth(4),
+      left: '50%',
+      width: '100%',
+      height: 2,
+      backgroundColor: '#f0f0f0',
+      zIndex: -1,
+    },
+    stepConnectorCompleted: {
+      backgroundColor: '#4CAF50',
+    },
+    formCard: {
+      backgroundColor: 'white',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xl,
+    },
+    backButton: {
+      marginRight: spacing.md,
+    },
+    title: {
+      fontSize: fontSizes.xl,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    label: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: spacing.sm,
+    },
+    subLabel: {
+      fontSize: fontSizes.sm,
+      color: '#666',
+      marginBottom: spacing.sm,
+      lineHeight: fontSizes.sm * 1.4,
+    },
+    input: {
+      backgroundColor: '#f8f9fa',
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      fontSize: fontSizes.md,
+      marginBottom: spacing.xl,
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    photoContainer: {
+      marginBottom: spacing.xl,
+    },
+    photoPlaceholder: {
+      height: getResponsiveHeight(25),
+      backgroundColor: '#f8f9fa',
+      borderRadius: borderRadius.md,
+      borderWidth: 2,
+      borderColor: '#ddd',
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    photoText: {
+      marginTop: spacing.sm,
+      fontSize: fontSizes.md,
+      color: '#666',
+    },
+    photoPreview: {
+      height: getResponsiveHeight(25),
+      borderRadius: borderRadius.md,
+      width: '100%',
+    },
+    businessTypeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xl,
+    },
+    typeButton: {
+      flex: 1,
+      backgroundColor: '#f8f9fa',
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xs,
+      borderRadius: borderRadius.xl,
+      marginHorizontal: spacing.xs,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      alignItems: 'center',
+    },
+    selectedTypeButton: {
+      backgroundColor: '#667eea',
+      borderColor: '#667eea',
+    },
+    typeButtonText: {
+      fontSize: fontSizes.sm,
+      color: '#333',
+      fontWeight: '500',
+      textAlign: 'center',
+    },
+    selectedTypeButtonText: {
+      color: '#fff',
+    },
+    categoryListContainer: {
+      marginBottom: spacing.xl,
+    },
+    categoryCheckboxRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      backgroundColor: '#f8f9fa',
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    categoryCheckboxContainer: {
+      marginRight: spacing.sm,
+    },
+    categoryCheckboxLabel: {
+      fontSize: fontSizes.md,
+      fontWeight: '500',
+      color: '#333',
+      flex: 1,
+    },
+    timeContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xl,
+    },
+    timeButton: {
+      backgroundColor: '#f8f9fa',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      flex: 0.48,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    timeButtonText: {
+      fontSize: fontSizes.md,
+      color: '#333',
+      fontWeight: '500',
+    },
+    submitButton: {
+      backgroundColor: '#667eea',
+      height: getResponsiveHeight(6),
+      borderRadius: borderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: spacing.lg,
+    },
+    submitButtonText: {
+      color: '#fff',
+      fontSize: fontSizes.lg,
+      fontWeight: 'bold',
+    },
+    businessImagesContainer: {
+      marginBottom: spacing.lg,
+    },
+    businessImagesRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    businessImageSlot: {
+      width: getResponsiveWidth(28),
+      height: getResponsiveWidth(28),
+      backgroundColor: '#f8f9fa',
+      borderRadius: borderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#ddd',
+      borderStyle: 'dashed',
+    },
+    businessImageWrapper: {
+      width: '100%',
+      height: '100%',
+      position: 'relative',
+    },
+    businessImagePreview: {
+      width: '100%',
+      height: '100%',
+      borderRadius: borderRadius.sm,
+    },
+    removeImageButton: {
+      position: 'absolute',
+      top: -5,
+      right: -5,
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.sm,
+    },
+    businessImagePlaceholder: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    businessImageText: {
+      fontSize: fontSizes.xs,
+      color: '#666',
+      marginTop: spacing.xs,
+      textAlign: 'center',
+    },
+    addMoreImagesButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f8f9fa',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.xl,
+      marginTop: spacing.sm,
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    addMoreImagesText: {
+      color: '#333',
+      fontSize: fontSizes.md,
+      marginLeft: spacing.sm,
+      fontWeight: '500',
+    },
+    imageCounter: {
+      marginTop: spacing.sm,
+      alignItems: 'center',
+    },
+    imageCounterText: {
+      fontSize: fontSizes.sm,
+      fontWeight: '500',
+    },
+    imageCounterSuccess: {
+      color: '#4CAF50',
+    },
+    imageCounterWarning: {
+      color: '#ffc107',
+    },
+    // Time Picker Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    timePickerModal: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.xl,
+      maxHeight: '60%',
+      width: '90%',
+      maxWidth: 400,
+    },
+    timePickerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    },
+    timePickerTitle: {
+      fontSize: fontSizes.lg,
+      fontWeight: '600',
+      color: '#333',
+    },
+    cancelButton: {
+      fontSize: fontSizes.md,
+      color: '#666',
+    },
+    confirmButton: {
+      fontSize: fontSizes.md,
+      color: '#667eea',
+      fontWeight: '600',
+    },
+    timePickerContent: {
+      flexDirection: 'row',
+      height: 200,
+    },
+    timeColumn: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    timeColumnLabel: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+      color: '#333',
+      paddingVertical: spacing.sm,
+    },
+    timeScrollView: {
+      flex: 1,
+      width: '100%',
+    },
+    timeOption: {
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    selectedTimeOption: {
+      backgroundColor: '#f0f4ff',
+    },
+    timeOptionText: {
+      fontSize: fontSizes.lg,
+      color: '#333',
+    },
+    selectedTimeOptionText: {
+      color: '#667eea',
+      fontWeight: '600',
+    },
+    ampmContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    ampmButton: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#f0f0f0',
+      minWidth: 60,
+      alignItems: 'center',
+    },
+    selectedAmpmButton: {
+      backgroundColor: '#667eea',
+    },
+    ampmButtonText: {
+      fontSize: fontSizes.md,
+      color: '#333',
+      fontWeight: '500',
+    },
+    selectedAmpmButtonText: {
+      color: '#fff',
+    },
+  });
+
+  // Progress Bar Component
+  const ProgressBar = () => (
+    <ResponsiveView style={styles.progressContainer}>
+      <ResponsiveView style={styles.progressHeader}>
+        <ResponsiveText size="lg" weight="600" color="#333" style={styles.progressTitle}>
+          Registration Progress
+        </ResponsiveText>
+        <ResponsiveText size="sm" color="#666" style={styles.progressPercentage}>
+          {Math.round(currentProgress)}% Complete
+        </ResponsiveText>
+      </ResponsiveView>
+      
+      {/* Progress Bar */}
+      <ResponsiveView style={styles.progressBarContainer}>
+        <ResponsiveView style={[styles.progressBar, { width: `${currentProgress}%` }]}>
+          <></>
+        </ResponsiveView>
+      </ResponsiveView>
+      
+      {/* Steps */}
+      <ResponsiveView style={styles.stepsContainer}>
+        {registrationSteps.map((step, index) => {
+          const isCompleted = index < currentStep;
+          const isCurrent = index === currentStep - 1;
+          const isUpcoming = index > currentStep - 1;
+          
+          return (
+            <ResponsiveView key={step.id} style={styles.stepItem}>
+              <ResponsiveView style={[
+                styles.stepCircle,
+                isCompleted && styles.stepCircleCompleted,
+                isCurrent && styles.stepCircleCurrent,
+                isUpcoming && styles.stepCircleUpcoming
+              ]}>
+                {isCompleted ? (
+                  <Ionicons name="checkmark" size={iconSizes.sm} color="#fff" />
+                ) : (
+                  <ResponsiveText size="xs" weight="600" color={isCurrent ? "#667eea" : "#999"}>
+                    {step.id}
+                  </ResponsiveText>
+                )}
+              </ResponsiveView>
+              <ResponsiveView style={styles.stepTextContainer}>
+                <ResponsiveText 
+                  size="xs" 
+                  weight={isCurrent ? "600" : "500"} 
+                  color={isCompleted || isCurrent ? "#333" : "#999"}
+                  style={styles.stepTitle}
+                >
+                  {step.title}
+                </ResponsiveText>
+                <ResponsiveText 
+                  size="xs" 
+                  color={isCompleted || isCurrent ? "#666" : "#999"}
+                  style={styles.stepDescription}
+                >
+                  {step.description}
+                </ResponsiveText>
+              </ResponsiveView>
+              {index < registrationSteps.length - 1 && (
+                <ResponsiveView style={[
+                  styles.stepConnector,
+                  isCompleted && styles.stepConnectorCompleted
+                ]}>
+                  <></>
+                </ResponsiveView>
+              )}
+            </ResponsiveView>
+          );
+        })}
+      </ResponsiveView>
+    </ResponsiveView>
+  );
+
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Progress Bar */}
+          <ProgressBar />
+          
           <View style={styles.formCard}>
             {/* Header */}
             <View style={styles.header}>
@@ -585,346 +1109,5 @@ const RegisterBusinessScreen = () => {
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 20,
-  },
-  formCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  label: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
-  },
-  subLabel: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 15,
-    lineHeight: 22,
-  },
-  input: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    padding: 15,
-    fontSize: 16,
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  photoContainer: {
-    marginBottom: 30,
-  },
-  photoPlaceholder: {
-    height: 200,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoText: {
-    marginTop: 8,
-    fontSize: 16,
-    color: '#666',
-  },
-  photoPreview: {
-    height: 200,
-    borderRadius: 10,
-    width: '100%',
-  },
-  businessTypeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  typeButton: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 25,
-    marginHorizontal: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
-  },
-  selectedTypeButton: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
-  },
-  typeButtonText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  selectedTypeButtonText: {
-    color: '#fff',
-  },
-  categoryListContainer: {
-    marginBottom: 30,
-  },
-  categoryCheckboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  categoryCheckboxContainer: {
-    marginRight: 12,
-  },
-  categoryCheckboxLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    flex: 1,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  timeButton: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    flex: 0.48,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  timeButtonText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  submitButton: {
-    backgroundColor: '#667eea',
-    height: 50,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  businessImagesContainer: {
-    marginBottom: 20,
-  },
-  businessImagesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  businessImageSlot: {
-    width: screenWidth * 0.28,
-    height: screenWidth * 0.28,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-  },
-  businessImageWrapper: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-  },
-  businessImagePreview: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-  },
-  businessImagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  businessImageText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  addMoreImagesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  addMoreImagesText: {
-    color: '#333',
-    fontSize: 16,
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  imageCounter: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  imageCounterText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  imageCounterSuccess: {
-    color: '#4CAF50',
-  },
-  imageCounterWarning: {
-    color: '#ffc107',
-  },
-  // Time Picker Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timePickerModal: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    maxHeight: '60%',
-    width: '90%',
-    maxWidth: 400,
-  },
-  timePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  timePickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  cancelButton: {
-    fontSize: 16,
-    color: '#666',
-  },
-  confirmButton: {
-    fontSize: 16,
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  timePickerContent: {
-    flexDirection: 'row',
-    height: 200,
-  },
-  timeColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  timeColumnLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    paddingVertical: 10,
-  },
-  timeScrollView: {
-    flex: 1,
-    width: '100%',
-  },
-  timeOption: {
-    paddingVertical: 15,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  selectedTimeOption: {
-    backgroundColor: '#f0f4ff',
-  },
-  timeOptionText: {
-    fontSize: 18,
-    color: '#333',
-  },
-  selectedTimeOptionText: {
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  ampmContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ampmButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  selectedAmpmButton: {
-    backgroundColor: '#667eea',
-  },
-  ampmButtonText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  selectedAmpmButtonText: {
-    color: '#fff',
-  },
-});
 
 export default RegisterBusinessScreen; 

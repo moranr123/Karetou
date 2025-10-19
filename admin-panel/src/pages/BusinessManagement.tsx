@@ -52,7 +52,7 @@ interface Business {
   optionalContactNumber?: string;
   businessAddress: string;
   permitNumber: string;
-  registrationDate: string;
+  registrationDate: string | any;
   status: 'pending' | 'approved' | 'rejected';
   userId: string;
   userEmail: string;
@@ -282,7 +282,7 @@ const BusinessManagement: React.FC = () => {
                   <TableCell>Contact</TableCell>
                   <TableCell>Activity Status</TableCell>
                   <TableCell>Approval Status</TableCell>
-                  <TableCell>Registered</TableCell>
+                  <TableCell>Applied Date</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -348,7 +348,12 @@ const BusinessManagement: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {new Date(business.registrationDate).toLocaleDateString()}
+                        {business.registrationDate ? 
+                          (business.registrationDate.toDate ? 
+                            business.registrationDate.toDate().toLocaleDateString() : 
+                            new Date(business.registrationDate).toLocaleDateString()
+                          ) : 'N/A'
+                        }
                       </Typography>
                     </TableCell>
                     <TableCell>
