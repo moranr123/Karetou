@@ -21,6 +21,7 @@ import MyPostsScreen from './screens/userScreens/businessOwnerScreens/MyPostsScr
 import MyBusinessScreen from './screens/userScreens/businessOwnerScreens/MyBusinessScreen';
 import PromotionsScreen from './screens/userScreens/businessOwnerScreens/PromotionsScreen';
 import NotificationScreen from './screens/userScreens/NotificationScreen';
+import DiscoverSilayScreen from './screens/userScreens/DiscoverSilayScreen';
 
 
 const Stack = createStackNavigator();
@@ -63,6 +64,7 @@ const UserAppStack = () => (
     <Stack.Screen name="SearchBarScreen" component={SearchBarScreen} />
     <Stack.Screen name="ReviewsScreen" component={ReviewsScreen} />
     <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
+    <Stack.Screen name="DiscoverSilay" component={DiscoverSilayScreen} />
   </Stack.Navigator>
 );
 

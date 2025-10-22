@@ -170,6 +170,7 @@ type RootStackParamList = {
   Home: undefined;
   SearchBarScreen: undefined;
   Navigate: { business?: any };
+  DiscoverSilay: undefined;
   // Add other screen names here as needed
 };
 
@@ -829,6 +830,60 @@ const HomeScreen = () => {
       color: '#888',
       marginTop: spacing.sm,
     },
+    // Discover Silay styles
+    discoverSilayCard: {
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+    },
+    discoverSilayImage: {
+      width: '100%',
+      height: getResponsiveHeight(25),
+      justifyContent: 'flex-end',
+    },
+    discoverSilayOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    discoverSilayContent: {
+      padding: spacing.lg,
+    },
+    discoverSilayTitle: {
+      fontWeight: 'bold',
+      color: '#fff',
+      marginBottom: spacing.xs,
+    },
+    discoverSilaySubtitle: {
+      color: '#fff',
+      opacity: 0.9,
+      marginBottom: spacing.sm,
+    },
+    discoverSilayDescription: {
+      color: '#fff',
+      opacity: 0.8,
+      lineHeight: fontSizes.xs * 1.3,
+    },
+    discoverSilayBadge: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
+    },
+    discoverSilayBadgeText: {
+      marginLeft: spacing.xs,
+      fontWeight: 'bold',
+    },
   });
 
 
@@ -1452,6 +1507,32 @@ const HomeScreen = () => {
                 )}
               />
             )}
+          </ResponsiveView>
+
+          {/* --- Discover Silay --- */}
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.sectionTitle}>
+              Discover Silay City
+            </ResponsiveText>
+            <TouchableOpacity
+              style={styles.discoverSilayCard}
+              onPress={() => {
+                navigation.navigate('DiscoverSilay');
+              }}
+            >
+              <ImageBackground
+                source={require('../../assets/silay.jpeg')}
+                style={styles.discoverSilayImage}
+                imageStyle={{ borderRadius: borderRadius.lg }}
+              >
+                <View style={styles.discoverSilayOverlay} />
+                <View style={styles.discoverSilayContent}>
+                  <ResponsiveText size="lg" weight="bold" color="#fff" style={styles.discoverSilayTitle}>
+                    Silay City
+                  </ResponsiveText>
+                </View>
+              </ImageBackground>
+            </TouchableOpacity>
           </ResponsiveView>
 
           {/* --- Promos and Deals --- */}
