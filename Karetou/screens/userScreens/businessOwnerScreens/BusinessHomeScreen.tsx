@@ -285,10 +285,14 @@ const BusinessHomeScreen = () => {
                   )}
                   <View style={styles.reviewContent}>
                     <View style={styles.reviewHeader}>
-                      <Text style={styles.userName}>{review.userName}</Text>
+                      <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                        {review.userName}
+                      </Text>
                       <View style={styles.starContainer}>{renderStars(review.rating)}</View>
                     </View>
-                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                    <Text style={styles.reviewComment} numberOfLines={3} ellipsizeMode="tail">
+                      {review.comment}
+                    </Text>
                     <Text style={styles.reviewTime}>{review.time}</Text>
                   </View>
                 </View>
@@ -420,6 +424,7 @@ const styles = StyleSheet.create({
   },
   reviewContent: {
     flex: 1,
+    minWidth: 0, // Allow flex item to shrink below content size
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -431,6 +436,8 @@ const styles = StyleSheet.create({
     fontSize: screenWidth * 0.04,
     fontWeight: 'bold',
     color: '#333',
+    flex: 1, // Allow username to take available space
+    marginRight: screenWidth * 0.02, // Add margin to prevent overlap with stars
   },
   starContainer: {
     flexDirection: 'row',

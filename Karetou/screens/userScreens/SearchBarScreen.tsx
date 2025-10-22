@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, StatusBar, Platform, ActivityIndicator, Modal, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, increment } from 'firebase/firestore';
@@ -147,6 +147,18 @@ const CachedImage: React.FC<{
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+type RootStackParamList = {
+  Main: { 
+    screen: string; 
+    params?: { business?: any } 
+  };
+  SearchBarScreen: undefined;
+  ReviewsScreen: undefined;
+  NotificationScreen: undefined;
+  DiscoverSilay: undefined;
+  // Add other screen names here as needed
+};
+
 const FILTERS = ['All', 'Coffee Shop', 'Restaurant', 'Tourist Spot'];
 
 const SearchBarScreen = () => {
@@ -163,7 +175,7 @@ const SearchBarScreen = () => {
   const [userReview, setUserReview] = useState<any>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [businessRatings, setBusinessRatings] = useState<{ [businessId: string]: { average: string, count: number } }>({});
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { theme, user } = useAuth();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
@@ -253,8 +265,13 @@ const SearchBarScreen = () => {
             address: business.businessAddress || business.address,
             type: business.selectedType || business.businessType,
             image: business.businessImages && business.businessImages.length > 0 ? business.businessImages[0] : null,
+            allImages: business.businessImages || [], // Include all images for Navigate screen
             rating: business.averageRating || 0,
             reviews: business.totalReviews || 0,
+            // Add location data for Navigate screen routing
+            latitude: business.businessLocation?.latitude || business.location?.latitude,
+            longitude: business.businessLocation?.longitude || business.location?.longitude,
+            businessLocation: business.businessLocation || business.location,
           });
         });
         
@@ -561,7 +578,10 @@ const SearchBarScreen = () => {
                       setDetailsModalVisible(false);
                       
                       // Navigate to the Navigate tab with business data
-                      (navigation as any).navigate('Navigate', { business: selectedPlace });
+                      navigation.navigate('Main', { 
+                        screen: 'Navigate', 
+                        params: { business: selectedPlace } 
+                      });
                     }}
                   >
                     <Ionicons name="map" size={20} color="#fff" />
