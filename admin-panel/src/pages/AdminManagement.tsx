@@ -32,6 +32,7 @@ import {
   Block,
   Add,
   CalendarToday,
+  Inbox,
 } from '@mui/icons-material';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -59,6 +60,7 @@ const AdminManagement: React.FC = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -245,8 +247,19 @@ const AdminManagement: React.FC = () => {
   };
 
   const filteredAdmins = admins.filter((admin) => {
+    // Filter by status
+    let statusMatch = true;
+    if (statusFilter === 'active') {
+      statusMatch = admin.isActive === true;
+    } else if (statusFilter === 'inactive') {
+      statusMatch = admin.isActive === false;
+    }
+
+    // Filter by search term
     const email = admin.email?.toLowerCase() || '';
-    return email.includes(searchTerm.toLowerCase());
+    const searchMatch = email.includes(searchTerm.toLowerCase());
+
+    return statusMatch && searchMatch;
   });
 
   // Show loading first
@@ -316,20 +329,91 @@ const AdminManagement: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
         <TextField
-          fullWidth
           placeholder="Search admins by email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ 
+            flex: { xs: '1 1 100%', sm: '0 1 400px' }, 
+            minWidth: { xs: '100%', sm: 300 },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 3,
+              backgroundColor: '#f9f9f9',
+              transition: 'all 0.3s ease',
+              border: '1px solid #d0d0d0',
+              '&:hover': {
+                backgroundColor: '#fff',
+                borderColor: '#667eea',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#667eea',
+                  borderWidth: '2px',
+                },
+              },
+              '&.Mui-focused': {
+                backgroundColor: '#fff',
+                borderColor: '#667eea',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#667eea',
+                  borderWidth: '2px',
+                },
+              },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#d0d0d0',
+              borderWidth: '1px',
+            },
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search />
+                <Search sx={{ color: '#667eea' }} />
               </InputAdornment>
             ),
           }}
         />
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+          <Button
+            variant={statusFilter === 'all' ? 'contained' : 'outlined'}
+            onClick={() => setStatusFilter('all')}
+            size="small"
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              px: 2,
+              minWidth: 'auto',
+            }}
+          >
+            All Admins
+          </Button>
+          <Button
+            variant={statusFilter === 'active' ? 'contained' : 'outlined'}
+            onClick={() => setStatusFilter('active')}
+            size="small"
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              px: 2,
+              minWidth: 'auto',
+            }}
+          >
+            Active
+          </Button>
+          <Button
+            variant={statusFilter === 'inactive' ? 'contained' : 'outlined'}
+            onClick={() => setStatusFilter('inactive')}
+            size="small"
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              px: 2,
+              minWidth: 'auto',
+            }}
+          >
+            Inactive
+          </Button>
+        </Box>
       </Box>
 
       {/* Desktop Table View */}
@@ -367,14 +451,31 @@ const AdminManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredAdmins.map((admin) => (
-                    <TableRow 
-                      key={admin.id}
-                      sx={{ 
-                        opacity: admin.isActive ? 1 : 0.6,
-                        backgroundColor: admin.isActive ? 'inherit' : 'action.hover'
-                      }}
-                    >
+                  {filteredAdmins.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <Inbox sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.5 }} />
+                          <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            No admins found
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {searchTerm || statusFilter !== 'all'
+                              ? 'Try adjusting your search or filter criteria.'
+                              : 'No admin accounts have been created yet.'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredAdmins.map((admin) => (
+                      <TableRow 
+                        key={admin.id}
+                        sx={{ 
+                          opacity: admin.isActive ? 1 : 0.6,
+                          backgroundColor: admin.isActive ? 'inherit' : 'action.hover'
+                        }}
+                      >
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           <AdminPanelSettings sx={{ mr: 1, fontSize: 20 }} />
@@ -416,7 +517,12 @@ const AdminManagement: React.FC = () => {
                             size="small"
                             onClick={() => handleToggleAdminStatus(admin.id, admin.email, admin.isActive)}
                             startIcon={admin.isActive ? <Block /> : <CheckCircle />}
-                            sx={{ fontSize: '0.875rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              px: 1.5,
+                              py: 0.5,
+                              minWidth: 'auto',
+                            }}
                           >
                             {admin.isActive ? 'Deactivate' : 'Activate'}
                           </Button>
@@ -426,14 +532,20 @@ const AdminManagement: React.FC = () => {
                             size="small"
                             onClick={() => handleDeleteAdmin(admin.id)}
                             startIcon={<Delete />}
-                            sx={{ fontSize: '0.875rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              px: 1.5,
+                              py: 0.5,
+                              minWidth: 'auto',
+                            }}
                           >
                             Delete
                           </Button>
                         </Box>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -443,8 +555,25 @@ const AdminManagement: React.FC = () => {
 
       {/* Mobile Card View */}
       <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {filteredAdmins.map((admin) => (
+        {filteredAdmins.length === 0 ? (
+          <Card>
+            <CardContent sx={{ py: 6 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <Inbox sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.5 }} />
+                <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  No admins found
+                </Typography>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  {searchTerm || statusFilter !== 'all'
+                    ? 'Try adjusting your search or filter criteria.'
+                    : 'No admin accounts have been created yet.'}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {filteredAdmins.map((admin) => (
             <Card 
               key={admin.id}
               sx={{ 
@@ -512,8 +641,10 @@ const AdminManagement: React.FC = () => {
                     onClick={() => handleToggleAdminStatus(admin.id, admin.email, admin.isActive)}
                     startIcon={admin.isActive ? <Block /> : <CheckCircle />}
                     sx={{ 
-                      fontSize: '0.875rem',
-                      py: 1,
+                      fontSize: '0.75rem',
+                      px: 1.5,
+                      py: 0.5,
+                      minWidth: 'auto',
                       textTransform: 'none'
                     }}
                   >
@@ -526,8 +657,10 @@ const AdminManagement: React.FC = () => {
                     onClick={() => handleDeleteAdmin(admin.id)}
                     startIcon={<Delete />}
                     sx={{ 
-                      fontSize: '0.875rem',
-                      py: 1,
+                      fontSize: '0.75rem',
+                      px: 1.5,
+                      py: 0.5,
+                      minWidth: 'auto',
                       textTransform: 'none'
                     }}
                   >
@@ -538,6 +671,7 @@ const AdminManagement: React.FC = () => {
             </Card>
           ))}
         </Box>
+        )}
       </Box>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -608,8 +742,30 @@ const AdminManagement: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelDeactivate}>Cancel</Button>
-          <Button onClick={() => handleConfirmToggleAdminStatus()} color="error" variant="contained">
+          <Button 
+            onClick={handleCancelDeactivate} 
+            size="small"
+            sx={{ 
+              minWidth: 'auto',
+              px: 2,
+              py: 0.75,
+              fontSize: '0.875rem',
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => handleConfirmToggleAdminStatus()} 
+            color="error" 
+            variant="contained" 
+            size="small"
+            sx={{ 
+              minWidth: 'auto',
+              px: 2,
+              py: 0.75,
+              fontSize: '0.875rem',
+            }}
+          >
             Deactivate
           </Button>
         </DialogActions>

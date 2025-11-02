@@ -50,6 +50,8 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userFilter, setUserFilter] = useState<'all' | 'regular' | 'business'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
@@ -156,10 +158,30 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter((user) =>
-    (user.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter((user) => {
+    // Filter by user type
+    let typeMatch = true;
+    if (userFilter === 'regular') {
+      typeMatch = !user.hasBusinessRegistration;
+    } else if (userFilter === 'business') {
+      typeMatch = user.hasBusinessRegistration;
+    }
+
+    // Filter by status
+    let statusMatch = true;
+    if (statusFilter === 'active') {
+      statusMatch = user.isActive === true;
+    } else if (statusFilter === 'inactive') {
+      statusMatch = user.isActive === false;
+    }
+
+    // Filter by search term
+    const searchMatch = 
+      (user.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+    return typeMatch && statusMatch && searchMatch;
+  });
 
   if (loading) {
     return (
@@ -207,20 +229,134 @@ const UserManagement: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
         <TextField
-          fullWidth
           placeholder="Search users by name or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ 
+            flex: { xs: '1 1 100%', sm: '0 1 400px' }, 
+            minWidth: { xs: '100%', sm: 300 },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 3,
+              backgroundColor: '#f9f9f9',
+              transition: 'all 0.3s ease',
+              border: '1px solid #d0d0d0',
+              '&:hover': {
+                backgroundColor: '#fff',
+                borderColor: '#667eea',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#667eea',
+                  borderWidth: '2px',
+                },
+              },
+              '&.Mui-focused': {
+                backgroundColor: '#fff',
+                borderColor: '#667eea',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#667eea',
+                  borderWidth: '2px',
+                },
+              },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#d0d0d0',
+              borderWidth: '1px',
+            },
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search />
+                <Search sx={{ color: '#667eea' }} />
               </InputAdornment>
             ),
           }}
         />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+            <Button
+              variant={userFilter === 'all' ? 'contained' : 'outlined'}
+              onClick={() => setUserFilter('all')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                px: 2,
+                minWidth: 'auto',
+              }}
+            >
+              All Users
+            </Button>
+            <Button
+              variant={userFilter === 'regular' ? 'contained' : 'outlined'}
+              onClick={() => setUserFilter('regular')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                px: 2,
+                minWidth: 'auto',
+              }}
+            >
+              Regular User
+            </Button>
+            <Button
+              variant={userFilter === 'business' ? 'contained' : 'outlined'}
+              onClick={() => setUserFilter('business')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                px: 2,
+                minWidth: 'auto',
+              }}
+            >
+              Business Owner
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+            <Button
+              variant={statusFilter === 'all' ? 'contained' : 'outlined'}
+              onClick={() => setStatusFilter('all')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                px: 2,
+                minWidth: 'auto',
+              }}
+            >
+              All Status
+            </Button>
+            <Button
+              variant={statusFilter === 'active' ? 'contained' : 'outlined'}
+              onClick={() => setStatusFilter('active')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                px: 2,
+                minWidth: 'auto',
+              }}
+            >
+              Active
+            </Button>
+            <Button
+              variant={statusFilter === 'inactive' ? 'contained' : 'outlined'}
+              onClick={() => setStatusFilter('inactive')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                px: 2,
+                minWidth: 'auto',
+              }}
+            >
+              Inactive
+            </Button>
+          </Box>
+        </Box>
       </Box>
 
       {/* Desktop Table View */}
@@ -326,7 +462,12 @@ const UserManagement: React.FC = () => {
                             size="small"
                             onClick={() => handleToggleUserStatus(user.id, user.email, user.fullName, user.isActive)}
                             startIcon={user.isActive ? <Block /> : <CheckCircle />}
-                            sx={{ fontSize: '0.875rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              px: 1.5,
+                              py: 0.5,
+                              minWidth: 'auto',
+                            }}
                           >
                             {user.isActive ? 'Deactivate' : 'Activate'}
                           </Button>
@@ -336,7 +477,12 @@ const UserManagement: React.FC = () => {
                             size="small"
                             onClick={() => handleDeleteUser(user.id)}
                             startIcon={<Delete />}
-                            sx={{ fontSize: '0.875rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              px: 1.5,
+                              py: 0.5,
+                              minWidth: 'auto',
+                            }}
                           >
                             Delete
                           </Button>
@@ -446,8 +592,10 @@ const UserManagement: React.FC = () => {
                     onClick={() => handleToggleUserStatus(user.id, user.email, user.fullName, user.isActive)}
                     startIcon={user.isActive ? <Block /> : <CheckCircle />}
                     sx={{ 
-                      fontSize: '0.875rem',
-                      py: 1,
+                      fontSize: '0.75rem',
+                      px: 1.5,
+                      py: 0.5,
+                      minWidth: 'auto',
                       textTransform: 'none'
                     }}
                   >
@@ -460,8 +608,10 @@ const UserManagement: React.FC = () => {
                     onClick={() => handleDeleteUser(user.id)}
                     startIcon={<Delete />}
                     sx={{ 
-                      fontSize: '0.875rem',
-                      py: 1,
+                      fontSize: '0.75rem',
+                      px: 1.5,
+                      py: 0.5,
+                      minWidth: 'auto',
                       textTransform: 'none'
                     }}
                   >
@@ -486,8 +636,30 @@ const UserManagement: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelDeactivate}>Cancel</Button>
-          <Button onClick={() => handleConfirmToggleUserStatus()} color="error" variant="contained">
+          <Button 
+            onClick={handleCancelDeactivate} 
+            size="small"
+            sx={{ 
+              minWidth: 'auto',
+              px: 2,
+              py: 0.75,
+              fontSize: '0.875rem',
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => handleConfirmToggleUserStatus()} 
+            color="error" 
+            variant="contained" 
+            size="small"
+            sx={{ 
+              minWidth: 'auto',
+              px: 2,
+              py: 0.75,
+              fontSize: '0.875rem',
+            }}
+          >
             Deactivate
           </Button>
         </DialogActions>
