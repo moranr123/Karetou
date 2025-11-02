@@ -63,6 +63,8 @@ const AdminManagement: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [adminToDeactivate, setAdminToDeactivate] = useState<{ id: string; email: string; isActive: boolean } | null>(null);
   const [newAdminData, setNewAdminData] = useState<NewAdminData>({
     email: '',
     password: '',
@@ -178,22 +180,38 @@ const AdminManagement: React.FC = () => {
     }
   };
 
-  const handleToggleAdminStatus = async (adminId: string, isActive: boolean) => {
+  const handleToggleAdminStatus = (adminId: string, email: string, isActive: boolean) => {
+    // Show confirmation dialog only when deactivating
+    if (isActive) {
+      setAdminToDeactivate({ id: adminId, email, isActive });
+      setDeactivateDialogOpen(true);
+    } else {
+      // Reactivate directly without confirmation
+      handleConfirmToggleAdminStatus(adminId, isActive);
+    }
+  };
+
+  const handleConfirmToggleAdminStatus = async (adminId?: string, isActive?: boolean) => {
+    const adminIdToUpdate = adminId || adminToDeactivate?.id;
+    const isActiveStatus = isActive !== undefined ? isActive : adminToDeactivate?.isActive;
+    
+    if (!adminIdToUpdate || isActiveStatus === undefined) return;
+
     try {
-      await updateDoc(doc(db, 'adminUsers', adminId), {
-        isActive: !isActive,
+      await updateDoc(doc(db, 'adminUsers', adminIdToUpdate), {
+        isActive: !isActiveStatus,
       });
       
       // Update local state instead of refetching
       setAdmins(prevAdmins => 
         prevAdmins.map(admin => 
-          admin.id === adminId 
-            ? { ...admin, isActive: !isActive }
+          admin.id === adminIdToUpdate 
+            ? { ...admin, isActive: !isActiveStatus }
             : admin
         )
       );
       
-      if (isActive) {
+      if (isActiveStatus) {
         setSuccessMessage('Admin account has been deactivated. They will be signed out immediately.');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
@@ -204,7 +222,15 @@ const AdminManagement: React.FC = () => {
       console.error('Error updating admin status:', error);
       setError('Failed to update admin status. Please try again.');
       setTimeout(() => setError(''), 5000);
+    } finally {
+      setDeactivateDialogOpen(false);
+      setAdminToDeactivate(null);
     }
+  };
+
+  const handleCancelDeactivate = () => {
+    setDeactivateDialogOpen(false);
+    setAdminToDeactivate(null);
   };
 
   const handleDeleteAdmin = async (adminId: string) => {
@@ -388,7 +414,7 @@ const AdminManagement: React.FC = () => {
                             variant="contained"
                             color={admin.isActive ? "error" : "success"}
                             size="small"
-                            onClick={() => handleToggleAdminStatus(admin.id, admin.isActive)}
+                            onClick={() => handleToggleAdminStatus(admin.id, admin.email, admin.isActive)}
                             startIcon={admin.isActive ? <Block /> : <CheckCircle />}
                             sx={{ fontSize: '0.875rem' }}
                           >
@@ -483,7 +509,7 @@ const AdminManagement: React.FC = () => {
                     variant="contained"
                     color={admin.isActive ? "error" : "success"}
                     size="small"
-                    onClick={() => handleToggleAdminStatus(admin.id, admin.isActive)}
+                    onClick={() => handleToggleAdminStatus(admin.id, admin.email, admin.isActive)}
                     startIcon={admin.isActive ? <Block /> : <CheckCircle />}
                     sx={{ 
                       fontSize: '0.875rem',
@@ -566,6 +592,25 @@ const AdminManagement: React.FC = () => {
             type="button"
           >
             {processing ? <CircularProgress size={20} /> : 'Create Admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Deactivation Confirmation Dialog */}
+      <Dialog open={deactivateDialogOpen} onClose={handleCancelDeactivate}>
+        <DialogTitle>Confirm Deactivation</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to deactivate the admin account for <strong>{adminToDeactivate?.email}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            The admin will be signed out immediately and will not be able to log in until reactivated.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDeactivate}>Cancel</Button>
+          <Button onClick={() => handleConfirmToggleAdminStatus()} color="error" variant="contained">
+            Deactivate
           </Button>
         </DialogActions>
       </Dialog>

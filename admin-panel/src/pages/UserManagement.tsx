@@ -17,6 +17,10 @@ import {
   InputAdornment,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Search,
@@ -48,6 +52,8 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [userToDeactivate, setUserToDeactivate] = useState<{ id: string; email: string; fullName: string; isActive: boolean } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -83,22 +89,38 @@ const UserManagement: React.FC = () => {
   };
 
 
-  const handleToggleUserStatus = async (userId: string, isActive: boolean) => {
+  const handleToggleUserStatus = (userId: string, email: string, fullName: string, isActive: boolean) => {
+    // Show confirmation dialog only when deactivating
+    if (isActive) {
+      setUserToDeactivate({ id: userId, email, fullName, isActive });
+      setDeactivateDialogOpen(true);
+    } else {
+      // Reactivate directly without confirmation
+      handleConfirmToggleUserStatus(userId, isActive);
+    }
+  };
+
+  const handleConfirmToggleUserStatus = async (userId?: string, isActive?: boolean) => {
+    const userIdToUpdate = userId || userToDeactivate?.id;
+    const isActiveStatus = isActive !== undefined ? isActive : userToDeactivate?.isActive;
+    
+    if (!userIdToUpdate || isActiveStatus === undefined) return;
+
     try {
-      await updateDoc(doc(db, 'users', userId), {
-        isActive: !isActive,
+      await updateDoc(doc(db, 'users', userIdToUpdate), {
+        isActive: !isActiveStatus,
       });
       
       // Update local state instead of refetching
       setUsers(prevUsers => 
         prevUsers.map(user => 
-          user.id === userId 
-            ? { ...user, isActive: !isActive }
+          user.id === userIdToUpdate 
+            ? { ...user, isActive: !isActiveStatus }
             : user
         )
       );
       
-      if (isActive) {
+      if (isActiveStatus) {
         setSuccessMessage('User account has been deactivated.');
       } else {
         setSuccessMessage('User account has been reactivated.');
@@ -108,7 +130,15 @@ const UserManagement: React.FC = () => {
       console.error('Error updating user status:', error);
       setError('Failed to update user status. Please try again.');
       setTimeout(() => setError(''), 5000);
+    } finally {
+      setDeactivateDialogOpen(false);
+      setUserToDeactivate(null);
     }
+  };
+
+  const handleCancelDeactivate = () => {
+    setDeactivateDialogOpen(false);
+    setUserToDeactivate(null);
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -294,7 +324,7 @@ const UserManagement: React.FC = () => {
                             variant="contained"
                             color={user.isActive ? "error" : "success"}
                             size="small"
-                            onClick={() => handleToggleUserStatus(user.id, user.isActive)}
+                            onClick={() => handleToggleUserStatus(user.id, user.email, user.fullName, user.isActive)}
                             startIcon={user.isActive ? <Block /> : <CheckCircle />}
                             sx={{ fontSize: '0.875rem' }}
                           >
@@ -413,7 +443,7 @@ const UserManagement: React.FC = () => {
                     variant="contained"
                     color={user.isActive ? "error" : "success"}
                     size="small"
-                    onClick={() => handleToggleUserStatus(user.id, user.isActive)}
+                    onClick={() => handleToggleUserStatus(user.id, user.email, user.fullName, user.isActive)}
                     startIcon={user.isActive ? <Block /> : <CheckCircle />}
                     sx={{ 
                       fontSize: '0.875rem',
@@ -444,6 +474,24 @@ const UserManagement: React.FC = () => {
         </Box>
       </Box>
 
+      {/* Deactivation Confirmation Dialog */}
+      <Dialog open={deactivateDialogOpen} onClose={handleCancelDeactivate}>
+        <DialogTitle>Confirm Deactivation</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to deactivate the user account for <strong>{userToDeactivate?.fullName || userToDeactivate?.email}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            The user will not be able to access the app until their account is reactivated.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDeactivate}>Cancel</Button>
+          <Button onClick={() => handleConfirmToggleUserStatus()} color="error" variant="contained">
+            Deactivate
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

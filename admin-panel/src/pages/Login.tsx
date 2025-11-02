@@ -23,6 +23,32 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const getErrorMessage = (error: any): string => {
+    const errorCode = error?.code || '';
+    
+    switch (errorCode) {
+      case 'auth/user-not-found':
+      case 'auth/invalid-credential':
+        return 'Invalid email or password. Please check your credentials and try again.';
+      case 'auth/wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'auth/invalid-email':
+        return 'Invalid email address. Please enter a valid email.';
+      case 'auth/user-disabled':
+        return 'This account has been disabled. Please contact an administrator.';
+      case 'auth/too-many-requests':
+        return 'Too many failed login attempts. Please try again later.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your connection and try again.';
+      default:
+        // Check if it's a custom error message from AuthContext
+        if (error?.message) {
+          return error.message;
+        }
+        return 'An error occurred. Please try again.';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -32,7 +58,8 @@ const Login: React.FC = () => {
       await login(email, password);
       navigate('/');
     } catch (error: any) {
-      setError(error.message || 'Failed to login');
+      const errorMessage = getErrorMessage(error);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

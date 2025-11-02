@@ -231,7 +231,23 @@ export default function Login({ navigation }: Props) {
         }
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      let errorMessage = 'An error occurred. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Login Error', errorMessage);
     } finally {
       setLoading(false);
     }

@@ -213,6 +213,20 @@ const SuperAdminDashboard: React.FC = () => {
         sx={{ mb: 4 }}
       >
         <Card sx={{ 
+          bgcolor: '#FF9800',
+          boxShadow: '0 4px 12px rgba(255, 152, 0, 0.25)',
+          borderRadius: 2,
+        }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+              Pending Approvals
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+              {stats.pendingApprovals}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ 
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
           borderRadius: 2,
@@ -237,20 +251,6 @@ const SuperAdminDashboard: React.FC = () => {
             </Typography>
             <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {stats.totalBusinesses}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ 
-          bgcolor: '#FF9800',
-          boxShadow: '0 4px 12px rgba(255, 152, 0, 0.25)',
-          borderRadius: 2,
-        }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Pending Approvals
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.pendingApprovals}
             </Typography>
           </CardContent>
         </Card>
@@ -414,7 +414,7 @@ const SuperAdminDashboard: React.FC = () => {
                 },
               }}
             >
-              Manage Users
+              ManagCUsers
             </Button>
             <Button
               variant="outlined"

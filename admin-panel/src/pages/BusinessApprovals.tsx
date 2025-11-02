@@ -17,6 +17,17 @@ import {
   Divider,
   IconButton,
   Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Tabs,
+  Tab,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   CheckCircle,
@@ -78,6 +89,11 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [imageDialogTitle, setImageDialogTitle] = useState<string>('');
+  const [rejectTimer, setRejectTimer] = useState<number | null>(null);
+  const [rejectCountdown, setRejectCountdown] = useState<number>(0);
+  const [rejectingBusinessId, setRejectingBusinessId] = useState<string | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Determine initial tab value based on the tab prop
   const getInitialTabValue = () => {
@@ -236,9 +252,17 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
     }
   };
 
-  const handleReject = async (businessId: string) => {
+  const cancelRejection = () => {
+    if (rejectTimer) {
+      clearInterval(rejectTimer);
+    }
+    setRejectTimer(null);
+    setRejectCountdown(0);
+    setRejectingBusinessId(null);
+  };
+
+  const executeRejection = async (businessId: string) => {
     if (!rejectionReason.trim()) {
-      alert('Please provide a reason for rejection');
       return;
     }
 
@@ -269,6 +293,7 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
       setDialogOpen(false);
       setSelectedBusiness(null);
       setRejectionReason('');
+      cancelRejection();
     } catch (error) {
       console.error('Error rejecting business:', error);
     } finally {
@@ -276,11 +301,53 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
     }
   };
 
+  const handleReject = async (businessId: string) => {
+    if (!rejectionReason.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    // Cancel any existing timer
+    if (rejectTimer) {
+      clearInterval(rejectTimer);
+    }
+
+    setRejectingBusinessId(businessId);
+    setRejectCountdown(10);
+
+    const timer = window.setInterval(() => {
+      setRejectCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setRejectTimer(null);
+          executeRejection(businessId);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    setRejectTimer(timer);
+  };
+
   const handleCardClick = (business: BusinessRegistration) => {
+    // Cancel any active rejection timer when opening a different business
+    if (rejectTimer && rejectingBusinessId !== business.id) {
+      cancelRejection();
+    }
     setSelectedBusiness(business);
     setRejectionReason(business.rejectionReason || '');
     setDialogOpen(true);
   };
+
+  // Cleanup timer on unmount or dialog close
+  useEffect(() => {
+    return () => {
+      if (rejectTimer) {
+        clearInterval(rejectTimer);
+      }
+    };
+  }, [rejectTimer]);
 
   const handleImageClick = (imageUrl: string, title: string) => {
     setSelectedImage(imageUrl);
@@ -409,36 +476,146 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
         </Box>
       )}
 
-      {/* Business Cards Grid */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { 
-          xs: '1fr', 
-          sm: 'repeat(auto-fill, minmax(350px, 1fr))',
-          md: 'repeat(auto-fill, minmax(380px, 1fr))'
-        }, 
-        gap: { xs: 2, sm: 3 } 
-      }}>
+      {/* Desktop Table View */}
+      {filteredBusinesses.length > 0 && (
+        <>
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+              <CardContent sx={{ p: 0 }}>
+                <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Business Name</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Owner</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Type</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Contact</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Address</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Permit Number</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Applied Date</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredBusinesses.map((business) => (
+                        <TableRow 
+                          key={business.id}
+                          onClick={() => handleCardClick(business)}
+                          sx={{ 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            '&:hover': { 
+                              bgcolor: `${statusInfo.color}08`,
+                              transform: 'scale(1.001)',
+                            },
+                            '&:active': {
+                              bgcolor: `${statusInfo.color}15`,
+                            }
+                          }}
+                        >
+                          <TableCell>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Business sx={{ color: statusInfo.color, fontSize: 20 }} />
+                              <Typography variant="body2" fontWeight={600} sx={{ color: '#1a1a2e' }}>
+                                {business.businessName}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2">{business.businessOwner}</Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{business.selectedType}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2">{business.contactNumber}</Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" alignItems="flex-start" gap={1} sx={{ maxWidth: 300 }}>
+                              <LocationOn sx={{ fontSize: 16, color: 'text.secondary', mt: 0.5 }} />
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                }}
+                              >
+                                {business.businessAddress}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {business.permitNumber}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2">
+                                {business.registrationDate ? 
+                                  (business.registrationDate.toDate ? 
+                                    business.registrationDate.toDate().toLocaleDateString() : 
+                                    new Date(business.registrationDate).toLocaleDateString()
+                                  ) : 'N/A'
+                                }
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={business.status.toUpperCase()}
+                              color={getStatusColor(business.status) as any}
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* Mobile Card View */}
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {filteredBusinesses.map((business) => (
           <Card 
             key={business.id} 
+                  onClick={() => handleCardClick(business)}
             sx={{ 
               cursor: 'pointer',
               borderRadius: 3,
               border: '1px solid #e0e0e0',
               transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
               '&:hover': { 
                 transform: 'translateY(-4px)',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                 borderColor: statusInfo.color,
+                    },
+                    '&:active': {
+                      transform: 'translateY(-2px)',
               }
             }}
           >
-            <CardActionArea onClick={() => handleCardClick(business)}>
-              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <CardActionArea>
+                    <CardContent sx={{ p: 2.5 }}>
                 {/* Header with Business Name and Status */}
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2.5}>
-                  <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1, fontWeight: 600, color: '#1a1a2e' }}>
+                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                        <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1, fontWeight: 600, color: '#1a1a2e', fontSize: '1.1rem' }}>
                     {business.businessName}
                   </Typography>
                   <Chip
@@ -450,7 +627,7 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                 </Box>
 
                 {/* Business Details */}
-                <Box mb={2.5} sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, sm: 1.5 } }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <Box display="flex" alignItems="center">
                     <Person sx={{ mr: 1.5, fontSize: 18, color: statusInfo.color }} />
                     <Box>
@@ -476,26 +653,20 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                     <LocationOn sx={{ mr: 1.5, fontSize: 18, color: statusInfo.color, mt: 0.5 }} />
                     <Box flex={1}>
                       <Typography variant="caption" color="text.secondary" display="block">Address</Typography>
-                      <Typography variant="body2" fontWeight={500} sx={{ 
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}>
+                            <Typography variant="body2" fontWeight={500}>
                       {business.businessAddress}
                     </Typography>
                   </Box>
                   </Box>
                 </Box>
 
-                <Divider sx={{ mb: 2 }} />
+                      <Divider sx={{ my: 2 }} />
 
                 {/* Footer */}
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box>
                     <Typography variant="caption" color="text.secondary" display="block">Permit Number</Typography>
-                    <Typography variant="body2" fontWeight={600} color={statusInfo.color}>
+                          <Typography variant="body2" fontWeight={600}>
                       {business.permitNumber}
                 </Typography>
                   </Box>
@@ -520,7 +691,7 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                   textAlign: 'center',
                 }}>
                   <Typography variant="caption" sx={{ color: statusInfo.color, fontWeight: 600 }}>
-                    Click to view full details and documents →
+                          Tap to view full details →
                   </Typography>
                 </Box>
               </CardContent>
@@ -528,6 +699,9 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
           </Card>
         ))}
       </Box>
+          </Box>
+        </>
+      )}
 
       {/* Full Business Details Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
@@ -1090,7 +1264,12 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2 }}>
           <Button 
-            onClick={() => setDialogOpen(false)} 
+            onClick={() => {
+              if (rejectTimer) {
+                cancelRejection();
+              }
+              setDialogOpen(false);
+            }} 
             disabled={processing}
             variant="outlined"
             sx={{
@@ -1113,7 +1292,7 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
               <Button
                 onClick={() => handleReject(selectedBusiness.id)}
                 variant="contained"
-                disabled={processing || !rejectionReason.trim()}
+                disabled={processing || !rejectionReason.trim() || (rejectingBusinessId === selectedBusiness.id && rejectCountdown > 0)}
                 sx={{
                   bgcolor: '#F44336',
                   color: '#fff',
@@ -1136,7 +1315,7 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                 {processing ? <CircularProgress size={20} color="inherit" /> : (
                   <Box display="flex" alignItems="center" gap={1}>
                     <Cancel sx={{ fontSize: 20 }} />
-                    Reject
+                    {rejectingBusinessId === selectedBusiness.id && rejectCountdown > 0 ? `Rejecting... (${rejectCountdown}s)` : 'Reject'}
                   </Box>
                 )}
               </Button>
@@ -1205,6 +1384,105 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
             />
           </Box>
         </DialogContent>
+      </Dialog>
+
+      {/* Rejection Countdown Modal */}
+      <Dialog 
+        open={rejectingBusinessId !== null && rejectCountdown > 0} 
+        onClose={cancelRejection}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#F44336', fontSize: '1.1rem' }}>
+              Confirm Rejection
+            </Typography>
+            <IconButton onClick={cancelRejection} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Box sx={{ textAlign: 'center', py: 1 }}>
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                bgcolor: '#FFF3E0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 2,
+                border: '3px solid #FF9800',
+              }}
+            >
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: '#FF9800',
+                  fontSize: '2rem',
+                }}
+              >
+                {rejectCountdown}
+              </Typography>
+            </Box>
+            <Typography variant="body1" gutterBottom sx={{ fontWeight: 600, mb: 1, fontSize: '0.95rem' }}>
+              Rejecting Business Application
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              "{selectedBusiness?.businessName}" will be rejected in{' '}
+              <strong>{rejectCountdown}</strong> second{rejectCountdown !== 1 ? 's' : ''}.
+            </Typography>
+            {rejectionReason && (
+              <Box
+                sx={{
+                  bgcolor: '#FFF3E0',
+                  borderRadius: 1.5,
+                  p: 1.5,
+                  mb: 2,
+                  textAlign: 'left',
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+                  Rejection Reason:
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{rejectionReason}</Typography>
+              </Box>
+            )}
+            <Alert severity="warning" sx={{ textAlign: 'left', fontSize: '0.85rem' }}>
+              <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                Click "Cancel" to undo this action.
+              </Typography>
+            </Alert>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1, justifyContent: 'center' }}>
+          <Button
+            onClick={cancelRejection}
+            variant="contained"
+            sx={{
+              bgcolor: '#4CAF50',
+              color: '#fff',
+              textTransform: 'none',
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+              '&:hover': {
+                bgcolor: '#45a049',
+                boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+              },
+            }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
