@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ViewProps, StyleSheet } from 'react-native';
+import { View, ViewProps, StyleSheet, ViewStyle, DimensionValue } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 import ResponsiveView from './ResponsiveView';
 
@@ -45,10 +45,10 @@ const ResponsiveCard: React.FC<ResponsiveCardProps> = ({
       borderRadius: getSpacingValue(borderRadius),
       backgroundColor,
       ...(shadow && getShadowStyle(elevation)),
-      ...(fullWidth && { width: '100%' }),
-      ...(width && { width }),
-      ...(height && { height }),
-    },
+      ...(fullWidth && { width: '100%' as DimensionValue }),
+      ...(width && { width: typeof width === 'string' ? width as DimensionValue : width }),
+      ...(height && { height: typeof height === 'string' ? height as DimensionValue : height }),
+    } as ViewStyle,
     style,
   ]);
 

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Image, ImageProps, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { Image, ImageProps, StyleSheet, View, ActivityIndicator, ImageStyle, DimensionValue } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 
-interface ResponsiveImageProps extends ImageProps {
+interface ResponsiveImageProps extends Omit<ImageProps, 'borderRadius' | 'width' | 'height' | 'style'> {
   width?: number | string;
   height?: number | string;
   aspectRatio?: number;
@@ -12,6 +12,7 @@ interface ResponsiveImageProps extends ImageProps {
   error?: React.ReactNode;
   containerStyle?: any;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
+  style?: ImageStyle;
 }
 
 const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
@@ -46,10 +47,10 @@ const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
     }
 
     return {
-      width: imageWidth,
-      height: imageHeight,
+      width: typeof imageWidth === 'string' ? imageWidth as DimensionValue : imageWidth,
+      height: typeof imageHeight === 'string' ? imageHeight as DimensionValue : imageHeight,
       borderRadius: getBorderRadiusValue(borderRadius),
-    };
+    } as ImageStyle;
   };
 
   const imageStyle = StyleSheet.flatten([

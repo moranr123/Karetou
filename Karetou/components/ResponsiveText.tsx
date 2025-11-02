@@ -3,7 +3,7 @@ import { Text, TextProps, StyleSheet } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 
 interface ResponsiveTextProps extends TextProps {
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl' | 'xxxxl' | 'xxxxxl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl';
   weight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
   color?: string;
   align?: 'left' | 'center' | 'right' | 'justify';

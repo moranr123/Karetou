@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ViewProps, StyleSheet } from 'react-native';
+import { View, ViewProps, StyleSheet, ViewStyle, DimensionValue, FlexAlignType } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 
 interface ResponsiveContainerProps extends ViewProps {
@@ -35,11 +35,11 @@ const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
     {
       padding: getSpacingValue(padding),
       margin: getSpacingValue(margin),
-      ...(maxWidth && { maxWidth }),
-      ...(center && { alignSelf: 'center' }),
-      ...(fullWidth && { width: '100%' }),
+      ...(maxWidth && { maxWidth: typeof maxWidth === 'string' ? maxWidth as DimensionValue : maxWidth }),
+      ...(center && { alignSelf: 'center' as FlexAlignType }),
+      ...(fullWidth && { width: '100%' as DimensionValue }),
       ...(safeArea && { paddingTop: getSafeAreaInsets().top }),
-    },
+    } as ViewStyle,
     style,
   ]);
 

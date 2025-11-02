@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ViewProps, StyleSheet } from 'react-native';
+import { View, ViewProps, StyleSheet, ViewStyle, DimensionValue } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 
 interface ResponsiveViewProps extends ViewProps {
@@ -54,10 +54,10 @@ const ResponsiveView: React.FC<ResponsiveViewProps> = ({
       marginHorizontal: getSpacingValue(marginHorizontal),
       marginVertical: getSpacingValue(marginVertical),
       borderRadius: getBorderRadiusValue(borderRadius),
-      width,
-      height,
+      width: width ? (typeof width === 'string' ? width as DimensionValue : width) : undefined,
+      height: height ? (typeof height === 'string' ? height as DimensionValue : height) : undefined,
       flex,
-    },
+    } as ViewStyle,
     style,
   ]);
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator, ViewStyle, DimensionValue, View } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 import ResponsiveText from './ResponsiveText';
 
@@ -91,8 +91,8 @@ const ResponsiveButton: React.FC<ResponsiveButtonProps> = ({
       ...variantStyles[variant],
       ...(disabled && stateStyles.disabled),
       ...(loading && stateStyles.loading),
-      ...(fullWidth && { width: '100%' }),
-    };
+      ...(fullWidth && { width: '100%' as DimensionValue }),
+    } as ViewStyle;
   };
 
   const getTextStyle = () => {
@@ -133,17 +133,17 @@ const ResponsiveButton: React.FC<ResponsiveButtonProps> = ({
       ) : (
         <>
           {icon && iconPosition === 'left' && (
-            <ResponsiveView marginRight={spacing.xs}>
+            <View style={{ marginRight: spacing.xs }}>
               {icon}
-            </ResponsiveView>
+            </View>
           )}
           <ResponsiveText style={getTextStyle()}>
             {title}
           </ResponsiveText>
           {icon && iconPosition === 'right' && (
-            <ResponsiveView marginLeft={spacing.xs}>
+            <View style={{ marginLeft: spacing.xs }}>
               {icon}
-            </ResponsiveView>
+            </View>
           )}
         </>
       )}
