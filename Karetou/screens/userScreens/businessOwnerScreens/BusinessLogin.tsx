@@ -79,16 +79,39 @@ export default function BusinessLogin({ navigation }: Props) {
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (userDoc.exists() && userDoc.data().userType === 'business') {
-        // Set user type as business owner
-        setUserType('business');
-        Alert.alert('Success', 'Welcome back, Business Owner!');
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const isActive = userData?.isActive !== undefined ? userData.isActive : true;
+        
+        // Check if user account is active
+        if (!isActive) {
+          console.log('❌ Business Login Debug - User account is deactivated');
+          await auth.signOut();
+          Alert.alert(
+            'Account Deactivated',
+            'Your business account has been deactivated. Please contact support for assistance.'
+          );
+          return;
+        }
+        
+        if (userData.userType === 'business') {
+          // Set user type as business owner
+          setUserType('business');
+          Alert.alert('Success', 'Welcome back, Business Owner!');
+        } else {
+          // Not a business user, show alert and log out
+          await auth.signOut();
+          Alert.alert(
+            'Login Error',
+            'This is not a business account. Please use the regular user login.'
+          );
+        }
       } else {
-        // Not a business user, show alert and log out
+        // No Firestore document found
         await auth.signOut();
         Alert.alert(
           'Login Error',
-          'This is not a business account. Please use the regular user login.'
+          'Business account not found. Please register a business account first.'
         );
       }
     } catch (error: any) {

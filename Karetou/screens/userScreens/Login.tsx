@@ -214,6 +214,18 @@ export default function Login({ navigation }: Props) {
       } else {
         const userData = userDoc.data();
         const userType = userData?.userType;
+        const isActive = userData?.isActive !== undefined ? userData.isActive : true;
+        
+        // Check if user account is active
+        if (!isActive) {
+          console.log('❌ Login Debug - User account is deactivated');
+          await auth.signOut();
+          Alert.alert(
+            'Account Deactivated',
+            'Your account has been deactivated. Please contact support for assistance.'
+          );
+          return;
+        }
         
         if (!userType || userType === 'user') {
           console.log('✅ Login Debug - User type is user or undefined, allowing login');

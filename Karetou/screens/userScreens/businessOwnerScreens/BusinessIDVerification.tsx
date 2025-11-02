@@ -66,17 +66,46 @@ const BusinessIDVerificationScreen = () => {
     { id: 4, title: 'Complete', description: 'Final review' }
   ];
 
-  const requestPermissions = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
-      return false;
+  const requestPermissions = async (type: 'camera' | 'gallery') => {
+    if (type === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Sorry, we need camera permissions to take photos!');
+        return false;
+      }
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to select photos!');
+        return false;
+      }
     }
     return true;
   };
 
+  const showImagePickerOptions = (type: 'front' | 'back') => {
+    Alert.alert(
+      `Select ${type === 'front' ? 'Front' : 'Back'} Photo`,
+      'Choose how you want to add the photo',
+      [
+        {
+          text: 'Camera',
+          onPress: () => handleChoosePhoto(type, 'camera'),
+        },
+        {
+          text: 'Gallery',
+          onPress: () => handleChoosePhoto(type, 'gallery'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   const handleChoosePhoto = async (type: 'front' | 'back', source: 'camera' | 'gallery') => {
-    const hasPermission = await requestPermissions();
+    const hasPermission = await requestPermissions(source);
     if (!hasPermission) return;
 
     let result;
@@ -290,24 +319,27 @@ const BusinessIDVerificationScreen = () => {
       borderRadius: borderRadius.md,
       width: '100%',
     },
-    photoOptions: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
+    photoPreviewContainer: {
+      position: 'relative',
+      height: getResponsiveHeight(20),
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
     },
-    photoOption: {
+    changePhotoBadge: {
+      position: 'absolute',
+      bottom: spacing.sm,
+      right: spacing.sm,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#f8f9fa',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.md,
-      borderWidth: 1,
-      borderColor: '#ddd',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
     },
-    photoOptionText: {
+    changePhotoText: {
+      color: '#fff',
+      fontSize: fontSizes.xs,
       marginLeft: spacing.xs,
-      fontSize: fontSizes.sm,
-      color: '#667eea',
       fontWeight: '500',
     },
     submitButton: {
@@ -399,40 +431,29 @@ const BusinessIDVerificationScreen = () => {
     </ResponsiveView>
   );
 
-  const renderPhotoSection = (type: 'front' | 'back', photo: string | null, setPhoto: (uri: string) => void) => (
+  const renderPhotoSection = (type: 'front' | 'back', photo: string | null) => (
     <View style={styles.photoSection}>
       <Text style={styles.photoLabel}>{type === 'front' ? 'Front' : 'Back'} Photo</Text>
       <TouchableOpacity 
-        onPress={() => setPhoto} 
+        onPress={() => showImagePickerOptions(type)} 
         style={styles.photoContainer}
+        activeOpacity={0.7}
       >
         {photo ? (
-          <LoadingImage source={{ uri: photo }} style={styles.photoPreview} />
+          <View style={styles.photoPreviewContainer}>
+            <LoadingImage source={{ uri: photo }} style={styles.photoPreview} />
+            <View style={styles.changePhotoBadge}>
+              <Ionicons name="camera" size={16} color="#fff" />
+              <Text style={styles.changePhotoText}>Tap to change</Text>
+            </View>
+          </View>
         ) : (
           <View style={styles.photoPlaceholder}>
-            <Ionicons name="document-outline" size={40} color="#666" />
-            <Text style={styles.photoText}>Upload {type === 'front' ? 'Front' : 'Back'} Photo</Text>
+            <Ionicons name="card-outline" size={40} color="#666" />
+            <Text style={styles.photoText}>Tap to upload {type === 'front' ? 'Front' : 'Back'} Photo</Text>
           </View>
         )}
       </TouchableOpacity>
-      
-      <View style={styles.photoOptions}>
-        <TouchableOpacity 
-          style={styles.photoOption}
-          onPress={() => handleChoosePhoto(type, 'camera')}
-        >
-          <Ionicons name="camera" size={20} color="#667eea" />
-          <Text style={styles.photoOptionText}>Camera</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.photoOption}
-          onPress={() => handleChoosePhoto(type, 'gallery')}
-        >
-          <Ionicons name="images" size={20} color="#667eea" />
-          <Text style={styles.photoOptionText}>Gallery</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 
@@ -456,8 +477,8 @@ const BusinessIDVerificationScreen = () => {
               Please upload clear photos of your valid ID (front and back) for verification purposes.
             </Text>
 
-            {renderPhotoSection('front', frontIDPhoto, setFrontIDPhoto)}
-            {renderPhotoSection('back', backIDPhoto, setBackIDPhoto)}
+            {renderPhotoSection('front', frontIDPhoto)}
+            {renderPhotoSection('back', backIDPhoto)}
 
             <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
               <Text style={styles.submitButtonText}>Next</Text>

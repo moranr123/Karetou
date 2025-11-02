@@ -45,7 +45,51 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+  });
   const { setUserType } = useAuth();
+
+  const validatePassword = (pwd: string) => {
+    const requirements = {
+      minLength: pwd.length >= 8,
+      hasUppercase: /[A-Z]/.test(pwd),
+      hasLowercase: /[a-z]/.test(pwd),
+      hasNumber: /[0-9]/.test(pwd),
+    };
+
+    setPasswordRequirements(requirements);
+
+    const allMet = Object.values(requirements).every((req) => req === true);
+
+    if (!allMet) {
+      const missing = [];
+      if (!requirements.minLength) missing.push('at least 8 characters');
+      if (!requirements.hasUppercase) missing.push('one uppercase letter');
+      if (!requirements.hasLowercase) missing.push('one lowercase letter');
+      if (!requirements.hasNumber) missing.push('one number');
+      
+      setPasswordError(`Password must contain: ${missing.join(', ')}`);
+      return false;
+    }
+
+    setPasswordError('');
+    return true;
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    validatePassword(text);
+    
+    // Also check if confirm password matches
+    if (confirmPassword && text !== confirmPassword) {
+      // Keep confirm password error handling separate
+    }
+  };
 
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
@@ -53,13 +97,14 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    // Validate strong password
+    if (!validatePassword(password)) {
+      Alert.alert('Weak Password', 'Please ensure your password meets all the requirements shown below.');
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
@@ -167,11 +212,11 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, passwordError && styles.inputError]}
                 placeholder="Password"
                 placeholderTextColor="#999"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={handlePasswordChange}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -186,6 +231,57 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
                 />
               </TouchableOpacity>
             </View>
+
+            {/* Password Requirements */}
+            {password.length > 0 && (
+              <View style={styles.passwordRequirementsContainer}>
+                <Text style={styles.passwordRequirementsTitle}>Password Requirements:</Text>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={passwordRequirements.minLength ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={16}
+                    color={passwordRequirements.minLength ? '#4CAF50' : '#999'}
+                  />
+                  <Text style={[styles.requirementText, passwordRequirements.minLength && styles.requirementMet]}>
+                    At least 8 characters
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={passwordRequirements.hasUppercase ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={16}
+                    color={passwordRequirements.hasUppercase ? '#4CAF50' : '#999'}
+                  />
+                  <Text style={[styles.requirementText, passwordRequirements.hasUppercase && styles.requirementMet]}>
+                    One uppercase letter (A-Z)
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={passwordRequirements.hasLowercase ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={16}
+                    color={passwordRequirements.hasLowercase ? '#4CAF50' : '#999'}
+                  />
+                  <Text style={[styles.requirementText, passwordRequirements.hasLowercase && styles.requirementMet]}>
+                    One lowercase letter (a-z)
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={passwordRequirements.hasNumber ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={16}
+                    color={passwordRequirements.hasNumber ? '#4CAF50' : '#999'}
+                  />
+                  <Text style={[styles.requirementText, passwordRequirements.hasNumber && styles.requirementMet]}>
+                    One number (0-9)
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {passwordError ? (
+              <Text style={styles.errorText}>{passwordError}</Text>
+            ) : null}
 
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
@@ -347,5 +443,44 @@ const styles = StyleSheet.create({
   loginLinkText: {
     color: '#667eea',
     fontSize: width * 0.035,
+  },
+  inputError: {
+    borderColor: '#FF4444',
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: width * 0.035,
+    color: '#FF4444',
+    marginTop: 5,
+    marginBottom: 10,
+    marginLeft: 5,
+  },
+  passwordRequirementsContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  passwordRequirementsTitle: {
+    fontSize: width * 0.038,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  requirementText: {
+    fontSize: width * 0.035,
+    color: '#666',
+    marginLeft: 8,
+  },
+  requirementMet: {
+    color: '#4CAF50',
+    fontWeight: '500',
   },
 });

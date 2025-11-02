@@ -1,9 +1,11 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Appearance } from 'react-native';
+import { Appearance, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService, { NotificationData } from '../services/NotificationService';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 type Theme = 'light' | 'dark';
 type UserType = 'user' | 'business' | null;
@@ -212,10 +214,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user?.uid]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       // Reset user type when user changes
       setUserType(null);
+      
+      // Check if user account is active
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const isActive = userData?.isActive !== undefined ? userData.isActive : true;
+            
+            if (!isActive) {
+              console.log('❌ AuthContext - User account is deactivated, signing out');
+              await signOut(auth);
+              Alert.alert(
+                'Account Deactivated',
+                'Your account has been deactivated. Please contact support for assistance.'
+              );
+              setUser(null);
+              setUserType(null);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking user status:', error);
+        }
+      }
+      
       setLoading(false);
     });
 

@@ -60,6 +60,8 @@ const RegisterBusinessScreen = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [contactNumber, setContactNumber] = useState('');
   const [optionalContactNumber, setOptionalContactNumber] = useState('');
+  const [contactNumberError, setContactNumberError] = useState('');
+  const [optionalContactNumberError, setOptionalContactNumberError] = useState('');
   const [businessImages, setBusinessImages] = useState<string[]>([]);
 
   // Custom Time Picker State
@@ -201,6 +203,18 @@ const RegisterBusinessScreen = () => {
       Alert.alert('Missing Information', 'Please enter your contact number.');
       return;
     }
+    if (contactNumber.length !== 11 || !contactNumber.startsWith('09')) {
+      Alert.alert('Invalid Contact Number', 'Contact number must start with 09 and be exactly 11 digits.');
+      return;
+    }
+    if (optionalContactNumber.trim() && (optionalContactNumber.length !== 11 || !optionalContactNumber.startsWith('09'))) {
+      Alert.alert('Invalid Optional Contact Number', 'Optional contact number must start with 09 and be exactly 11 digits.');
+      return;
+    }
+    if (optionalContactNumber.trim() && contactNumber === optionalContactNumber) {
+      Alert.alert('Duplicate Contact Numbers', 'Contact number and optional contact number cannot be the same.');
+      return;
+    }
     if (businessImages.length < 3) {
       Alert.alert('Missing Images', 'Please upload at least 3 business images.');
       return;
@@ -228,6 +242,77 @@ const RegisterBusinessScreen = () => {
       setSelectedCategories(selectedCategories.filter(item => item !== category));
     } else {
       setSelectedCategories([...selectedCategories, category]);
+    }
+  };
+
+  const validateAndFormatPhoneNumber = (input: string, isOptional: boolean = false): string => {
+    // Remove all non-digit characters
+    let digitsOnly = input.replace(/\D/g, '');
+    
+    // If empty and optional, allow it
+    if (isOptional && digitsOnly === '') {
+      return '';
+    }
+    
+    // If user starts typing with "9", auto-prefix with "0" to make "09"
+    if (digitsOnly.length === 1 && digitsOnly === '9') {
+      return '09';
+    }
+    
+    // If user types starting with "9" (not "09"), prefix with "0"
+    if (digitsOnly.length > 0 && digitsOnly.startsWith('9') && !digitsOnly.startsWith('09')) {
+      digitsOnly = '0' + digitsOnly;
+    }
+    
+    // Limit to 11 digits maximum
+    return digitsOnly.slice(0, 11);
+  };
+
+  const handleContactNumberChange = (text: string) => {
+    const formatted = validateAndFormatPhoneNumber(text, false);
+    setContactNumber(formatted);
+    
+    // Validate the formatted number
+    if (formatted.length > 0) {
+      if (!formatted.startsWith('09')) {
+        setContactNumberError('Phone number must start with 09');
+      } else if (formatted.length < 11) {
+        setContactNumberError('Phone number must be exactly 11 digits');
+      } else if (formatted === optionalContactNumber) {
+        setContactNumberError('Contact number cannot be the same as optional contact number');
+      } else {
+        setContactNumberError('');
+        // Clear optional contact number error if it was about matching
+        if (optionalContactNumberError === 'Optional contact number cannot be the same as contact number') {
+          setOptionalContactNumberError('');
+        }
+      }
+    } else {
+      setContactNumberError('');
+    }
+  };
+
+  const handleOptionalContactNumberChange = (text: string) => {
+    const formatted = validateAndFormatPhoneNumber(text, true);
+    setOptionalContactNumber(formatted);
+    
+    // Validate the formatted number only if it's not empty
+    if (formatted.length > 0) {
+      if (!formatted.startsWith('09')) {
+        setOptionalContactNumberError('Phone number must start with 09');
+      } else if (formatted.length < 11) {
+        setOptionalContactNumberError('Phone number must be exactly 11 digits');
+      } else if (formatted === contactNumber) {
+        setOptionalContactNumberError('Optional contact number cannot be the same as contact number');
+      } else {
+        setOptionalContactNumberError('');
+        // Clear contact number error if it was about matching
+        if (contactNumberError === 'Contact number cannot be the same as optional contact number') {
+          setContactNumberError('');
+        }
+      }
+    } else {
+      setOptionalContactNumberError('');
     }
   };
 
@@ -583,6 +668,16 @@ const RegisterBusinessScreen = () => {
     imageCounterWarning: {
       color: '#ffc107',
     },
+    errorText: {
+      fontSize: fontSizes.sm,
+      color: '#FF4444',
+      marginTop: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    inputError: {
+      borderColor: '#FF4444',
+      borderWidth: 2,
+    },
     // Time Picker Modal Styles
     modalOverlay: {
       flex: 1,
@@ -884,25 +979,35 @@ const RegisterBusinessScreen = () => {
 
             {/* Contact Number */}
             <Text style={styles.label}>Contact Number *</Text>
+            <Text style={styles.subLabel}>Must start with 09 and be 11 digits (e.g., 09123456789)</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Enter contact number"
+              style={[styles.input, contactNumberError && styles.inputError]}
+              placeholder="09XXXXXXXXX"
               placeholderTextColor="#aaa"
               value={contactNumber}
-              onChangeText={setContactNumber}
+              onChangeText={handleContactNumberChange}
               keyboardType="phone-pad"
+              maxLength={11}
             />
+            {contactNumberError ? (
+              <Text style={styles.errorText}>{contactNumberError}</Text>
+            ) : null}
 
             {/* Optional Contact Number */}
             <Text style={styles.label}>Optional Contact Number</Text>
+            <Text style={styles.subLabel}>Must start with 09 and be 11 digits (e.g., 09123456789)</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Enter optional contact number"
+              style={[styles.input, optionalContactNumberError && styles.inputError]}
+              placeholder="09XXXXXXXXX"
               placeholderTextColor="#aaa"
               value={optionalContactNumber}
-              onChangeText={setOptionalContactNumber}
+              onChangeText={handleOptionalContactNumberChange}
               keyboardType="phone-pad"
+              maxLength={11}
             />
+            {optionalContactNumberError ? (
+              <Text style={styles.errorText}>{optionalContactNumberError}</Text>
+            ) : null}
 
             {/* Business Images Section */}
             <Text style={styles.label}>Business Images (Minimum 3 Required) *</Text>
