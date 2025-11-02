@@ -47,6 +47,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { setUserType } = useAuth();
   const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
   
@@ -177,11 +178,50 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       fontSize: fontSizes.md,
       fontWeight: '600',
     },
+    termsContainer: {
+      marginTop: spacing.sm * spacingMultiplier,
+      marginBottom: spacing.md * spacingMultiplier,
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    termsTextContainer: {
+      flex: 1,
+      marginLeft: spacing.sm,
+    },
+    termsText: {
+      lineHeight: fontSizes.sm * 1.4,
+    },
+    termsLink: {
+      color: '#667eea',
+      fontWeight: '600',
+      textDecorationLine: 'underline',
+    },
   });
+
+  const showTermsAndConditions = () => {
+    Alert.alert(
+      'Terms and Conditions',
+      'By creating an account, you agree to:\n\n' +
+      '1. Use the app responsibly and in accordance with all applicable laws\n' +
+      '2. Provide accurate and truthful information\n' +
+      '3. Respect other users and their privacy\n' +
+      '4. Not engage in any harmful or illegal activities\n' +
+      '5. Follow all community guidelines\n\n' +
+      'We reserve the right to suspend or terminate accounts that violate these terms.',
+      [{ text: 'OK' }]
+    );
+  };
 
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword || !phoneNumber) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert('Terms Required', 'Please accept the Terms and Conditions to create an account.');
       return;
     }
 
@@ -361,11 +401,34 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </ResponsiveView>
 
+            {/* Terms and Conditions */}
+            <ResponsiveView style={styles.termsContainer}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAcceptedTerms(!acceptedTerms)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={acceptedTerms ? 'checkbox' : 'square-outline'}
+                  size={iconSizes.md}
+                  color={acceptedTerms ? '#667eea' : '#999'}
+                />
+                <ResponsiveView style={styles.termsTextContainer}>
+                  <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#666" style={styles.termsText}>
+                    I agree to the{' '}
+                    <Text style={styles.termsLink} onPress={showTermsAndConditions}>
+                      Terms and Conditions
+                    </Text>
+                  </ResponsiveText>
+                </ResponsiveView>
+              </TouchableOpacity>
+            </ResponsiveView>
+
             {/* Buttons */}
             <TouchableOpacity
-              style={[styles.button, styles.signupButton, loading && styles.buttonDisabled]}
+              style={[styles.button, styles.signupButton, (loading || !acceptedTerms) && styles.buttonDisabled]}
               onPress={handleSignup}
-              disabled={loading}
+              disabled={loading || !acceptedTerms}
             >
               <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={styles.buttonText}>
                 {loading ? 'Creating Account...' : 'Create Account'}

@@ -52,6 +52,7 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     hasLowercase: false,
     hasNumber: false,
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { setUserType } = useAuth();
 
   const validatePassword = (pwd: string) => {
@@ -91,9 +92,29 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const showTermsAndConditions = () => {
+    Alert.alert(
+      'Terms and Conditions',
+      'By creating a business account, you agree to:\n\n' +
+      '1. Provide accurate business information and documentation\n' +
+      '2. Maintain the accuracy of your business profile\n' +
+      '3. Comply with all applicable business laws and regulations\n' +
+      '4. Respect customer privacy and data protection\n' +
+      '5. Not engage in fraudulent or misleading practices\n' +
+      '6. Follow all platform guidelines and policies\n\n' +
+      'We reserve the right to suspend or terminate accounts that violate these terms.',
+      [{ text: 'OK' }]
+    );
+  };
+
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert('Terms Required', 'Please accept the Terms and Conditions to create a business account.');
       return;
     }
 
@@ -306,11 +327,34 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
+            {/* Terms and Conditions */}
+            <View style={styles.termsContainer}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAcceptedTerms(!acceptedTerms)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={acceptedTerms ? 'checkbox' : 'square-outline'}
+                  size={20}
+                  color={acceptedTerms ? '#667eea' : '#999'}
+                />
+                <View style={styles.termsTextContainer}>
+                  <Text style={styles.termsText}>
+                    I agree to the{' '}
+                    <Text style={styles.termsLink} onPress={showTermsAndConditions}>
+                      Terms and Conditions
+                    </Text>
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
             {/* Buttons */}
             <TouchableOpacity
-              style={[styles.button, styles.signupButton, loading && styles.buttonDisabled]}
+              style={[styles.button, styles.signupButton, (loading || !acceptedTerms) && styles.buttonDisabled]}
               onPress={handleSignup}
-              disabled={loading}
+              disabled={loading || !acceptedTerms}
             >
               <Text style={styles.buttonText}>
                 {loading ? 'Creating Account...' : 'Create Account'}
@@ -482,5 +526,27 @@ const styles = StyleSheet.create({
   requirementMet: {
     color: '#4CAF50',
     fontWeight: '500',
+  },
+  termsContainer: {
+    marginTop: 15,
+    marginBottom: 15,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  termsTextContainer: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  termsText: {
+    fontSize: width * 0.035,
+    color: '#666',
+    lineHeight: width * 0.035 * 1.4,
+  },
+  termsLink: {
+    color: '#667eea',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
