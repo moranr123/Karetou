@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -57,10 +58,13 @@ interface NewAdminData {
 }
 
 const AdminManagement: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialFilter = (searchParams.get('filter') as 'all' | 'active' | 'inactive') || 'all';
+  
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>(initialFilter);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -72,11 +76,17 @@ const AdminManagement: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
-  const { userRole } = useAuth();
 
   useEffect(() => {
     fetchAdmins();
   }, []);
+
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter && ['all', 'active', 'inactive'].includes(filter)) {
+      setStatusFilter(filter as 'all' | 'active' | 'inactive');
+    }
+  }, [searchParams]);
 
   const fetchAdmins = async () => {
     try {
@@ -362,7 +372,10 @@ const AdminManagement: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
           <Button
             variant={statusFilter === 'all' ? 'contained' : 'outlined'}
-            onClick={() => setStatusFilter('all')}
+            onClick={() => {
+              setStatusFilter('all');
+              setSearchParams({});
+            }}
             size="small"
             sx={{
               textTransform: 'none',
@@ -375,7 +388,10 @@ const AdminManagement: React.FC = () => {
           </Button>
           <Button
             variant={statusFilter === 'active' ? 'contained' : 'outlined'}
-            onClick={() => setStatusFilter('active')}
+            onClick={() => {
+              setStatusFilter('active');
+              setSearchParams({ filter: 'active' });
+            }}
             size="small"
             sx={{
               textTransform: 'none',
@@ -388,7 +404,10 @@ const AdminManagement: React.FC = () => {
           </Button>
           <Button
             variant={statusFilter === 'inactive' ? 'contained' : 'outlined'}
-            onClick={() => setStatusFilter('inactive')}
+            onClick={() => {
+              setStatusFilter('inactive');
+              setSearchParams({ filter: 'inactive' });
+            }}
             size="small"
             sx={{
               textTransform: 'none',

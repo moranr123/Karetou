@@ -59,39 +59,39 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Layout />
+                </PrivateRoute>
+              }
+            >
+              <Route index element={<DashboardSelector />} />
+              <Route path="business-approvals" element={<BusinessApprovals />} />
+              <Route path="business/pending" element={<BusinessApprovals tab="pending" />} />
+              <Route path="business/approved" element={<BusinessApprovals tab="approved" />} />
+              <Route path="business/rejected" element={<BusinessApprovals tab="rejected" />} />
+              <Route 
+                path="user-management" 
                 element={
-                  <PrivateRoute>
-                    <Layout />
-                  </PrivateRoute>
-                }
-              >
-                <Route index element={<DashboardSelector />} />
-                <Route path="business-approvals" element={<BusinessApprovals />} />
-                <Route path="business/pending" element={<BusinessApprovals tab="pending" />} />
-                <Route path="business/approved" element={<BusinessApprovals tab="approved" />} />
-                <Route path="business/rejected" element={<BusinessApprovals tab="rejected" />} />
-                <Route 
-                  path="user-management" 
-                  element={
-                    <SuperAdminRoute>
-                      <UserManagement />
-                    </SuperAdminRoute>
-                  } 
-                />
-                <Route 
-                  path="admin-management" 
-                  element={
-                    <SuperAdminRoute>
-                      <AdminManagement />
-                    </SuperAdminRoute>
-                  } 
-                />
-              </Route>
-            </Routes>
+                  <SuperAdminRoute>
+                    <UserManagement />
+                  </SuperAdminRoute>
+                } 
+              />
+              <Route 
+                path="admin-management" 
+                element={
+                  <SuperAdminRoute>
+                    <AdminManagement />
+                  </SuperAdminRoute>
+                } 
+              />
+            </Route>
+          </Routes>
           </Suspense>
         </Router>
       </AuthProvider>

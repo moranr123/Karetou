@@ -59,7 +59,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      const superAdminUids = ['6uKpHlHh5Kgi9xLqy4PptW8RD2W2'];
+      const superAdminUidsEnv = process.env.REACT_APP_SUPERADMIN_UIDS;
+      const superAdminUids = superAdminUidsEnv ? superAdminUidsEnv.split(',').map(u => u.trim()) : [];
       
       if (superAdminUids.includes(uid)) {
         const superAdminRole = {

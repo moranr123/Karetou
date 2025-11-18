@@ -620,38 +620,44 @@ const AdminDashboard: React.FC = () => {
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Recent Activity
           </Typography>
-          <List>
-            {recentActivity.map((activity, index) => (
-              <React.Fragment key={activity.id}>
-                <ListItem alignItems="flex-start">
-                  <ListItemIcon>
-                    {getActivityIcon(activity.type)}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle1">
-                          {activity.title}
-                        </Typography>
-                        {getStatusChip(activity.status)}
-                      </Box>
-                    }
-                    secondary={
-                      <React.Fragment>
-                        <Typography component="span" variant="body2" color="text.primary">
-                          {activity.description}
-                        </Typography>
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </Typography>
-                      </React.Fragment>
-                    }
-                  />
-                </ListItem>
-                {index < recentActivity.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
+          {recentActivity.length > 0 ? (
+            <List>
+              {recentActivity.map((activity, index) => (
+                <React.Fragment key={activity.id}>
+                  <ListItem alignItems="flex-start">
+                    <ListItemIcon>
+                      {getActivityIcon(activity.type)}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography variant="subtitle1">
+                            {activity.title}
+                          </Typography>
+                          {getStatusChip(activity.status)}
+                        </Box>
+                      }
+                      secondary={
+                        <React.Fragment>
+                          <Typography component="span" variant="body2" color="text.primary">
+                            {activity.description}
+                          </Typography>
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            {new Date(activity.timestamp).toLocaleString()}
+                          </Typography>
+                        </React.Fragment>
+                      }
+                    />
+                  </ListItem>
+                  {index < recentActivity.length - 1 && <Divider />}
+                </React.Fragment>
+              ))}
+            </List>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+              <Typography variant="body2">No recent activity to display</Typography>
+            </Box>
+          )}
         </Paper>
         <Paper 
           sx={{ 

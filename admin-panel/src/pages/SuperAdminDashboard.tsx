@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Card,
   CardContent,
+  CardActionArea,
   Paper,
   List,
   ListItem,
@@ -14,10 +16,6 @@ import {
   Alert,
   CircularProgress,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -26,14 +24,11 @@ import {
   CheckCircle as CheckIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
 
 interface DashboardStats {
   totalUsers: number;
-  totalBusinesses: number;
-  pendingApprovals: number;
   totalAdmins: number;
   activeAdmins: number;
   inactiveAdmins: number;
@@ -49,18 +44,15 @@ interface RecentActivity {
 }
 
 const SuperAdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
-    totalBusinesses: 0,
-    pendingApprovals: 0,
     totalAdmins: 0,
     activeAdmins: 0,
     inactiveAdmins: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const { logout } = useAuth();
 
   useEffect(() => {
     fetchDashboardData();
@@ -72,16 +64,6 @@ const SuperAdminDashboard: React.FC = () => {
       // Fetch users count
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const totalUsers = usersSnapshot.size;
-      // Fetch businesses count
-      const businessesSnapshot = await getDocs(collection(db, 'businesses'));
-      const totalBusinesses = businessesSnapshot.size;
-      // Fetch pending approvals
-      const pendingQuery = query(
-        collection(db, 'businesses'),
-        where('status', '==', 'pending')
-      );
-      const pendingSnapshot = await getDocs(pendingQuery);
-      const pendingApprovals = pendingSnapshot.size;
       // Fetch admin users
       const adminsSnapshot = await getDocs(collection(db, 'adminUsers'));
       const totalAdmins = adminsSnapshot.size;
@@ -89,8 +71,6 @@ const SuperAdminDashboard: React.FC = () => {
       const inactiveAdmins = totalAdmins - activeAdmins;
       setStats({
         totalUsers,
-        totalBusinesses,
-        pendingApprovals,
         totalAdmins,
         activeAdmins,
         inactiveAdmins,
@@ -127,25 +107,6 @@ const SuperAdminDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogoutClick = () => {
-    setLogoutDialogOpen(true);
-  };
-
-  const handleLogoutConfirm = async () => {
-    try {
-      await logout();
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutDialogOpen(false);
-    }
-  };
-
-  const handleLogoutCancel = () => {
-    setLogoutDialogOpen(false);
   };
 
   const getActivityIcon = (type: string) => {
@@ -199,93 +160,97 @@ const SuperAdminDashboard: React.FC = () => {
       {/* Statistics Cards */}
       <Box
         display="grid"
-        gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }}
+        gridTemplateColumns={{ xs: '1fr 1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }}
         gap={{ xs: 2, sm: 3 }}
         sx={{ mb: 4 }}
       >
         <Card sx={{ 
-          bgcolor: '#FF9800',
-          boxShadow: '0 4px 12px rgba(255, 152, 0, 0.25)',
-          borderRadius: 2,
-        }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Pending Approvals
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.pendingApprovals}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ 
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
           borderRadius: 2,
+          cursor: 'pointer',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 6px 16px rgba(102, 126, 234, 0.35)',
+          },
         }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Total Users
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.totalUsers}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ 
-          bgcolor: '#764ba2',
-          boxShadow: '0 4px 12px rgba(118, 75, 162, 0.25)',
-          borderRadius: 2,
-        }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Total Businesses
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.totalBusinesses}
-            </Typography>
-          </CardContent>
+          <CardActionArea onClick={() => navigate('/user-management')}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                Total Users
+              </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                {stats.totalUsers}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
         </Card>
         <Card sx={{ 
           bgcolor: '#4CAF50',
           boxShadow: '0 4px 12px rgba(76, 175, 80, 0.25)',
           borderRadius: 2,
+          cursor: 'pointer',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 6px 16px rgba(76, 175, 80, 0.35)',
+          },
         }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Total Admins
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.totalAdmins}
-            </Typography>
-          </CardContent>
+          <CardActionArea onClick={() => navigate('/admin-management')}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                Total Admins
+              </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                {stats.totalAdmins}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
         </Card>
         <Card sx={{ 
           bgcolor: '#2196F3',
           boxShadow: '0 4px 12px rgba(33, 150, 243, 0.25)',
           borderRadius: 2,
+          cursor: 'pointer',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 6px 16px rgba(33, 150, 243, 0.35)',
+          },
         }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Active Admins
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.activeAdmins}
-            </Typography>
-          </CardContent>
+          <CardActionArea onClick={() => navigate('/admin-management?filter=active')}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                Active Admins
+              </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                {stats.activeAdmins}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
         </Card>
         <Card sx={{ 
           bgcolor: '#F44336',
           boxShadow: '0 4px 12px rgba(244, 67, 54, 0.25)',
           borderRadius: 2,
+          cursor: 'pointer',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 6px 16px rgba(244, 67, 54, 0.35)',
+          },
         }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              Inactive Admins
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              {stats.inactiveAdmins}
-            </Typography>
-          </CardContent>
+          <CardActionArea onClick={() => navigate('/admin-management?filter=inactive')}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                Inactive Admins
+              </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                {stats.inactiveAdmins}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
         </Card>
       </Box>
         
@@ -431,22 +396,6 @@ const SuperAdminDashboard: React.FC = () => {
           </Box>
         </Paper>
       </Box>
-
-      {/* Logout Confirmation Dialog */}
-      <Dialog open={logoutDialogOpen} onClose={handleLogoutCancel}>
-        <DialogTitle>Confirm Logout</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to logout from the SuperAdmin Dashboard?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleLogoutCancel}>Cancel</Button>
-          <Button onClick={handleLogoutConfirm} color="error" variant="contained">
-            Logout
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
