@@ -95,15 +95,15 @@ export default function BusinessLogin({ navigation }: Props) {
         }
         
         if (userData.userType === 'business') {
-          // Set user type as business owner
-          setUserType('business');
-          Alert.alert('Success', 'Welcome back, Business Owner!');
-        } else {
-          // Not a business user, show alert and log out
-          await auth.signOut();
-          Alert.alert(
-            'Login Error',
-            'This is not a business account. Please use the regular user login.'
+        // Set user type as business owner
+        setUserType('business');
+        Alert.alert('Success', 'Welcome back, Business Owner!');
+      } else {
+        // Not a business user, show alert and log out
+        await auth.signOut();
+        Alert.alert(
+          'Login Error',
+          'This is not a business account. Please use the regular user login.'
           );
         }
       } else {
