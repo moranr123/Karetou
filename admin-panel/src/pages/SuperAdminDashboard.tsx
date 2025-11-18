@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -19,20 +18,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  AppBar,
-  Toolbar,
-  Avatar,
 } from '@mui/material';
 import {
   People as PeopleIcon,
   Business as BusinessIcon,
   AdminPanelSettings as AdminIcon,
   CheckCircle as CheckIcon,
-  Warning as WarningIcon,
-  TrendingUp as TrendingUpIcon,
-  Security as SecurityIcon,
   Settings as SettingsIcon,
-  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -68,8 +60,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     fetchDashboardData();
@@ -145,7 +136,7 @@ const SuperAdminDashboard: React.FC = () => {
   const handleLogoutConfirm = async () => {
     try {
       await logout();
-      navigate('/login');
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

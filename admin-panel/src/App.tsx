@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { CircularProgress, Box } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import BusinessApprovals from './pages/BusinessApprovals';
-import UserManagement from './pages/UserManagement';
-import AdminManagement from './pages/AdminManagement';
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import Layout from './components/Layout';
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const BusinessApprovals = lazy(() => import('./pages/BusinessApprovals'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const AdminManagement = lazy(() => import('./pages/AdminManagement'));
+const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
 
 const theme = createTheme({
   palette: {
@@ -44,45 +46,53 @@ const DashboardSelector: React.FC = () => {
   return <Dashboard />;
 };
 
+const LoadingFallback: React.FC = () => (
+  <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+    <CircularProgress />
+  </Box>
+);
+
 const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
         <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <Layout />
-                </PrivateRoute>
-              }
-            >
-              <Route index element={<DashboardSelector />} />
-              <Route path="business-approvals" element={<BusinessApprovals />} />
-              <Route path="business/pending" element={<BusinessApprovals tab="pending" />} />
-              <Route path="business/approved" element={<BusinessApprovals tab="approved" />} />
-              <Route path="business/rejected" element={<BusinessApprovals tab="rejected" />} />
-              <Route 
-                path="user-management" 
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
                 element={
-                  <SuperAdminRoute>
-                    <UserManagement />
-                  </SuperAdminRoute>
-                } 
-              />
-              <Route 
-                path="admin-management" 
-                element={
-                  <SuperAdminRoute>
-                    <AdminManagement />
-                  </SuperAdminRoute>
-                } 
-              />
-            </Route>
-          </Routes>
+                  <PrivateRoute>
+                    <Layout />
+                  </PrivateRoute>
+                }
+              >
+                <Route index element={<DashboardSelector />} />
+                <Route path="business-approvals" element={<BusinessApprovals />} />
+                <Route path="business/pending" element={<BusinessApprovals tab="pending" />} />
+                <Route path="business/approved" element={<BusinessApprovals tab="approved" />} />
+                <Route path="business/rejected" element={<BusinessApprovals tab="rejected" />} />
+                <Route 
+                  path="user-management" 
+                  element={
+                    <SuperAdminRoute>
+                      <UserManagement />
+                    </SuperAdminRoute>
+                  } 
+                />
+                <Route 
+                  path="admin-management" 
+                  element={
+                    <SuperAdminRoute>
+                      <AdminManagement />
+                    </SuperAdminRoute>
+                  } 
+                />
+              </Route>
+            </Routes>
+          </Suspense>
         </Router>
       </AuthProvider>
     </ThemeProvider>

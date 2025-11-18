@@ -44,20 +44,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserRole = useCallback(async (uid: string) => {
     try {
-      console.log('🔍 Fetching user role for UID:', uid);
-      
-      // Query adminUsers collection by uid field (not document ID)
       const adminQuery = query(collection(db, 'adminUsers'), where('uid', '==', uid));
       const adminSnapshot = await getDocs(adminQuery);
       
       if (!adminSnapshot.empty) {
         const adminDoc = adminSnapshot.docs[0];
         const data = adminDoc.data();
-        console.log('✅ Found admin user document:', data);
         
-        // Check if admin is active
         if (!data.isActive) {
-          console.log('❌ Admin account is inactive');
           throw new Error('Your admin account has been deactivated. Please contact a superadmin.');
         }
         
@@ -65,11 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Check if it's a superadmin (you can add superadmin UIDs here)
-      const superAdminUids = ['6uKpHlHh5Kgi9xLqy4PptW8RD2W2']; // Add actual superadmin UIDs
-      console.log('🔍 Checking superadmin UIDs:', superAdminUids);
-      console.log('🔍 Current UID:', uid);
-      console.log('🔍 Is superadmin?', superAdminUids.includes(uid));
+      const superAdminUids = ['6uKpHlHh5Kgi9xLqy4PptW8RD2W2'];
       
       if (superAdminUids.includes(uid)) {
         const superAdminRole = {
@@ -80,38 +70,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isActive: true,
           createdAt: new Date().toISOString(),
         };
-        console.log('🛡️ Setting superadmin role:', superAdminRole);
         setUserRole(superAdminRole);
         return;
       }
 
-      console.log('❌ User is not a superadmin or admin');
       throw new Error('Access denied. You do not have admin privileges.');
     } catch (error) {
-      console.error('❌ Error fetching user role:', error);
+      console.error('Error fetching user role:', error);
       setUserRole(null);
       throw error;
     }
   }, [user?.email]);
 
-  // Set up real-time listener for current admin's status
   useEffect(() => {
     let unsubscribeAdminDoc: (() => void) | null = null;
 
     if (user && userRole && userRole.role === 'admin' && userRole.id) {
-      console.log('👁️ Setting up real-time listener for admin status');
-      
-      // Listen for changes to the current admin's document using the correct document ID
       unsubscribeAdminDoc = onSnapshot(
         doc(db, 'adminUsers', userRole.id),
         (docSnapshot) => {
           if (docSnapshot.exists()) {
             const data = docSnapshot.data();
-            console.log('📋 Admin document updated:', data);
             
-            // If admin was deactivated, sign them out immediately
             if (!data.isActive && userRole.isActive) {
-              console.log('🚫 Admin account was deactivated - signing out');
               signOut(auth);
             }
           }
@@ -131,15 +112,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('🔄 Auth state changed:', user?.uid, user?.email);
-      
       if (user) {
         try {
           await fetchUserRole(user.uid);
           setUser(user);
         } catch (error: any) {
-          // If user role fetch fails (inactive admin or unauthorized), sign out
-          console.log('🚫 Signing out due to role fetch error:', error.message);
           try {
             await signOut(auth);
           } catch (signOutError) {
@@ -147,8 +124,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
           setUser(null);
           setUserRole(null);
-          // The error will be shown in the login page if this was during login
-          // For existing sessions, the user will be redirected to login automatically
         }
       } else {
         setUser(null);
@@ -163,14 +138,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log('🔑 Firebase authentication successful');
-      
-      // Check user role and active status
       await fetchUserRole(result.user.uid);
-      
     } catch (error: any) {
-      console.error('❌ Login error:', error);
-      // Sign out if there was an error during role verification
+      console.error('Login error:', error);
       try {
         await signOut(auth);
       } catch (signOutError) {
@@ -198,15 +168,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isSuperAdmin: userRole?.role === 'superadmin',
     isAdmin: userRole?.role === 'admin' || userRole?.role === 'superadmin',
   };
-
-  // Debug logging
-  useEffect(() => {
-    if (user) {
-      console.log('🔍 Current user UID:', user.uid);
-      console.log('🔍 Current user email:', user.email);
-      console.log('🔍 Current userRole:', userRole);
-    }
-  }, [user, userRole]);
 
   return (
     <AuthContext.Provider value={value}>

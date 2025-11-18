@@ -169,7 +169,6 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
         read: false,
         createdAt: new Date().toISOString()
       });
-      console.log('Notification created successfully for user:', userId);
     } catch (error) {
       console.error('Error creating notification:', error);
     }
@@ -208,7 +207,6 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
       });
 
       await Promise.all(notifications);
-      console.log(`✅ New place notifications sent to ${notifications.length} users`);
     } catch (error) {
       console.error('Error sending new place notifications:', error);
     }

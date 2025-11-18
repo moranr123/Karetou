@@ -35,7 +35,7 @@ import {
   Inbox,
 } from '@mui/icons-material';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth, adminCreationAuth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -124,9 +124,7 @@ const AdminManagement: React.FC = () => {
       setProcessing(true);
       setError('');
       setSuccessMessage('');
-      console.log('🔄 Creating admin account...');
 
-      // Store current user info
       const currentUser = auth.currentUser;
       if (!currentUser) {
         setError('You must be logged in to create admin accounts');
@@ -136,17 +134,12 @@ const AdminManagement: React.FC = () => {
 
       const currentUserUid = currentUser.uid;
 
-      // Create Firebase Auth user using the separate auth instance
-      // This won't affect the current user session
       const userCredential = await createUserWithEmailAndPassword(
         adminCreationAuth,
         newAdminData.email,
         newAdminData.password
       );
 
-      console.log('✅ Firebase Auth user created:', userCredential.user.uid);
-
-      // Create admin user document
       const adminData = {
         uid: userCredential.user.uid,
         email: newAdminData.email,
@@ -157,25 +150,18 @@ const AdminManagement: React.FC = () => {
       };
 
       await addDoc(collection(db, 'adminUsers'), adminData);
-      console.log('✅ Admin document created in Firestore');
 
-      // Reset form
       setNewAdminData({ email: '', password: '', confirmPassword: '' });
       setDialogOpen(false);
       
-      // Show success message
       setSuccessMessage(`Admin account created successfully for ${newAdminData.email}`);
       
-      // Refresh the admins list
-      console.log('🔄 Refreshing admins list...');
       await fetchAdmins();
-      console.log('✅ Admin creation completed successfully');
       
-      // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
       
     } catch (error: any) {
-      console.error('❌ Error creating admin:', error);
+      console.error('Error creating admin:', error);
       setError(error.message || 'Failed to create admin account');
     } finally {
       setProcessing(false);
