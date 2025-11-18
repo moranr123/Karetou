@@ -604,118 +604,56 @@ const AdminDashboard: React.FC = () => {
       </Box>
 
       {/* Recent Activity */}
-      <Box
-        display="grid"
-        gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
-        gap={{ xs: 2, sm: 3 }}
+      <Paper 
+        sx={{ 
+          p: 3,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          borderRadius: 3,
+          border: '1px solid #e0e0e0',
+        }}
       >
-        <Paper 
-          sx={{ 
-            p: 3,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            borderRadius: 3,
-            border: '1px solid #e0e0e0',
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            Recent Activity
-          </Typography>
-          {recentActivity.length > 0 ? (
-            <List>
-              {recentActivity.map((activity, index) => (
-                <React.Fragment key={activity.id}>
-                  <ListItem alignItems="flex-start">
-                    <ListItemIcon>
-                      {getActivityIcon(activity.type)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="subtitle1">
-                            {activity.title}
-                          </Typography>
-                          {getStatusChip(activity.status)}
-                        </Box>
-                      }
-                      secondary={
-                        <React.Fragment>
-                          <Typography component="span" variant="body2" color="text.primary">
-                            {activity.description}
-                          </Typography>
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            {new Date(activity.timestamp).toLocaleString()}
-                          </Typography>
-                        </React.Fragment>
-                      }
-                    />
-                  </ListItem>
-                  {index < recentActivity.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          ) : (
-            <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-              <Typography variant="body2">No recent activity to display</Typography>
-            </Box>
-          )}
-        </Paper>
-        <Paper 
-          sx={{ 
-            p: 3,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            borderRadius: 3,
-            border: '1px solid #e0e0e0',
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            Quick Actions
-          </Typography>
-          <Box display="flex" flexDirection="column" gap={2}>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<BusinessIcon />}
-              href="/business-approvals"
-              sx={{
-                py: 1.5,
-                bgcolor: '#667eea',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
-                '&:hover': {
-                  bgcolor: '#5568d3',
-                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                },
-              }}
-            >
-              Review Approvals
-            </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<SettingsIcon />}
-              onClick={fetchDashboardData}
-              sx={{
-                py: 1.5,
-                borderColor: '#667eea',
-                color: '#667eea',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 600,
-                borderRadius: 2,
-                '&:hover': {
-                  borderColor: '#5568d3',
-                  bgcolor: 'rgba(102, 126, 234, 0.05)',
-                },
-              }}
-            >
-              Refresh Data
-            </Button>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+          Recent Activity
+        </Typography>
+        {recentActivity.length > 0 ? (
+          <List>
+            {recentActivity.map((activity, index) => (
+              <React.Fragment key={activity.id}>
+                <ListItem alignItems="flex-start">
+                  <ListItemIcon>
+                    {getActivityIcon(activity.type)}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle1">
+                          {activity.title}
+                        </Typography>
+                        {getStatusChip(activity.status)}
+                      </Box>
+                    }
+                    secondary={
+                      <React.Fragment>
+                        <Typography component="span" variant="body2" color="text.primary">
+                          {activity.description}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </Typography>
+                      </React.Fragment>
+                    }
+                  />
+                </ListItem>
+                {index < recentActivity.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </List>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">No recent activity to display</Typography>
           </Box>
-        </Paper>
-      </Box>
+        )}
+      </Paper>
 
       {/* Report Generation Dialog */}
       <Dialog open={reportDialogOpen} onClose={handleReportDialogClose} maxWidth="sm" fullWidth>

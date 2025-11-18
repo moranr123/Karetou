@@ -39,6 +39,7 @@ import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'f
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth, adminCreationAuth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { logActivity } from '../utils/activityLogger';
 
 interface AdminUser {
   id: string;
@@ -76,6 +77,7 @@ const AdminManagement: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+  const { userRole } = useAuth();
 
   useEffect(() => {
     fetchAdmins();
@@ -161,6 +163,23 @@ const AdminManagement: React.FC = () => {
 
       await addDoc(collection(db, 'adminUsers'), adminData);
 
+      // Log activity
+      if (userRole) {
+        await logActivity({
+          type: 'admin_created',
+          title: 'Admin Account Created',
+          description: `Admin account created for ${newAdminData.email}`,
+          performedBy: {
+            uid: currentUserUid,
+            email: userRole.email,
+            role: userRole.role,
+          },
+          targetId: userCredential.user.uid,
+          targetType: 'admin',
+          metadata: { email: newAdminData.email },
+        });
+      }
+
       setNewAdminData({ email: '', password: '', confirmPassword: '' });
       setDialogOpen(false);
       
@@ -192,6 +211,7 @@ const AdminManagement: React.FC = () => {
   const handleConfirmToggleAdminStatus = async (adminId?: string, isActive?: boolean) => {
     const adminIdToUpdate = adminId || adminToDeactivate?.id;
     const isActiveStatus = isActive !== undefined ? isActive : adminToDeactivate?.isActive;
+    const adminEmail = adminToDeactivate?.email || admins.find(a => a.id === adminIdToUpdate)?.email || '';
     
     if (!adminIdToUpdate || isActiveStatus === undefined) return;
 
@@ -199,6 +219,24 @@ const AdminManagement: React.FC = () => {
       await updateDoc(doc(db, 'adminUsers', adminIdToUpdate), {
         isActive: !isActiveStatus,
       });
+      
+      // Log activity
+      if (userRole) {
+        const activityType = isActiveStatus ? 'admin_deactivated' : 'admin_activated';
+        await logActivity({
+          type: activityType,
+          title: isActiveStatus ? 'Admin Account Deactivated' : 'Admin Account Activated',
+          description: `Admin account ${isActiveStatus ? 'deactivated' : 'activated'} for ${adminEmail}`,
+          performedBy: {
+            uid: userRole.uid,
+            email: userRole.email,
+            role: userRole.role,
+          },
+          targetId: adminIdToUpdate,
+          targetType: 'admin',
+          metadata: { email: adminEmail, isActive: !isActiveStatus },
+        });
+      }
       
       // Update local state instead of refetching
       setAdmins(prevAdmins => 
@@ -232,9 +270,30 @@ const AdminManagement: React.FC = () => {
   };
 
   const handleDeleteAdmin = async (adminId: string) => {
+    const adminToDelete = admins.find(a => a.id === adminId);
+    if (!adminToDelete) return;
+
     if (window.confirm('Are you sure you want to delete this admin account?')) {
       try {
         await deleteDoc(doc(db, 'adminUsers', adminId));
+        
+        // Log activity
+        if (userRole) {
+          await logActivity({
+            type: 'admin_deleted',
+            title: 'Admin Account Deleted',
+            description: `Admin account deleted for ${adminToDelete.email}`,
+            performedBy: {
+              uid: userRole.uid,
+              email: userRole.email,
+              role: userRole.role,
+            },
+            targetId: adminId,
+            targetType: 'admin',
+            metadata: { email: adminToDelete.email },
+          });
+        }
+        
         await fetchAdmins();
       } catch (error) {
         console.error('Error deleting admin:', error);

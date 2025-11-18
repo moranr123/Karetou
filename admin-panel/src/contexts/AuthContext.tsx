@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { User, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, query, collection, getDocs, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { logActivity } from '../utils/activityLogger';
 
 interface UserRole {
   uid: string;
@@ -140,6 +141,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       await fetchUserRole(result.user.uid);
+      
+      // Log login activity (only for admins/superadmins)
+      try {
+        const superAdminUidsEnv = process.env.REACT_APP_SUPERADMIN_UIDS;
+        const superAdminUids = superAdminUidsEnv ? superAdminUidsEnv.split(',').map(u => u.trim()) : [];
+        const isSuperAdmin = superAdminUids.includes(result.user.uid);
+        
+        // Check if user is admin (either superadmin or regular admin)
+        let userRoleForLog: 'superadmin' | 'admin' | null = null;
+        if (isSuperAdmin) {
+          userRoleForLog = 'superadmin';
+        } else {
+          const adminQuery = query(collection(db, 'adminUsers'), where('uid', '==', result.user.uid));
+          const adminSnapshot = await getDocs(adminQuery);
+          if (!adminSnapshot.empty) {
+            userRoleForLog = 'admin';
+          }
+        }
+        
+        // Only log if user is an admin
+        if (userRoleForLog) {
+          await logActivity({
+            type: 'login',
+            title: 'Admin Login',
+            description: `${isSuperAdmin ? 'Super admin' : 'Admin'} logged in`,
+            performedBy: {
+              uid: result.user.uid,
+              email: result.user.email || email,
+              role: userRoleForLog,
+            },
+          });
+        }
+      } catch (logError) {
+        // Don't fail login if activity logging fails
+        console.error('Error logging login activity:', logError);
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       try {
@@ -153,6 +190,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Log logout activity before signing out
+      if (user && userRole) {
+        await logActivity({
+          type: 'logout',
+          title: 'Admin Logout',
+          description: `${userRole.role === 'superadmin' ? 'Super admin' : 'Admin'} logged out`,
+          performedBy: {
+            uid: user.uid,
+            email: user.email || '',
+            role: userRole.role,
+          },
+        });
+      }
+      
       await signOut(auth);
       setUserRole(null);
     } catch (error) {

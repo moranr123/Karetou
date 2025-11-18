@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -12,19 +12,27 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
-  Button,
-  Alert,
   CircularProgress,
   Divider,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  IconButton,
+  Tooltip,
+  Pagination,
 } from '@mui/material';
 import {
-  People as PeopleIcon,
-  Business as BusinessIcon,
-  AdminPanelSettings as AdminIcon,
   CheckCircle as CheckIcon,
   Settings as SettingsIcon,
+  Refresh as RefreshIcon,
+  Delete as DeleteIcon,
+  Block as BlockIcon,
+  PersonAdd as PersonAddIcon,
+  Login as LoginIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface DashboardStats {
@@ -36,10 +44,17 @@ interface DashboardStats {
 
 interface RecentActivity {
   id: string;
-  type: 'user_registration' | 'business_registration' | 'admin_created' | 'approval';
+  type: 'admin_created' | 'admin_deleted' | 'admin_activated' | 'admin_deactivated' | 'user_deactivated' | 'user_activated' | 'user_deleted' | 'business_approved' | 'business_rejected' | 'login' | 'logout';
   title: string;
   description: string;
-  timestamp: string;
+  timestamp: string | Timestamp;
+  performedBy?: {
+    uid: string;
+    email: string;
+    role: 'superadmin' | 'admin';
+  };
+  targetId?: string;
+  targetType?: 'user' | 'admin' | 'business';
   status?: 'pending' | 'approved' | 'rejected';
 }
 
@@ -53,10 +68,72 @@ const SuperAdminDashboard: React.FC = () => {
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const fetchActivityLogs = useCallback(async () => {
+    try {
+      setActivityLoading(true);
+      let activityQuery = query(
+        collection(db, 'adminActivityLogs'),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      );
+
+      // Apply date filter
+      if (dateFilter !== 'all') {
+        const now = new Date();
+        let startDate: Date;
+        
+        switch (dateFilter) {
+          case 'today':
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            break;
+          case 'week':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'month':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            startDate = new Date(0);
+        }
+        
+        activityQuery = query(
+          collection(db, 'adminActivityLogs'),
+          where('timestamp', '>=', Timestamp.fromDate(startDate)),
+          orderBy('timestamp', 'desc'),
+          limit(50)
+        );
+      }
+
+      const snapshot = await getDocs(activityQuery);
+      const activities: RecentActivity[] = [];
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        activities.push({
+          id: doc.id,
+          ...data,
+          timestamp: data.timestamp,
+        } as RecentActivity);
+      });
+      
+      setRecentActivity(activities);
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+    } finally {
+      setActivityLoading(false);
+    }
+  }, [dateFilter]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+    fetchActivityLogs();
+    setCurrentPage(1); // Reset to first page when filter changes
+  }, [dateFilter, fetchActivityLogs]);
 
   const fetchDashboardData = async () => {
     try {
@@ -75,33 +152,6 @@ const SuperAdminDashboard: React.FC = () => {
         activeAdmins,
         inactiveAdmins,
       });
-      // Fetch recent activity (mocked for demo)
-      const mockActivity: RecentActivity[] = [
-        {
-          id: '1',
-          type: 'business_registration',
-          title: 'New Business Registration',
-          description: 'Coffee Shop Express submitted registration',
-          timestamp: new Date().toISOString(),
-          status: 'pending',
-        },
-        {
-          id: '2',
-          type: 'admin_created',
-          title: 'Admin Account Created',
-          description: 'New admin user "john.doe@example.com" created',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '3',
-          type: 'approval',
-          title: 'Business Approved',
-          description: 'Restaurant "Taste of Home" approved',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          status: 'approved',
-        },
-      ];
-      setRecentActivity(mockActivity);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -109,18 +159,54 @@ const SuperAdminDashboard: React.FC = () => {
     }
   };
 
+
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'user_registration':
-        return <PeopleIcon color="primary" />;
-      case 'business_registration':
-        return <BusinessIcon color="primary" />;
       case 'admin_created':
-        return <AdminIcon color="primary" />;
-      case 'approval':
-        return <CheckIcon color="primary" />;
+        return <PersonAddIcon color="success" />;
+      case 'admin_deleted':
+        return <DeleteIcon color="error" />;
+      case 'admin_activated':
+        return <CheckIcon color="success" />;
+      case 'admin_deactivated':
+        return <BlockIcon color="error" />;
+      case 'user_activated':
+        return <CheckIcon color="success" />;
+      case 'user_deactivated':
+        return <BlockIcon color="error" />;
+      case 'user_deleted':
+        return <DeleteIcon color="error" />;
+      case 'business_approved':
+        return <CheckIcon color="success" />;
+      case 'business_rejected':
+        return <BlockIcon color="error" />;
+      case 'login':
+        return <LoginIcon color="info" />;
+      case 'logout':
+        return <LogoutIcon color="info" />;
       default:
         return <SettingsIcon color="primary" />;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'admin_created':
+      case 'admin_activated':
+      case 'user_activated':
+      case 'business_approved':
+        return '#4CAF50';
+      case 'admin_deleted':
+      case 'admin_deactivated':
+      case 'user_deactivated':
+      case 'user_deleted':
+      case 'business_rejected':
+        return '#F44336';
+      case 'login':
+      case 'logout':
+        return '#2196F3';
+      default:
+        return '#667eea';
     }
   };
 
@@ -255,147 +341,193 @@ const SuperAdminDashboard: React.FC = () => {
       </Box>
         
       {/* Recent Activity */}
-      <Box
-        display="grid"
-        gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}
-        gap={{ xs: 2, sm: 3 }}
+      <Paper 
+        sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', 
+          borderRadius: 3, 
+          border: '1px solid #e0e0e0',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        }}
       >
-        <Paper sx={{ p: { xs: 2, sm: 3 }, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', borderRadius: 3, border: '1px solid #e0e0e0' }}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            Recent Activity
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1a1a2e' }}>
+            Activity Log
           </Typography>
-          <List>
-            {recentActivity.map((activity, index) => (
-              <React.Fragment key={activity.id}>
-                <ListItem alignItems="flex-start">
-                  <ListItemIcon>
-                    {getActivityIcon(activity.type)}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle1">
-                          {activity.title}
-                        </Typography>
-                        {getStatusChip(activity.status)}
-                      </Box>
-                    }
-                    secondary={
-                      <React.Fragment>
-                        <Typography component="span" variant="body2" color="text.primary">
-                          {activity.description}
-                        </Typography>
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </Typography>
-                      </React.Fragment>
-                    }
-                  />
-                </ListItem>
-                {index < recentActivity.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
-        </Paper>
-        <Paper 
-          sx={{ 
-            p: { xs: 2, sm: 3 },
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            borderRadius: 3,
-            border: '1px solid #e0e0e0',
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            Quick Actions
-          </Typography>
-          <Box display="flex" flexDirection="column" gap={{ xs: 1.5, sm: 2 }}>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<AdminIcon />}
-              href="/admin-management"
-              sx={{
-                py: 1.5,
-                bgcolor: '#4CAF50',
-                textTransform: 'none',
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
-                '&:hover': {
-                  bgcolor: '#45a049',
-                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)',
-                },
-              }}
-            >
-              Manage Admins
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<BusinessIcon />}
-              href="/business-approvals"
-              sx={{
-                py: 1.5,
-                bgcolor: '#667eea',
-                textTransform: 'none',
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
-                '&:hover': {
-                  bgcolor: '#5568d3',
-                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                },
-              }}
-            > 
-              Review Approvals
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<PeopleIcon />}
-              href="/user-management"
-              sx={{
-                py: 1.5,
-                bgcolor: '#2196F3',
-                textTransform: 'none',
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
-                '&:hover': {
-                  bgcolor: '#1976D2',
-                  boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
-                },
-              }}
-            >
-              ManagCUsers
-            </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<SettingsIcon />}
-              onClick={fetchDashboardData}
-              sx={{
-                py: 1.5,
-                borderColor: '#667eea',
-                color: '#667eea',
-                textTransform: 'none',
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                '&:hover': {
-                  borderColor: '#5568d3',
-                  bgcolor: 'rgba(102, 126, 234, 0.05)',
-                },
-              }}
-            >
-              Refresh Data
-            </Button>
+          <Box display="flex" gap={1} alignItems="center">
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Date Filter</InputLabel>
+              <Select
+                value={dateFilter}
+                label="Date Filter"
+                onChange={(e) => setDateFilter(e.target.value as 'all' | 'today' | 'week' | 'month')}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="all">All Time</MenuItem>
+                <MenuItem value="today">Today</MenuItem>
+                <MenuItem value="week">Last 7 Days</MenuItem>
+                <MenuItem value="month">Last 30 Days</MenuItem>
+              </Select>
+            </FormControl>
+            <Tooltip title="Refresh Activity Log">
+              <IconButton 
+                onClick={fetchActivityLogs}
+                disabled={activityLoading}
+                sx={{ 
+                  bgcolor: '#667eea',
+                  color: '#fff',
+                  '&:hover': { bgcolor: '#5568d3' },
+                }}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
-        </Paper>
-      </Box>
+        </Box>
+
+        {activityLoading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+            <CircularProgress />
+          </Box>
+        ) : recentActivity.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 6 }}>
+            <SettingsIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No Activity Found
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {dateFilter !== 'all' 
+                ? `No activities found for the selected period.`
+                : 'Activity logs will appear here as you perform actions.'}
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <List sx={{ minHeight: '300px', pr: 1 }}>
+              {recentActivity
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((activity, index, array) => {
+              let timestamp: Date;
+              if (activity.timestamp instanceof Timestamp) {
+                timestamp = activity.timestamp.toDate();
+              } else if (typeof activity.timestamp === 'string') {
+                timestamp = new Date(activity.timestamp);
+              } else {
+                timestamp = new Date();
+              }
+              const activityColor = getActivityColor(activity.type);
+              
+              return (
+                <React.Fragment key={activity.id}>
+                  <ListItem 
+                    alignItems="flex-start"
+                    sx={{
+                      mb: 1,
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255, 255, 255, 0.8)',
+                      border: `1px solid ${activityColor}20`,
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        bgcolor: 'rgba(255, 255, 255, 1)',
+                        boxShadow: `0 2px 8px ${activityColor}15`,
+                        transform: 'translateX(4px)',
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 48 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          bgcolor: `${activityColor}15`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {getActivityIcon(activity.type)}
+                      </Box>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
+                            {activity.title}
+                          </Typography>
+                          {getStatusChip(activity.status)}
+                          <Chip 
+                            label={activity.type.replace(/_/g, ' ').toUpperCase()} 
+                            size="small" 
+                            sx={{ 
+                              bgcolor: `${activityColor}20`,
+                              color: activityColor,
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                            }} 
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box mt={1}>
+                          <Typography variant="body2" color="text.primary" sx={{ mb: 0.5 }}>
+                            {activity.description}
+                          </Typography>
+                          <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <SettingsIcon sx={{ fontSize: 14 }} />
+                              {timestamp.toLocaleString()}
+                            </Typography>
+                            {activity.performedBy && (
+                              <Typography variant="caption" color="text.secondary">
+                                By: {activity.performedBy.email}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                  {index < array.length - 1 && <Divider sx={{ my: 1 }} />}
+                </React.Fragment>
+              );
+            })}
+            </List>
+            
+            {/* Pagination */}
+            {recentActivity.length > itemsPerPage && (
+              <Box 
+                display="flex" 
+                justifyContent="center" 
+                alignItems="center" 
+                mt={3}
+                gap={2}
+                flexWrap="wrap"
+              >
+                <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, recentActivity.length)} of {recentActivity.length}
+                </Typography>
+                <Pagination
+                  count={Math.ceil(recentActivity.length / itemsPerPage)}
+                  page={currentPage}
+                  onChange={(event, value) => setCurrentPage(value)}
+                  color="primary"
+                  size="large"
+                  showFirstButton
+                  showLastButton
+                  sx={{
+                    '& .MuiPaginationItem-root': {
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    },
+                  }}
+                />
+              </Box>
+            )}
+          </>
+        )}
+      </Paper>
     </Box>
   );
 };
