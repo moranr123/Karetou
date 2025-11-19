@@ -36,7 +36,7 @@ import {
   Download as DownloadIcon,
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
-import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -77,8 +77,8 @@ const AdminDashboard: React.FC = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
-  const [customStartDate, setCustomStartDate] = useState(getTodayDate);
-  const [customEndDate, setCustomEndDate] = useState(getTodayDate);
+  const [customStartDate, setCustomStartDate] = useState(getTodayDate());
+  const [customEndDate, setCustomEndDate] = useState(getTodayDate());
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState('');
 
@@ -161,78 +161,6 @@ const AdminDashboard: React.FC = () => {
 
     return () => unsubscribe();
   }, []); // Empty dependency array - only run once on mount
-
-  const fetchDashboardData = async () => {
-    // This function is kept for the manual "Refresh Data" button
-    try {
-      setLoading(true);
-      
-      // Fetch users count
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const totalUsers = usersSnapshot.size;
-      
-      // Fetch all businesses
-      const businessesSnapshot = await getDocs(collection(db, 'businesses'));
-      
-      // Calculate active accounts (only approved businesses)
-      let activeCount = 0;
-      let inactiveCount = 0;
-      let approvedCount = 0;
-      const businessData: TopBusiness[] = [];
-      
-      businessesSnapshot.forEach((doc) => {
-        const data = doc.data();
-        const isActive = data.isActive !== false;
-        const status = data.status || 'pending';
-        
-        // Only count approved businesses
-        if (status === 'approved') {
-          approvedCount++;
-          
-          if (isActive) {
-            activeCount++;
-          } else {
-            inactiveCount++;
-          }
-          
-          // Only add approved businesses to top performers
-          businessData.push({
-            id: doc.id,
-            businessName: data.businessName || 'Unknown Business',
-            viewCount: data.viewCount || 0,
-            selectedType: data.selectedType || 'Business',
-          });
-        }
-      });
-      
-      // Sort businesses by view count and get top 5 (only approved)
-      const topPerformers = businessData
-        .sort((a, b) => b.viewCount - a.viewCount)
-        .slice(0, 5);
-      
-      // Fetch pending approvals
-      const pendingQuery = query(
-        collection(db, 'businesses'),
-        where('status', '==', 'pending')
-      );
-      const pendingSnapshot = await getDocs(pendingQuery);
-      const pendingApprovals = pendingSnapshot.size;
-      
-      setStats({
-        totalUsers,
-        totalBusinesses: approvedCount,     // Only approved businesses
-        pendingApprovals,
-        activeAccounts: activeCount,         // Only approved & active
-        inactiveAccounts: inactiveCount,     // Only approved & inactive
-      });
-      
-      setTopBusinesses(topPerformers);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGenerateReport = async () => {
     try {
@@ -458,7 +386,6 @@ const AdminDashboard: React.FC = () => {
       }
       
       // Footer
-      const finalY = (doc as any).lastAutoTable?.finalY || yPosition + 50;
       doc.setFontSize(10);
       doc.setTextColor(128, 128, 128);
       doc.setFont('helvetica', 'italic');
@@ -963,7 +890,7 @@ const AdminDashboard: React.FC = () => {
             onClick={handleGenerateReport}
             variant="contained"
             disabled={generatingReport}
-            startIcon={generatingReport ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+            startIcon={generatingReport ? <CircularProgress size={20} /> : <DownloadIcon />}
             sx={{
               bgcolor: '#667eea',
               textTransform: 'none',
