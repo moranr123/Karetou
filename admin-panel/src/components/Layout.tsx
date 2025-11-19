@@ -23,12 +23,8 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
-  Approval as ApprovalIcon,
   AdminPanelSettings as AdminIcon,
-  AccountCircle,
   Logout,
-  ChevronLeft,
-  ChevronRight,
   Business as BusinessIcon,
   Schedule as PendingIcon,
   CheckCircle as ApprovedIcon,
@@ -47,7 +43,7 @@ const Layout: React.FC = () => {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [drawerHovered, setDrawerHovered] = useState(false);
   const [businessMenuOpen, setBusinessMenuOpen] = useState(false);
-  const { user, userRole, logout } = useAuth();
+  const { userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,11 +74,12 @@ const Layout: React.FC = () => {
   let menuItems = [];
   
   if (userRole?.role === 'superadmin') {
-    // Superadmin menu - Dashboard, Admin Management, and User Management
+    // Superadmin menu - Dashboard, Admin Management, User Management, and History Log
     menuItems = [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
       { text: 'Admin Management', icon: <AdminIcon />, path: '/admin-management' },
       { text: 'User Management', icon: <PeopleIcon />, path: '/user-management' },
+      { text: 'History Log', icon: <HistoryIcon />, path: '/superadmin-history-log' },
     ];
   } else {
     // Regular admin menu - Dashboard only

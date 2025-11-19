@@ -7,32 +7,15 @@ import {
   CardContent,
   CardActionArea,
   Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
   CircularProgress,
-  Divider,
-  MenuItem,
-  Select,
+  useMediaQuery,
+  useTheme,
   FormControl,
   InputLabel,
-  IconButton,
-  Tooltip,
-  Pagination,
+  Select,
+  MenuItem,
 } from '@mui/material';
-import {
-  CheckCircle as CheckIcon,
-  Settings as SettingsIcon,
-  Refresh as RefreshIcon,
-  Delete as DeleteIcon,
-  Block as BlockIcon,
-  PersonAdd as PersonAddIcon,
-  Login as LoginIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material';
-import { collection, getDocs, query, orderBy, where, Timestamp, limit } from 'firebase/firestore';
+import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface DashboardStats {
@@ -42,98 +25,109 @@ interface DashboardStats {
   inactiveAdmins: number;
 }
 
-interface RecentActivity {
-  id: string;
-  type: 'admin_created' | 'admin_deleted' | 'admin_activated' | 'admin_deactivated' | 'user_deactivated' | 'user_activated' | 'user_deleted' | 'business_approved' | 'business_rejected' | 'login' | 'logout';
-  title: string;
-  description: string;
-  timestamp: string | Timestamp;
-  performedBy?: {
-    uid: string;
-    email: string;
-    role: 'superadmin' | 'admin';
-  };
-  targetId?: string;
-  targetType?: 'user' | 'admin' | 'business';
-  status?: 'pending' | 'approved' | 'rejected';
-}
 
 const SuperAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalAdmins: 0,
     activeAdmins: 0,
     inactiveAdmins: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [userGraphData, setUserGraphData] = useState<{ date: string; count: number }[]>([]);
+  const [userGraphDateFilter, setUserGraphDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('month');
+  const [userGraphLoading, setUserGraphLoading] = useState(false);
 
-  const fetchActivityLogs = useCallback(async () => {
+
+  const fetchUserGraphData = useCallback(async () => {
     try {
-      setActivityLoading(true);
-      let activityQuery = query(
-        collection(db, 'adminActivityLogs'),
-        orderBy('timestamp', 'desc'),
-        limit(50)
-      );
-
-      // Apply date filter
-      if (dateFilter !== 'all') {
-        const now = new Date();
-        let startDate: Date;
-        
-        switch (dateFilter) {
-          case 'today':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            break;
-          case 'week':
-            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            break;
-          case 'month':
-            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            break;
-          default:
-            startDate = new Date(0);
-        }
-        
-        activityQuery = query(
-          collection(db, 'adminActivityLogs'),
-          where('timestamp', '>=', Timestamp.fromDate(startDate)),
-          orderBy('timestamp', 'desc'),
-          limit(50)
-        );
+      setUserGraphLoading(true);
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      
+      // Calculate date range
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (userGraphDateFilter) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(0);
       }
 
-      const snapshot = await getDocs(activityQuery);
-      const activities: RecentActivity[] = [];
+      // Group users by date
+      const dateMap = new Map<string, number>();
       
-      snapshot.forEach((doc) => {
+      usersSnapshot.forEach((doc) => {
         const data = doc.data();
-        activities.push({
-          id: doc.id,
-          ...data,
-          timestamp: data.timestamp,
-        } as RecentActivity);
+        let userDate: Date;
+        
+        if (data.createdAt) {
+          if (data.createdAt.toDate) {
+            userDate = data.createdAt.toDate();
+          } else if (data.createdAt instanceof Timestamp) {
+            userDate = data.createdAt.toDate();
+          } else {
+            userDate = new Date(data.createdAt);
+          }
+        } else {
+          // If no createdAt, use a default date (very old)
+          userDate = new Date(0);
+        }
+        
+        if (userDate >= startDate) {
+          const dateKey = userDate.toISOString().split('T')[0];
+          dateMap.set(dateKey, (dateMap.get(dateKey) || 0) + 1);
+        }
       });
+
+      // Generate all dates in range
+      const dateRange: { date: string; count: number }[] = [];
+      const currentDate = new Date(startDate);
+      const endDate = new Date(now);
       
-      setRecentActivity(activities);
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const count = dateMap.get(dateKey) || 0;
+        dateRange.push({
+          date: dateKey,
+          count: count,
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // Calculate cumulative counts
+      let cumulative = 0;
+      const graphData = dateRange.map(item => {
+        cumulative += item.count;
+        return {
+          date: item.date,
+          count: cumulative,
+        };
+      });
+
+      setUserGraphData(graphData);
     } catch (error) {
-      console.error('Error fetching activity logs:', error);
+      console.error('Error fetching user graph data:', error);
     } finally {
-      setActivityLoading(false);
+      setUserGraphLoading(false);
     }
-  }, [dateFilter]);
+  }, [userGraphDateFilter]);
 
   useEffect(() => {
     fetchDashboardData();
-    fetchActivityLogs();
-    setCurrentPage(1); // Reset to first page when filter changes
-  }, [dateFilter, fetchActivityLogs]);
+    fetchUserGraphData();
+  }, [fetchUserGraphData]);
 
   const fetchDashboardData = async () => {
     try {
@@ -160,69 +154,6 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'admin_created':
-        return <PersonAddIcon color="success" />;
-      case 'admin_deleted':
-        return <DeleteIcon color="error" />;
-      case 'admin_activated':
-        return <CheckIcon color="success" />;
-      case 'admin_deactivated':
-        return <BlockIcon color="error" />;
-      case 'user_activated':
-        return <CheckIcon color="success" />;
-      case 'user_deactivated':
-        return <BlockIcon color="error" />;
-      case 'user_deleted':
-        return <DeleteIcon color="error" />;
-      case 'business_approved':
-        return <CheckIcon color="success" />;
-      case 'business_rejected':
-        return <BlockIcon color="error" />;
-      case 'login':
-        return <LoginIcon color="info" />;
-      case 'logout':
-        return <LogoutIcon color="info" />;
-      default:
-        return <SettingsIcon color="primary" />;
-    }
-  };
-
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'admin_created':
-      case 'admin_activated':
-      case 'user_activated':
-      case 'business_approved':
-        return '#4CAF50';
-      case 'admin_deleted':
-      case 'admin_deactivated':
-      case 'user_deactivated':
-      case 'user_deleted':
-      case 'business_rejected':
-        return '#F44336';
-      case 'login':
-      case 'logout':
-        return '#2196F3';
-      default:
-        return '#667eea';
-    }
-  };
-
-  const getStatusChip = (status?: string) => {
-    if (!status) return null;
-    switch (status) {
-      case 'pending':
-        return <Chip label="Pending" color="warning" size="small" />;
-      case 'approved':
-        return <Chip label="Approved" color="success" size="small" />;
-      case 'rejected':
-        return <Chip label="Rejected" color="error" size="small" />;
-      default:
-        return null;
-    }
-  };
 
   if (loading) {
     return (
@@ -262,14 +193,14 @@ const SuperAdminDashboard: React.FC = () => {
           },
         }}>
           <CardActionArea onClick={() => navigate('/user-management')}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                Total Users
-              </Typography>
-              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-                {stats.totalUsers}
-              </Typography>
-            </CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+              Total Users
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+              {stats.totalUsers}
+            </Typography>
+          </CardContent>
           </CardActionArea>
         </Card>
         <Card sx={{ 
@@ -284,14 +215,14 @@ const SuperAdminDashboard: React.FC = () => {
           },
         }}>
           <CardActionArea onClick={() => navigate('/admin-management')}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                Total Admins
-              </Typography>
-              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-                {stats.totalAdmins}
-              </Typography>
-            </CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+              Total Admins
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+              {stats.totalAdmins}
+            </Typography>
+          </CardContent>
           </CardActionArea>
         </Card>
         <Card sx={{ 
@@ -306,14 +237,14 @@ const SuperAdminDashboard: React.FC = () => {
           },
         }}>
           <CardActionArea onClick={() => navigate('/admin-management?filter=active')}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                Active Admins
-              </Typography>
-              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-                {stats.activeAdmins}
-              </Typography>
-            </CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+              Active Admins
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+              {stats.activeAdmins}
+            </Typography>
+          </CardContent>
           </CardActionArea>
         </Card>
         <Card sx={{ 
@@ -328,206 +259,246 @@ const SuperAdminDashboard: React.FC = () => {
           },
         }}>
           <CardActionArea onClick={() => navigate('/admin-management?filter=inactive')}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                Inactive Admins
-              </Typography>
-              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-                {stats.inactiveAdmins}
-              </Typography>
-            </CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+              Inactive Admins
+            </Typography>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+              {stats.inactiveAdmins}
+            </Typography>
+          </CardContent>
           </CardActionArea>
         </Card>
       </Box>
         
-      {/* Recent Activity */}
-      <Paper 
-        sx={{ 
-          p: { xs: 2, sm: 3 }, 
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', 
-          borderRadius: 3, 
-          border: '1px solid #e0e0e0',
+      {/* User Growth Graph */}
+        <Paper 
+          sx={{ 
+            p: { xs: 2, sm: 3 },
+          mb: 4,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            borderRadius: 3,
+            border: '1px solid #e0e0e0',
           background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        }}
-      >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          }}
+        >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#1a1a2e' }}>
-            Activity Log
+            User Growth
           </Typography>
-          <Box display="flex" gap={1} alignItems="center">
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Date Filter</InputLabel>
-              <Select
-                value={dateFilter}
-                label="Date Filter"
-                onChange={(e) => setDateFilter(e.target.value as 'all' | 'today' | 'week' | 'month')}
-                sx={{ borderRadius: 2 }}
-              >
-                <MenuItem value="all">All Time</MenuItem>
-                <MenuItem value="today">Today</MenuItem>
-                <MenuItem value="week">Last 7 Days</MenuItem>
-                <MenuItem value="month">Last 30 Days</MenuItem>
-              </Select>
-            </FormControl>
-            <Tooltip title="Refresh Activity Log">
-              <IconButton 
-                onClick={fetchActivityLogs}
-                disabled={activityLoading}
-                sx={{ 
-                  bgcolor: '#667eea',
-                  color: '#fff',
-                  '&:hover': { bgcolor: '#5568d3' },
-                }}
-              >
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Date Range</InputLabel>
+            <Select
+              value={userGraphDateFilter}
+              label="Date Range"
+              onChange={(e) => setUserGraphDateFilter(e.target.value as 'all' | 'today' | 'week' | 'month')}
+              sx={{ borderRadius: 2 }}
+            >
+              <MenuItem value="all">All Time</MenuItem>
+              <MenuItem value="today">Today</MenuItem>
+              <MenuItem value="week">Last 7 Days</MenuItem>
+              <MenuItem value="month">Last 30 Days</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
 
-        {activityLoading ? (
+        {userGraphLoading ? (
           <Box display="flex" justifyContent="center" alignItems="center" py={4}>
             <CircularProgress />
           </Box>
-        ) : recentActivity.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 6 }}>
-            <SettingsIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No Activity Found
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {dateFilter !== 'all' 
-                ? `No activities found for the selected period.`
-                : 'Activity logs will appear here as you perform actions.'}
+        ) : userGraphData.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              No user data available for the selected period.
             </Typography>
           </Box>
         ) : (
-          <>
-            <List sx={{ minHeight: '300px', pr: 1 }}>
-              {recentActivity
-                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                .map((activity, index, array) => {
-              let timestamp: Date;
-              if (activity.timestamp instanceof Timestamp) {
-                timestamp = activity.timestamp.toDate();
-              } else if (typeof activity.timestamp === 'string') {
-                timestamp = new Date(activity.timestamp);
-              } else {
-                timestamp = new Date();
-              }
-              const activityColor = getActivityColor(activity.type);
+          <Box sx={{ width: '100%', height: { xs: 250, sm: 300 }, position: 'relative', overflow: 'auto' }}>
+            <svg 
+              width="100%" 
+              height="100%" 
+              viewBox={isMobile ? "0 0 600 250" : "0 0 800 300"} 
+              preserveAspectRatio="xMidYMid meet"
+              style={{ minHeight: isMobile ? '250px' : '300px' }}
+            >
+              <defs>
+                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#667eea" stopOpacity="0.4" />
+                  <stop offset="50%" stopColor="#764ba2" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#667eea" stopOpacity="0" />
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <linearGradient id="lineGradientStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#667eea" />
+                  <stop offset="50%" stopColor="#764ba2" />
+                  <stop offset="100%" stopColor="#667eea" />
+                </linearGradient>
+              </defs>
               
-              return (
-                <React.Fragment key={activity.id}>
-                  <ListItem 
-                    alignItems="flex-start"
-                    sx={{
-                      mb: 1,
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255, 255, 255, 0.8)',
-                      border: `1px solid ${activityColor}20`,
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        bgcolor: 'rgba(255, 255, 255, 1)',
-                        boxShadow: `0 2px 8px ${activityColor}15`,
-                        transform: 'translateX(4px)',
-                      },
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 48 }}>
-                      <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '50%',
-                          bgcolor: `${activityColor}15`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {getActivityIcon(activity.type)}
-                      </Box>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
-                            {activity.title}
-                          </Typography>
-                          {getStatusChip(activity.status)}
-                          <Chip 
-                            label={activity.type.replace(/_/g, ' ').toUpperCase()} 
-                            size="small" 
-                            sx={{ 
-                              bgcolor: `${activityColor}20`,
-                              color: activityColor,
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }} 
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box mt={1}>
-                          <Typography variant="body2" color="text.primary" sx={{ mb: 0.5 }}>
-                            {activity.description}
-                          </Typography>
-                          <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <SettingsIcon sx={{ fontSize: 14 }} />
-                              {timestamp.toLocaleString()}
-                            </Typography>
-                            {activity.performedBy && (
-                              <Typography variant="caption" color="text.secondary">
-                                By: {activity.performedBy.email}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      }
+              {/* Grid lines */}
+              {[0, 1, 2, 3, 4].map((i) => {
+                const baseY = isMobile ? 40 : 50;
+                const yStep = isMobile ? 40 : 50;
+                const y = baseY + (i * yStep);
+                const x1 = isMobile ? 50 : 80;
+                const x2 = isMobile ? 550 : 750;
+                return (
+                  <line
+                    key={`grid-${i}`}
+                    x1={x1}
+                    y1={y}
+                    x2={x2}
+                    y2={y}
+                    stroke="#e0e0e0"
+                    strokeWidth="1"
+                    strokeDasharray="4 4"
+                  />
+                );
+              })}
+
+              {/* Y-axis labels */}
+              {(() => {
+                const maxCount = Math.max(...userGraphData.map(d => d.count), 1);
+                const step = Math.ceil(maxCount / 5);
+                const baseY = isMobile ? 40 : 50;
+                const yStep = isMobile ? 40 : 50;
+                const xPos = isMobile ? 45 : 75;
+                const fontSize = isMobile ? 10 : 12;
+                return [0, 1, 2, 3, 4].map((i) => {
+                  const value = step * (5 - i);
+                  const y = baseY + (i * yStep);
+                  return (
+                    <text
+                      key={`y-label-${i}`}
+                      x={xPos}
+                      y={y + 5}
+                      textAnchor="end"
+                      fontSize={fontSize}
+                      fill="#666"
+                    >
+                      {value.toLocaleString()}
+                    </text>
+                  );
+                });
+              })()}
+
+              {/* Area under curve */}
+              {userGraphData.length > 0 && (() => {
+                const maxCount = Math.max(...userGraphData.map(d => d.count), 1);
+                const padding = isMobile ? 50 : 80;
+                const chartWidth = isMobile ? 500 : 670;
+                const chartHeight = isMobile ? 160 : 200;
+                const stepX = chartWidth / Math.max(userGraphData.length - 1, 1);
+                
+                const points = userGraphData.map((item, index) => {
+                  const x = padding + (index * stepX);
+                  const y = padding + chartHeight - ((item.count / maxCount) * chartHeight);
+                  return `${x},${y}`;
+                });
+                
+                const areaPath = `M ${padding},${padding + chartHeight} L ${points.join(' L ')} L ${padding + chartWidth},${padding + chartHeight} Z`;
+                
+                return (
+                  <path
+                    d={areaPath}
+                    fill="url(#lineGradient)"
+                  />
+                );
+              })()}
+
+              {/* Line */}
+              {userGraphData.length > 0 && (() => {
+                const maxCount = Math.max(...userGraphData.map(d => d.count), 1);
+                const padding = isMobile ? 50 : 80;
+                const chartWidth = isMobile ? 500 : 670;
+                const chartHeight = isMobile ? 160 : 200;
+                const stepX = chartWidth / Math.max(userGraphData.length - 1, 1);
+                
+                // Create straight lines between points
+                const points = userGraphData.map((item, index) => {
+                  const x = padding + (index * stepX);
+                  const y = padding + chartHeight - ((item.count / maxCount) * chartHeight);
+                  return { x, y };
+                });
+                
+                let pathData = '';
+                if (points.length > 0) {
+                  pathData = `M ${points[0].x} ${points[0].y}`;
+                  for (let i = 1; i < points.length; i++) {
+                    pathData += ` L ${points[i].x} ${points[i].y}`;
+                  }
+                }
+                
+                return (
+                  <>
+                    {/* Glow effect */}
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke="url(#lineGradientStroke)"
+                      strokeWidth={isMobile ? 4 : 5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity="0.3"
+                      filter="url(#glow)"
                     />
-                  </ListItem>
-                  {index < array.length - 1 && <Divider sx={{ my: 1 }} />}
-                </React.Fragment>
-              );
-            })}
-            </List>
-            
-            {/* Pagination */}
-            {recentActivity.length > itemsPerPage && (
-              <Box 
-                display="flex" 
-                justifyContent="center" 
-                alignItems="center" 
-                mt={3}
-                gap={2}
-                flexWrap="wrap"
-              >
-                <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, recentActivity.length)} of {recentActivity.length}
-                </Typography>
-                <Pagination
-                  count={Math.ceil(recentActivity.length / itemsPerPage)}
-                  page={currentPage}
-                  onChange={(event, value) => setCurrentPage(value)}
-                  color="primary"
-                  size="large"
-                  showFirstButton
-                  showLastButton
-                  sx={{
-                    '& .MuiPaginationItem-root': {
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                    },
-                  }}
-                />
-              </Box>
-            )}
-          </>
+                    {/* Main line */}
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke="url(#lineGradientStroke)"
+                      strokeWidth={isMobile ? 2.5 : 3}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </>
+                );
+              })()}
+
+
+              {/* X-axis labels */}
+              {userGraphData.length > 0 && (() => {
+                const labelCount = isMobile ? Math.min(userGraphData.length, 5) : Math.min(userGraphData.length, 7);
+                const step = Math.floor(userGraphData.length / labelCount);
+                return userGraphData
+                  .filter((_, index) => index % step === 0 || index === userGraphData.length - 1)
+                  .map((item, labelIndex) => {
+                    const actualIndex = userGraphData.findIndex(d => d.date === item.date);
+                    const padding = isMobile ? 50 : 80;
+                    const chartWidth = isMobile ? 500 : 670;
+                    const stepX = chartWidth / Math.max(userGraphData.length - 1, 1);
+                    const x = padding + (actualIndex * stepX);
+                    const yPos = isMobile ? 230 : 280;
+                    const date = new Date(item.date);
+                    const dateStr = isMobile 
+                      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const fontSize = isMobile ? 9 : 11;
+                    
+                    return (
+                      <text
+                        key={`x-label-${labelIndex}`}
+                        x={x}
+                        y={yPos}
+                        textAnchor="middle"
+                        fontSize={fontSize}
+                        fill="#666"
+                      >
+                        {dateStr}
+                      </text>
+                    );
+                  });
+              })()}
+            </svg>
+          </Box>
         )}
-      </Paper>
+        </Paper>
     </Box>
   );
 };

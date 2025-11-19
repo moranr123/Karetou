@@ -13,6 +13,7 @@ const UserManagement = lazy(() => import('./pages/UserManagement'));
 const AdminManagement = lazy(() => import('./pages/AdminManagement'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
 const HistoryLog = lazy(() => import('./pages/HistoryLog'));
+const SuperAdminHistoryLog = lazy(() => import('./pages/SuperAdminHistoryLog'));
 
 const theme = createTheme({
   palette: {
@@ -89,6 +90,14 @@ const App: React.FC = () => {
                 element={
                   <SuperAdminRoute>
                     <AdminManagement />
+                  </SuperAdminRoute>
+                } 
+              />
+              <Route 
+                path="superadmin-history-log" 
+                element={
+                  <SuperAdminRoute>
+                    <SuperAdminHistoryLog />
                   </SuperAdminRoute>
                 } 
               />

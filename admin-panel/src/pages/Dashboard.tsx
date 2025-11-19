@@ -518,19 +518,19 @@ const AdminDashboard: React.FC = () => {
           }}
         >
           <CardActionArea onClick={() => navigate('/business/pending')}>
-            <CardContent>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
                     Pending Approvals
-                  </Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+                </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
                     {stats.pendingApprovals}
                   </Typography>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                   Awaiting review
                 </Typography>
-              </CardContent>
+          </CardContent>
             </CardActionArea>
-          </Card>
+        </Card>
         <Card 
           sx={{ 
               bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -540,14 +540,14 @@ const AdminDashboard: React.FC = () => {
           }}
         >
           <CardActionArea onClick={() => navigate('/business/approved')}>
-            <CardContent>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
                   Total Registered Business Accounts
-                  </Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
                   {stats.totalBusinesses}
-                  </Typography>
-            </CardContent>
+                </Typography>
+          </CardContent>
           </CardActionArea>
         </Card>
         <Card 
@@ -558,19 +558,19 @@ const AdminDashboard: React.FC = () => {
           }}
         >
           <CardActionArea onClick={() => navigate('/business/approved')}>
-            <CardContent>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+          <CardContent>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
                   Active Accounts
                 </Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
                   {stats.activeAccounts}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                   Currently operational
-                  </Typography>
+              </Typography>
             </CardContent>
           </CardActionArea>
-        </Card>
+          </Card>
           <Card 
             sx={{ 
               bgcolor: '#F44336',
@@ -579,17 +579,17 @@ const AdminDashboard: React.FC = () => {
             }}
           >
             <CardActionArea onClick={() => navigate('/business/rejected')}>
-              <CardContent>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
-                  Inactive/Closed Accounts
-                </Typography>
-                <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
-                  {stats.inactiveAccounts}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Not operational
-                </Typography>
-            </CardContent>
+            <CardContent>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+                Inactive/Closed Accounts
+              </Typography>
+              <Typography variant="h3" component="div" sx={{ fontWeight: 700, color: '#fff' }}>
+                {stats.inactiveAccounts}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                Not operational
+              </Typography>
+          </CardContent>
           </CardActionArea>
         </Card>
       </Box>
@@ -613,66 +613,66 @@ const AdminDashboard: React.FC = () => {
           <>
             {/* Desktop Table View */}
             <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Rank</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Business Name</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                      <TableCell sx={{ fontWeight: 600, textAlign: 'right' }}>
-                        <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
-                          <VisibilityIcon sx={{ fontSize: 20 }} />
-                          Views
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {topBusinesses.map((business, index) => (
-                      <TableRow 
-                        key={business.id}
-                        sx={{ 
-                          '&:hover': { bgcolor: 'rgba(102, 126, 234, 0.05)' },
-                          bgcolor: index === 0 ? 'rgba(255, 215, 0, 0.1)' : 'inherit',
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Rank</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Business Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 600, textAlign: 'right' }}>
+                    <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
+                      <VisibilityIcon sx={{ fontSize: 20 }} />
+                      Views
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {topBusinesses.map((business, index) => (
+                  <TableRow 
+                    key={business.id}
+                    sx={{ 
+                      '&:hover': { bgcolor: 'rgba(102, 126, 234, 0.05)' },
+                      bgcolor: index === 0 ? 'rgba(255, 215, 0, 0.1)' : 'inherit',
+                    }}
+                  >
+                    <TableCell>
+                      <Chip 
+                        label={`#${index + 1}`}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          bgcolor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#e0e0e0',
+                          color: index < 3 ? '#fff' : '#333',
                         }}
-                      >
-                        <TableCell>
-                          <Chip 
-                            label={`#${index + 1}`}
-                            size="small"
-                            sx={{
-                              fontWeight: 700,
-                              bgcolor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#e0e0e0',
-                              color: index < 3 ? '#fff' : '#333',
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <BusinessIcon sx={{ color: '#667eea' }} />
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {business.businessName}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={business.selectedType || 'Business'}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
-                            {business.viewCount.toLocaleString()}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <BusinessIcon sx={{ color: '#667eea' }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {business.businessName}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={business.selectedType || 'Business'}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
+                        {business.viewCount.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
             </Box>
 
             {/* Mobile Card View */}
@@ -786,7 +786,7 @@ const AdminDashboard: React.FC = () => {
             <ReportIcon sx={{ color: '#667eea', fontSize: 28 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
               Generate Report
-            </Typography>
+          </Typography>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 5, pb: 2, px: 3, overflow: 'visible' }}>
@@ -799,13 +799,13 @@ const AdminDashboard: React.FC = () => {
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
                   label="Report Type"
-                  sx={{
-                    borderRadius: 2,
+              sx={{
+                borderRadius: 2,
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#d0d0d0',
-                    },
-                  }}
-                >
+                },
+              }}
+            >
                   <MenuItem value="user_summary">User Summary Report</MenuItem>
                   <MenuItem value="business_approvals">Business Approvals Report</MenuItem>
                   <MenuItem value="top_performers">Top Performing Businesses</MenuItem>
@@ -816,7 +816,7 @@ const AdminDashboard: React.FC = () => {
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
               <Box sx={{ flex: 1 }}>
                 <TextField
-                  fullWidth
+              fullWidth
                   label="Start Date"
                   type="date"
                   value={customStartDate}
@@ -840,69 +840,69 @@ const AdminDashboard: React.FC = () => {
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
                   InputLabelProps={{ shrink: true }}
-                  sx={{
+              sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
+                borderRadius: 2,
                       '& .MuiOutlinedInput-notchedOutline': {
                         borderColor: '#d0d0d0',
                       },
-                    },
-                  }}
+                },
+              }}
                 />
-              </Box>
-            </Box>
+          </Box>
+      </Box>
             <Box>
-              <Box 
-                sx={{ 
+      <Box
+          sx={{ 
                   p: 2, 
                   bgcolor: '#f5f5f5', 
                   borderRadius: 2,
-                  border: '1px solid #e0e0e0',
-                }}
-              >
+            border: '1px solid #e0e0e0',
+          }}
+        >
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#667eea' }}>
                   Report Preview
-                </Typography>
+          </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {reportType === 'user_summary' && 'This report will include total users, businesses, pending approvals, and account status.'}
                   {reportType === 'business_approvals' && 'This report will include pending approvals, total businesses, and account status.'}
                   {reportType === 'top_performers' && 'This report will include the top 5 performing businesses by view count.'}
                   {reportType === 'general' && 'This report will include all system statistics and metrics.'}
-                </Typography>
-              </Box>
+                        </Typography>
+                      </Box>
             </Box>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #e0e0e0', gap: 1 }}>
-          <Button 
+            <Button
             onClick={handleReportDialogClose} 
             disabled={generatingReport}
-            sx={{
-              textTransform: 'none',
+              sx={{
+                textTransform: 'none',
               px: 3,
               py: 1,
-              borderRadius: 2,
-            }}
-          >
+                borderRadius: 2,
+              }}
+            >
             Cancel
-          </Button>
-          <Button
+            </Button>
+            <Button
             onClick={handleGenerateReport}
             variant="contained"
             disabled={generatingReport}
             startIcon={generatingReport ? <CircularProgress size={20} /> : <DownloadIcon />}
-            sx={{
+              sx={{
               bgcolor: '#667eea',
-              textTransform: 'none',
+                textTransform: 'none',
               px: 3,
               py: 1,
-              borderRadius: 2,
+                borderRadius: 2,
               fontWeight: 600,
-              '&:hover': {
+                '&:hover': {
                 bgcolor: '#5568d3',
-              },
-            }}
-          >
+                },
+              }}
+            >
             {generatingReport ? 'Generating...' : 'Generate & Download'}
           </Button>
         </DialogActions>

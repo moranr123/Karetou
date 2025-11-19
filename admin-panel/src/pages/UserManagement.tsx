@@ -177,7 +177,7 @@ const UserManagement: React.FC = () => {
 
     // Filter by search term
     const searchMatch = 
-      (user.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (user.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
     return typeMatch && statusMatch && searchMatch;
