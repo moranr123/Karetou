@@ -46,6 +46,8 @@ import {
 } from '@mui/icons-material';
 import { collection, query, getDocs, doc, updateDoc, setDoc, where } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { logAdminAction } from '../utils/logAdminAction';
 
 interface BusinessRegistration {
   id: string;
@@ -79,6 +81,7 @@ interface BusinessApprovalsProps {
 }
 
 const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
+  const { user } = useAuth();
   const [businesses, setBusinesses] = useState<BusinessRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRegistration | null>(null);
@@ -238,6 +241,18 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
 
         // Notify all regular users about the new place
         await notifyUsersAboutNewPlace(business);
+
+        // Log admin action
+        await logAdminAction({
+          action: 'Approved Business',
+          actionType: 'approve',
+          targetType: 'business',
+          targetName: business.businessName,
+          targetId: business.id,
+          adminEmail: user?.email || '',
+          adminId: user?.uid || '',
+          details: `You approved business "${business.businessName}"`,
+        });
       }
       
       await fetchBusinesses();
@@ -285,6 +300,18 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
           'business_rejection',
           { ...business, status: 'rejected', rejectionReason }
         );
+
+        // Log admin action
+        await logAdminAction({
+          action: 'Rejected Business',
+          actionType: 'reject',
+          targetType: 'business',
+          targetName: business.businessName,
+          targetId: business.id,
+          adminEmail: user?.email || '',
+          adminId: user?.uid || '',
+          details: `You rejected business "${business.businessName}". Reason: ${rejectionReason}`,
+        });
       }
       
       await fetchBusinesses();

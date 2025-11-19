@@ -35,6 +35,7 @@ import {
   Cancel as RejectedIcon,
   ExpandLess,
   ExpandMore,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -84,7 +85,7 @@ const Layout: React.FC = () => {
       { text: 'User Management', icon: <PeopleIcon />, path: '/user-management' },
     ];
   } else {
-    // Regular admin menu - Dashboard and Business with sub-items
+    // Regular admin menu - Dashboard only
     menuItems = [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     ];
@@ -321,6 +322,55 @@ const Layout: React.FC = () => {
               </List>
             </Collapse>
           </>
+        )}
+
+        {/* History Log menu item (only for regular admins, below Business) */}
+        {userRole?.role !== 'superadmin' && (
+          <Tooltip title={!isExpanded ? 'History Log' : ''} placement="right" arrow>
+            <ListItem disablePadding sx={{ mb: 1 }}>
+              <ListItemButton
+                selected={location.pathname === '/history-log'}
+                onClick={() => navigate('/history-log')}
+                sx={{
+                  borderRadius: 2,
+                  minHeight: 48,
+                  justifyContent: isExpanded ? 'initial' : 'center',
+                  px: 2.5,
+                  '&.Mui-selected': {
+                    bgcolor: '#667eea',
+                    '&:hover': {
+                      bgcolor: '#5568d3',
+                    },
+                  },
+                  '&:hover': {
+                    bgcolor: 'rgba(102, 126, 234, 0.1)',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isExpanded ? 2 : 'auto',
+                    justifyContent: 'center',
+                    color: location.pathname === '/history-log' ? '#fff' : '#a0a0b0',
+                  }}
+                >
+                  <HistoryIcon />
+                </ListItemIcon>
+                {showText && (
+                  <ListItemText
+                    primary="History Log"
+                    sx={{
+                      opacity: 1,
+                      '& .MuiTypography-root': {
+                        fontWeight: location.pathname === '/history-log' ? 600 : 400,
+                      },
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          </Tooltip>
         )}
       </List>
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />

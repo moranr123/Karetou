@@ -12,6 +12,7 @@ const BusinessApprovals = lazy(() => import('./pages/BusinessApprovals'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const AdminManagement = lazy(() => import('./pages/AdminManagement'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
+const HistoryLog = lazy(() => import('./pages/HistoryLog'));
 
 const theme = createTheme({
   palette: {
@@ -74,6 +75,7 @@ const App: React.FC = () => {
               <Route path="business/pending" element={<BusinessApprovals tab="pending" />} />
               <Route path="business/approved" element={<BusinessApprovals tab="approved" />} />
               <Route path="business/rejected" element={<BusinessApprovals tab="rejected" />} />
+              <Route path="history-log" element={<HistoryLog />} />
               <Route 
                 path="user-management" 
                 element={

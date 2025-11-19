@@ -3,6 +3,7 @@ import { User, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'f
 import { doc, getDoc, onSnapshot, query, collection, getDocs, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { logActivity } from '../utils/activityLogger';
+import { logAdminAction } from '../utils/logAdminAction';
 
 interface UserRole {
   uid: string;
@@ -172,6 +173,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               role: userRoleForLog,
             },
           });
+
+          // Log to history log for regular admins
+          if (userRoleForLog === 'admin') {
+            await logAdminAction({
+              action: 'Logged In',
+              actionType: 'login',
+              targetType: 'admin',
+              targetName: result.user.email || email,
+              targetId: result.user.uid,
+              adminEmail: result.user.email || email,
+              adminId: result.user.uid,
+              details: 'You logged into the admin panel',
+            });
+          }
         }
       } catch (logError) {
         // Don't fail login if activity logging fails
@@ -202,11 +217,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             role: userRole.role,
           },
         });
+
+        // Log to history log for regular admins
+        if (userRole.role === 'admin') {
+          try {
+            await logAdminAction({
+              action: 'Logged Out',
+              actionType: 'logout',
+              targetType: 'admin',
+              targetName: user.email || '',
+              targetId: user.uid,
+              adminEmail: user.email || '',
+              adminId: user.uid,
+              details: 'You logged out of the admin panel',
+            });
+          } catch (logError) {
+            // Don't fail logout if logging fails
+            console.error('Error logging logout action:', logError);
+          }
+        }
       }
       
       await signOut(auth);
+      setUser(null);
       setUserRole(null);
     } catch (error) {
+      console.error('Error logging out:', error);
       throw error;
     }
   };
