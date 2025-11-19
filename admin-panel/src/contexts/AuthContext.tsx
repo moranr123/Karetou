@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, query, collection, getDocs, where } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, query, collection, getDocs, where, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { logActivity } from '../utils/activityLogger';
 import { logAdminAction } from '../utils/logAdminAction';
@@ -151,6 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Check if user is admin (either superadmin or regular admin)
         let userRoleForLog: 'superadmin' | 'admin' | null = null;
+        let adminDocId: string | null = null;
         if (isSuperAdmin) {
           userRoleForLog = 'superadmin';
         } else {
@@ -158,8 +159,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const adminSnapshot = await getDocs(adminQuery);
           if (!adminSnapshot.empty) {
             userRoleForLog = 'admin';
+            adminDocId = adminSnapshot.docs[0].id;
           }
         }
+        
+          // Don't update lastLogin on login anymore - we track logout time instead
         
         // Only log if user is an admin
         if (userRoleForLog) {
@@ -207,6 +211,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Log logout activity before signing out
       if (user && userRole) {
+        // Update lastLogin (logout time) for regular admins
+        if (userRole.role === 'admin') {
+          try {
+            const adminQuery = query(collection(db, 'adminUsers'), where('uid', '==', user.uid));
+            const adminSnapshot = await getDocs(adminQuery);
+            if (!adminSnapshot.empty) {
+              const adminDocId = adminSnapshot.docs[0].id;
+              const adminDocRef = doc(db, 'adminUsers', adminDocId);
+              await updateDoc(adminDocRef, {
+                lastLogin: new Date().toISOString(), // Store logout time
+              });
+            }
+          } catch (updateError) {
+            console.error('Error updating admin lastLogin on logout:', updateError);
+          }
+        }
+
         await logActivity({
           type: 'logout',
           title: 'Admin Logout',

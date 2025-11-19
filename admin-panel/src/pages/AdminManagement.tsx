@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -26,7 +25,7 @@ import {
 } from '@mui/material';
 import {
   Search,
-  Delete,
+  Archive,
   AdminPanelSettings,
   Email,
   CheckCircle,
@@ -34,8 +33,10 @@ import {
   Add,
   CalendarToday,
   Inbox,
+  Visibility,
+  VisibilityOff,
 } from '@mui/icons-material';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth, adminCreationAuth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,13 +60,9 @@ interface NewAdminData {
 }
 
 const AdminManagement: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialFilter = (searchParams.get('filter') as 'all' | 'active' | 'inactive') || 'all';
-  
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>(initialFilter);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -77,18 +74,24 @@ const AdminManagement: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { userRole } = useAuth();
+
+  const needsDeactivation = (admin: AdminUser): boolean => {
+    if (!admin.lastLogin) {
+      // If no lastLogin (logout time) recorded, don't show needs deactivation
+      return false;
+    }
+    const lastLogoutDate = new Date(admin.lastLogin); // lastLogin now stores logout time
+    const minutesSinceLogout = (new Date().getTime() - lastLogoutDate.getTime()) / (1000 * 60);
+    return minutesSinceLogout > 1;
+  };
 
   useEffect(() => {
     fetchAdmins();
   }, []);
 
-  useEffect(() => {
-    const filter = searchParams.get('filter');
-    if (filter && ['all', 'active', 'inactive'].includes(filter)) {
-      setStatusFilter(filter as 'all' | 'active' | 'inactive');
-    }
-  }, [searchParams]);
 
   const fetchAdmins = async () => {
     try {
@@ -180,12 +183,27 @@ const AdminManagement: React.FC = () => {
         });
       }
 
+      const createdEmail = newAdminData.email;
+      const newAdmin: AdminUser = {
+        id: userCredential.user.uid,
+        uid: userCredential.user.uid,
+        email: adminData.email,
+        role: 'admin',
+        isActive: adminData.isActive,
+        createdAt: adminData.createdAt,
+        createdBy: adminData.createdBy,
+        lastLogin: undefined,
+      };
+
+      // Add new admin to the list without refetching
+      setAdmins(prevAdmins => [...prevAdmins, newAdmin]);
+
       setNewAdminData({ email: '', password: '', confirmPassword: '' });
+      setShowPassword(false);
+      setShowConfirmPassword(false);
       setDialogOpen(false);
       
-      setSuccessMessage(`Admin account created successfully for ${newAdminData.email}`);
-      
-      await fetchAdmins();
+      setSuccessMessage(`Admin account created successfully for ${createdEmail}`);
       
       setTimeout(() => setSuccessMessage(''), 5000);
       
@@ -269,20 +287,34 @@ const AdminManagement: React.FC = () => {
     setAdminToDeactivate(null);
   };
 
-  const handleDeleteAdmin = async (adminId: string) => {
-    const adminToDelete = admins.find(a => a.id === adminId);
-    if (!adminToDelete) return;
+  const handleArchiveAdmin = async (adminId: string) => {
+    const adminToArchive = admins.find(a => a.id === adminId);
+    if (!adminToArchive) return;
 
-    if (window.confirm('Are you sure you want to delete this admin account?')) {
+    if (window.confirm('Are you sure you want to archive this admin account? You can restore them later from the Archive page.')) {
       try {
-        await deleteDoc(doc(db, 'adminUsers', adminId));
+        const adminRef = doc(db, 'adminUsers', adminId);
+        const adminDocSnap = await getDoc(adminRef);
+        
+        if (adminDocSnap.exists()) {
+          const adminData = adminDocSnap.data();
+          // Move to archived collection
+          await addDoc(collection(db, 'archivedAdmins'), {
+            ...adminData,
+            archivedAt: new Date().toISOString(),
+            originalId: adminId,
+            type: 'admin',
+          });
+          // Delete from adminUsers collection
+          await deleteDoc(adminRef);
+        }
         
         // Log activity
         if (userRole) {
           await logActivity({
             type: 'admin_deleted',
-            title: 'Admin Account Deleted',
-            description: `Admin account deleted for ${adminToDelete.email}`,
+            title: 'Admin Account Archived',
+            description: `Admin account archived for ${adminToArchive.email}`,
             performedBy: {
               uid: userRole.uid,
               email: userRole.email,
@@ -290,31 +322,27 @@ const AdminManagement: React.FC = () => {
             },
             targetId: adminId,
             targetType: 'admin',
-            metadata: { email: adminToDelete.email },
+            metadata: { email: adminToArchive.email },
           });
         }
         
         await fetchAdmins();
+        setSuccessMessage('Admin archived successfully');
+        setTimeout(() => setSuccessMessage(''), 5000);
       } catch (error) {
-        console.error('Error deleting admin:', error);
+        console.error('Error archiving admin:', error);
+        setError('Failed to archive admin');
+        setTimeout(() => setError(''), 5000);
       }
     }
   };
 
   const filteredAdmins = admins.filter((admin) => {
-    // Filter by status
-    let statusMatch = true;
-    if (statusFilter === 'active') {
-      statusMatch = admin.isActive === true;
-    } else if (statusFilter === 'inactive') {
-      statusMatch = admin.isActive === false;
-    }
-
     // Filter by search term
     const email = admin.email?.toLowerCase() || '';
     const searchMatch = email.includes(searchTerm.toLowerCase());
 
-    return statusMatch && searchMatch;
+    return searchMatch;
   });
 
   // Show loading first
@@ -428,56 +456,6 @@ const AdminManagement: React.FC = () => {
             ),
           }}
         />
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-          <Button
-            variant={statusFilter === 'all' ? 'contained' : 'outlined'}
-            onClick={() => {
-              setStatusFilter('all');
-              setSearchParams({});
-            }}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              px: 2,
-              minWidth: 'auto',
-            }}
-          >
-            All Admins
-          </Button>
-          <Button
-            variant={statusFilter === 'active' ? 'contained' : 'outlined'}
-            onClick={() => {
-              setStatusFilter('active');
-              setSearchParams({ filter: 'active' });
-            }}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              px: 2,
-              minWidth: 'auto',
-            }}
-          >
-            Active
-          </Button>
-          <Button
-            variant={statusFilter === 'inactive' ? 'contained' : 'outlined'}
-            onClick={() => {
-              setStatusFilter('inactive');
-              setSearchParams({ filter: 'inactive' });
-            }}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              px: 2,
-              minWidth: 'auto',
-            }}
-          >
-            Inactive
-          </Button>
-        </Box>
       </Box>
 
       {/* Desktop Table View */}
@@ -510,7 +488,7 @@ const AdminManagement: React.FC = () => {
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Admin</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Email</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Created</TableCell>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Last Logged</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -524,8 +502,8 @@ const AdminManagement: React.FC = () => {
                             No admins found
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {searchTerm || statusFilter !== 'all'
-                              ? 'Try adjusting your search or filter criteria.'
+                            {searchTerm
+                              ? 'Try adjusting your search criteria.'
                               : 'No admin accounts have been created yet.'}
                           </Typography>
                         </Box>
@@ -553,25 +531,47 @@ const AdminManagement: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Box display="flex" flexDirection="column" alignItems="flex-start">
-                          <Chip
-                            icon={admin.isActive ? <CheckCircle /> : <Block />}
-                            label={admin.isActive ? 'Active' : 'Inactive'}
-                            color={admin.isActive ? 'success' : 'error'}
-                            size="small"
-                            sx={{ fontSize: '0.75rem' }}
-                          />
+                        <Box display="flex" flexDirection="column" alignItems="flex-start" gap={0.5}>
+                          {admin.isActive && !needsDeactivation(admin) && (
+                            <Chip
+                              icon={<CheckCircle />}
+                              label="Active"
+                              color="success"
+                              size="small"
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
                           {!admin.isActive && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.75rem' }}>
+                            <Chip
+                              icon={<Block />}
+                              label="Inactive"
+                              color="error"
+                              size="small"
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
+                          {admin.isActive && needsDeactivation(admin) && (
+                            <Chip
+                              label="Needs Deactivation"
+                              color="warning"
+                              size="small"
+                              sx={{ fontSize: '0.7rem', height: '20px' }}
+                            />
+                          )}
+                          {!admin.isActive && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                               Cannot log in
                             </Typography>
                           )}
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                          {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
-                        </Typography>
+                        <Box display="flex" alignItems="center">
+                          <CalendarToday sx={{ mr: 1, fontSize: 16 }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                            {admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : 'Never'}
+                          </Typography>
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
@@ -591,19 +591,23 @@ const AdminManagement: React.FC = () => {
                             {admin.isActive ? 'Deactivate' : 'Activate'}
                           </Button>
                           <Button
-                            variant="outlined"
-                            color="error"
+                            variant="contained"
+                            color="warning"
                             size="small"
-                            onClick={() => handleDeleteAdmin(admin.id)}
-                            startIcon={<Delete />}
+                            onClick={() => handleArchiveAdmin(admin.id)}
+                            startIcon={<Archive />}
                             sx={{ 
                               fontSize: '0.75rem',
                               px: 1.5,
                               py: 0.5,
                               minWidth: 'auto',
+                              bgcolor: '#ff9800',
+                              '&:hover': {
+                                bgcolor: '#f57c00',
+                              },
                             }}
                           >
-                            Delete
+                            Archive
                           </Button>
                         </Box>
                       </TableCell>
@@ -628,8 +632,8 @@ const AdminManagement: React.FC = () => {
                   No admins found
                 </Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
-                  {searchTerm || statusFilter !== 'all'
-                    ? 'Try adjusting your search or filter criteria.'
+                  {searchTerm
+                    ? 'Try adjusting your search criteria.'
                     : 'No admin accounts have been created yet.'}
                 </Typography>
               </Box>
@@ -656,13 +660,34 @@ const AdminManagement: React.FC = () => {
                       Admin
                     </Typography>
                   </Box>
-                  <Chip
-                    icon={admin.isActive ? <CheckCircle /> : <Block />}
-                    label={admin.isActive ? 'Active' : 'Inactive'}
-                    color={admin.isActive ? 'success' : 'error'}
-                    size="small"
-                    sx={{ fontSize: '0.75rem' }}
-                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                    {admin.isActive && !needsDeactivation(admin) && (
+                      <Chip
+                        icon={<CheckCircle />}
+                        label="Active"
+                        color="success"
+                        size="small"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    )}
+                    {!admin.isActive && (
+                      <Chip
+                        icon={<Block />}
+                        label="Inactive"
+                        color="error"
+                        size="small"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    )}
+                    {admin.isActive && needsDeactivation(admin) && (
+                      <Chip
+                        label="Needs Deactivation"
+                        color="warning"
+                        size="small"
+                        sx={{ fontSize: '0.7rem', height: '20px' }}
+                      />
+                    )}
+                  </Box>
                 </Box>
                 
                 <Box sx={{ mb: 2 }}>
@@ -681,11 +706,11 @@ const AdminManagement: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <CalendarToday sx={{ fontSize: 16, color: '#666' }} />
                     <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#666' }}>
-                      Created
+                      Last Logged
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ fontSize: '0.875rem', ml: 3 }}>
-                    {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
+                    {admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : 'Never'}
                   </Typography>
                 </Box>
 
@@ -715,20 +740,24 @@ const AdminManagement: React.FC = () => {
                     {admin.isActive ? 'Deactivate' : 'Activate'}
                   </Button>
                   <Button
-                    variant="outlined"
-                    color="error"
+                    variant="contained"
+                    color="warning"
                     size="small"
-                    onClick={() => handleDeleteAdmin(admin.id)}
-                    startIcon={<Delete />}
+                    onClick={() => handleArchiveAdmin(admin.id)}
+                    startIcon={<Archive />}
                     sx={{ 
                       fontSize: '0.75rem',
                       px: 1.5,
                       py: 0.5,
                       minWidth: 'auto',
-                      textTransform: 'none'
+                      textTransform: 'none',
+                      bgcolor: '#ff9800',
+                      '&:hover': {
+                        bgcolor: '#f57c00',
+                      },
                     }}
                   >
-                    Delete
+                    Archive
                   </Button>
                 </Box>
               </CardContent>
@@ -738,7 +767,11 @@ const AdminManagement: React.FC = () => {
         )}
       </Box>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => {
+        setDialogOpen(false);
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+      }} maxWidth="sm" fullWidth>
         <DialogTitle>Create New Admin Account</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={(e) => { e.preventDefault(); handleCreateAdmin(); }} sx={{ pt: 2 }}>
@@ -760,27 +793,57 @@ const AdminManagement: React.FC = () => {
             <TextField
               fullWidth
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={newAdminData.password}
               onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
               margin="normal"
               required
               disabled={processing}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      disabled={processing}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               fullWidth
               label="Confirm Password"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               value={newAdminData.confirmPassword}
               onChange={(e) => setNewAdminData({ ...newAdminData, confirmPassword: e.target.value })}
               margin="normal"
               required
               disabled={processing}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                      disabled={processing}
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={processing}>
+          <Button onClick={() => {
+            setDialogOpen(false);
+            setShowPassword(false);
+            setShowConfirmPassword(false);
+          }} disabled={processing}>
             Cancel
           </Button>
           <Button

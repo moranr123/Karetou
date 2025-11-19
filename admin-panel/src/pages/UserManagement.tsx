@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import {
   Search,
-  Delete,
+  Archive,
   Person,
   Email,
   Phone,
@@ -32,7 +32,7 @@ import {
   CheckCircle,
   Block,
 } from '@mui/icons-material';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface User {
@@ -44,18 +44,27 @@ interface User {
   hasBusinessRegistration: boolean;
   businessId?: string;
   isActive: boolean;
+  lastLogin?: string;
 }
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [userFilter, setUserFilter] = useState<'all' | 'regular' | 'business'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [userToDeactivate, setUserToDeactivate] = useState<{ id: string; email: string; fullName: string; isActive: boolean } | null>(null);
+
+  const needsDeactivation = (user: User): boolean => {
+    if (!user.lastLogin) {
+      // If no lastLogin (logout time) recorded, don't show needs deactivation
+      return false;
+    }
+    const lastLogoutDate = new Date(user.lastLogin); // lastLogin now stores logout time
+    const minutesSinceLogout = (new Date().getTime() - lastLogoutDate.getTime()) / (1000 * 60);
+    return minutesSinceLogout > 1;
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -79,6 +88,7 @@ const UserManagement: React.FC = () => {
           hasBusinessRegistration: data.hasBusinessRegistration || false,
           businessId: data.businessId || undefined,
           isActive: data.isActive !== undefined ? data.isActive : true, // Default to active for existing users
+          lastLogin: data.lastLogin || undefined,
         } as User);
       });
       
@@ -143,44 +153,44 @@ const UserManagement: React.FC = () => {
     setUserToDeactivate(null);
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  const handleArchiveUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to archive this user? You can restore them later from the Archive page.')) {
       try {
-        await deleteDoc(doc(db, 'users', userId));
+        const userRef = doc(db, 'users', userId);
+        const userDocSnap = await getDoc(userRef);
+        
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          // Move to archived collection
+          await addDoc(collection(db, 'archivedUsers'), {
+            ...userData,
+            archivedAt: new Date().toISOString(),
+            originalId: userId,
+            type: 'user',
+          });
+          // Delete from users collection
+          await deleteDoc(userRef);
+        }
+        
         await fetchUsers();
-        setSuccessMessage('User deleted successfully');
+        setSuccessMessage('User archived successfully');
         setTimeout(() => setSuccessMessage(''), 5000);
       } catch (error) {
-        console.error('Error deleting user:', error);
-        setError('Failed to delete user');
+        console.error('Error archiving user:', error);
+        setError('Failed to archive user');
         setTimeout(() => setError(''), 5000);
       }
     }
   };
 
   const filteredUsers = users.filter((user) => {
-    // Filter by user type
-    let typeMatch = true;
-    if (userFilter === 'regular') {
-      typeMatch = !user.hasBusinessRegistration;
-    } else if (userFilter === 'business') {
-      typeMatch = user.hasBusinessRegistration;
-    }
-
-    // Filter by status
-    let statusMatch = true;
-    if (statusFilter === 'active') {
-      statusMatch = user.isActive === true;
-    } else if (statusFilter === 'inactive') {
-      statusMatch = user.isActive === false;
-    }
-
     // Filter by search term
     const searchMatch = 
-    (user.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (user.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.phoneNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
-    return typeMatch && statusMatch && searchMatch;
+    return searchMatch;
   });
 
   if (loading) {
@@ -273,90 +283,6 @@ const UserManagement: React.FC = () => {
             ),
           }}
         />
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-            <Button
-              variant={userFilter === 'all' ? 'contained' : 'outlined'}
-              onClick={() => setUserFilter('all')}
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                px: 2,
-                minWidth: 'auto',
-              }}
-            >
-              All Users
-            </Button>
-            <Button
-              variant={userFilter === 'regular' ? 'contained' : 'outlined'}
-              onClick={() => setUserFilter('regular')}
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                px: 2,
-                minWidth: 'auto',
-              }}
-            >
-              Regular User
-            </Button>
-            <Button
-              variant={userFilter === 'business' ? 'contained' : 'outlined'}
-              onClick={() => setUserFilter('business')}
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                px: 2,
-                minWidth: 'auto',
-              }}
-            >
-              Business Owner
-            </Button>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-            <Button
-              variant={statusFilter === 'all' ? 'contained' : 'outlined'}
-              onClick={() => setStatusFilter('all')}
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                px: 2,
-                minWidth: 'auto',
-              }}
-            >
-              All Status
-            </Button>
-            <Button
-              variant={statusFilter === 'active' ? 'contained' : 'outlined'}
-              onClick={() => setStatusFilter('active')}
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                px: 2,
-                minWidth: 'auto',
-              }}
-            >
-              Active
-            </Button>
-            <Button
-              variant={statusFilter === 'inactive' ? 'contained' : 'outlined'}
-              onClick={() => setStatusFilter('inactive')}
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                px: 2,
-                minWidth: 'auto',
-              }}
-            >
-              Inactive
-            </Button>
-          </Box>
-        </Box>
       </Box>
 
       {/* Desktop Table View */}
@@ -390,7 +316,7 @@ const UserManagement: React.FC = () => {
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Email</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Phone</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Joined</TableCell>
+                    <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Last Logged</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Business Status</TableCell>
                     <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
@@ -423,16 +349,35 @@ const UserManagement: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Box display="flex" flexDirection="column" alignItems="flex-start">
-                          <Chip
-                            icon={user.isActive ? <CheckCircle /> : <Block />}
-                            label={user.isActive ? 'Active' : 'Inactive'}
-                            color={user.isActive ? 'success' : 'error'}
-                            size="small"
-                            sx={{ fontSize: '0.75rem' }}
-                          />
+                        <Box display="flex" flexDirection="column" alignItems="flex-start" gap={0.5}>
+                          {user.isActive && !needsDeactivation(user) && (
+                            <Chip
+                              icon={<CheckCircle />}
+                              label="Active"
+                              color="success"
+                              size="small"
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
                           {!user.isActive && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.75rem' }}>
+                            <Chip
+                              icon={<Block />}
+                              label="Inactive"
+                              color="error"
+                              size="small"
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
+                          {user.isActive && needsDeactivation(user) && (
+                            <Chip
+                              label="Needs Deactivation"
+                              color="warning"
+                              size="small"
+                              sx={{ fontSize: '0.7rem', height: '20px' }}
+                            />
+                          )}
+                          {!user.isActive && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                               Cannot access app
                             </Typography>
                           )}
@@ -442,7 +387,7 @@ const UserManagement: React.FC = () => {
                         <Box display="flex" alignItems="center">
                           <CalendarToday sx={{ mr: 1, fontSize: 16 }} />
                           <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                            {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -472,19 +417,23 @@ const UserManagement: React.FC = () => {
                             {user.isActive ? 'Deactivate' : 'Activate'}
                           </Button>
                           <Button
-                            variant="outlined"
-                            color="error"
+                            variant="contained"
+                            color="warning"
                             size="small"
-                            onClick={() => handleDeleteUser(user.id)}
-                            startIcon={<Delete />}
+                            onClick={() => handleArchiveUser(user.id)}
+                            startIcon={<Archive />}
                             sx={{ 
                               fontSize: '0.75rem',
                               px: 1.5,
                               py: 0.5,
                               minWidth: 'auto',
+                              bgcolor: '#ff9800',
+                              '&:hover': {
+                                bgcolor: '#f57c00',
+                              },
                             }}
                           >
-                            Delete
+                            Archive
                           </Button>
                         </Box>
                       </TableCell>
@@ -512,20 +461,41 @@ const UserManagement: React.FC = () => {
               }}
             >
               <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Person sx={{ fontSize: 24, color: '#667eea' }} />
                     <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
                       {user.fullName || 'N/A'}
                     </Typography>
                   </Box>
-                  <Chip
-                    icon={user.isActive ? <CheckCircle /> : <Block />}
-                    label={user.isActive ? 'Active' : 'Inactive'}
-                    color={user.isActive ? 'success' : 'error'}
-                    size="small"
-                    sx={{ fontSize: '0.75rem' }}
-                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                    {user.isActive && !needsDeactivation(user) && (
+                      <Chip
+                        icon={<CheckCircle />}
+                        label="Active"
+                        color="success"
+                        size="small"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    )}
+                    {!user.isActive && (
+                      <Chip
+                        icon={<Block />}
+                        label="Inactive"
+                        color="error"
+                        size="small"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    )}
+                    {user.isActive && needsDeactivation(user) && (
+                      <Chip
+                        label="Needs Deactivation"
+                        color="warning"
+                        size="small"
+                        sx={{ fontSize: '0.7rem', height: '20px' }}
+                      />
+                    )}
+                  </Box>
                 </Box>
                 
                 <Box sx={{ mb: 2 }}>
@@ -556,11 +526,11 @@ const UserManagement: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <CalendarToday sx={{ fontSize: 16, color: '#666' }} />
                     <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#666' }}>
-                      Joined
+                      Last Logged
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ fontSize: '0.875rem', ml: 3 }}>
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                   </Typography>
                 </Box>
 
@@ -602,20 +572,24 @@ const UserManagement: React.FC = () => {
                     {user.isActive ? 'Deactivate' : 'Activate'}
                   </Button>
                   <Button
-                    variant="outlined"
-                    color="error"
+                    variant="contained"
+                    color="warning"
                     size="small"
-                    onClick={() => handleDeleteUser(user.id)}
-                    startIcon={<Delete />}
+                    onClick={() => handleArchiveUser(user.id)}
+                    startIcon={<Archive />}
                     sx={{ 
                       fontSize: '0.75rem',
                       px: 1.5,
                       py: 0.5,
                       minWidth: 'auto',
-                      textTransform: 'none'
+                      textTransform: 'none',
+                      bgcolor: '#ff9800',
+                      '&:hover': {
+                        bgcolor: '#f57c00',
+                      },
                     }}
                   >
-                    Delete
+                    Archive
                   </Button>
                 </Box>
               </CardContent>

@@ -97,6 +97,9 @@ export default function BusinessLogin({ navigation }: Props) {
         if (userData.userType === 'business') {
         // Set user type as business owner
         setUserType('business');
+        
+        // Don't update lastLogin on login anymore - we track logout time instead
+        
         Alert.alert('Success', 'Welcome back, Business Owner!');
       } else {
         // Not a business user, show alert and log out

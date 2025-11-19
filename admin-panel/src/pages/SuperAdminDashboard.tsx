@@ -14,9 +14,26 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Alert,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
-import { collection, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import {
+  PersonAdd as PersonAddIcon,
+  Visibility,
+  VisibilityOff,
+} from '@mui/icons-material';
+import { collection, getDocs, Timestamp, addDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { db, adminCreationAuth } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { logActivity } from '../utils/activityLogger';
 
 interface DashboardStats {
   totalUsers: number;
@@ -26,10 +43,17 @@ interface DashboardStats {
 }
 
 
+interface NewAdminData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
 const SuperAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { userRole } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalAdmins: 0,
@@ -40,6 +64,21 @@ const SuperAdminDashboard: React.FC = () => {
   const [userGraphData, setUserGraphData] = useState<{ date: string; count: number }[]>([]);
   const [userGraphDateFilter, setUserGraphDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('month');
   const [userGraphLoading, setUserGraphLoading] = useState(false);
+  const [accountsNeedingDeactivation, setAccountsNeedingDeactivation] = useState({
+    users: 0,
+    admins: 0,
+  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [createAdminError, setCreateAdminError] = useState('');
+  const [createAdminSuccess, setCreateAdminSuccess] = useState('');
+  const [newAdminData, setNewAdminData] = useState<NewAdminData>({
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 
   const fetchUserGraphData = useCallback(async () => {
@@ -124,36 +163,153 @@ const SuperAdminDashboard: React.FC = () => {
     }
   }, [userGraphDateFilter]);
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchUserGraphData();
-  }, [fetchUserGraphData]);
+  const fetchDashboardData = useCallback(async () => {
+    const needsDeactivation = (lastLogin: string | undefined): boolean => {
+      if (!lastLogin) {
+        return false;
+      }
+      const lastLogoutDate = new Date(lastLogin);
+      const minutesSinceLogout = (new Date().getTime() - lastLogoutDate.getTime()) / (1000 * 60);
+      return minutesSinceLogout > 1;
+    };
 
-  const fetchDashboardData = async () => {
     try {
       setLoading(true);
       // Fetch users count
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const totalUsers = usersSnapshot.size;
+      
+      // Count users needing deactivation
+      let usersNeedingDeactivation = 0;
+      usersSnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Check if user is active (default to true if not set) and needs deactivation
+        const isActive = data.isActive !== undefined ? data.isActive : true;
+        if (isActive && needsDeactivation(data.lastLogin)) {
+          usersNeedingDeactivation++;
+        }
+      });
+      
       // Fetch admin users
       const adminsSnapshot = await getDocs(collection(db, 'adminUsers'));
       const totalAdmins = adminsSnapshot.size;
       const activeAdmins = adminsSnapshot.docs.filter(doc => doc.data().isActive).length;
       const inactiveAdmins = totalAdmins - activeAdmins;
+      
+      // Count admins needing deactivation
+      let adminsNeedingDeactivation = 0;
+      adminsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.role === 'admin' && data.isActive && needsDeactivation(data.lastLogin)) {
+          adminsNeedingDeactivation++;
+        }
+      });
+      
       setStats({
         totalUsers,
         totalAdmins,
         activeAdmins,
         inactiveAdmins,
       });
+      
+      setAccountsNeedingDeactivation({
+        users: usersNeedingDeactivation,
+        admins: adminsNeedingDeactivation,
+      });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+    fetchUserGraphData();
+  }, [fetchDashboardData, fetchUserGraphData]);
+
+  const handleCreateAdmin = async () => {
+    if (newAdminData.password !== newAdminData.confirmPassword) {
+      setCreateAdminError('Passwords do not match');
+      return;
+    }
+
+    if (newAdminData.password.length < 6) {
+      setCreateAdminError('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setCreateAdminError('');
+      setCreateAdminSuccess('');
+
+      if (!userRole) {
+        setCreateAdminError('You must be logged in to create admin accounts');
+        setProcessing(false);
+        return;
+      }
+
+      const currentUserUid = userRole.uid;
+
+      const userCredential = await createUserWithEmailAndPassword(
+        adminCreationAuth,
+        newAdminData.email,
+        newAdminData.password
+      );
+
+      const adminData = {
+        uid: userCredential.user.uid,
+        email: newAdminData.email,
+        role: 'admin' as const,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUserUid,
+      };
+
+      await addDoc(collection(db, 'adminUsers'), adminData);
+
+      // Log activity
+      if (userRole) {
+        await logActivity({
+          type: 'admin_created',
+          title: 'Admin Account Created',
+          description: `Admin account created for ${newAdminData.email}`,
+          performedBy: {
+            uid: currentUserUid,
+            email: userRole.email,
+            role: userRole.role,
+          },
+          targetId: userCredential.user.uid,
+          targetType: 'admin',
+          metadata: { email: newAdminData.email },
+        });
+      }
+
+      const createdEmail = newAdminData.email;
+      setNewAdminData({ email: '', password: '', confirmPassword: '' });
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+      setDialogOpen(false);
+      
+      setCreateAdminSuccess(`Admin account created successfully for ${createdEmail}`);
+      
+      // Update stats without full rerender - just increment counts
+      setStats(prevStats => ({
+        ...prevStats,
+        totalAdmins: prevStats.totalAdmins + 1,
+        activeAdmins: prevStats.activeAdmins + 1,
+      }));
+      
+      setTimeout(() => setCreateAdminSuccess(''), 5000);
+      
+    } catch (error: any) {
+      console.error('Error creating admin:', error);
+      setCreateAdminError(error.message || 'Failed to create admin account');
+    } finally {
+      setProcessing(false);
+    }
   };
-
-
 
   if (loading) {
     return (
@@ -173,6 +329,169 @@ const SuperAdminDashboard: React.FC = () => {
           You have full system access. Manage users, businesses, and admin accounts.
         </Typography>
       </Box>
+
+      {/* Success Message */}
+      {createAdminSuccess && (
+        <Alert 
+          severity="success" 
+          sx={{ 
+            position: 'fixed', 
+            top: 20, 
+            right: 20, 
+            zIndex: 9999,
+            minWidth: 300,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          {createAdminSuccess}
+        </Alert>
+      )}
+
+      {/* Accounts Needing Deactivation Alert */}
+      {(accountsNeedingDeactivation.users > 0 || accountsNeedingDeactivation.admins > 0) && (
+        <Alert 
+          severity="warning" 
+          sx={{ 
+            mb: 4,
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            '& .MuiAlert-message': {
+              width: '100%',
+            },
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+          }}
+          action={
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                gap: 1, 
+                alignItems: 'center',
+                flexDirection: { xs: 'column', sm: 'row' },
+                width: { xs: '100%', sm: 'auto' },
+                mt: { xs: 2, sm: 0 },
+                '& > button': {
+                  width: { xs: '100%', sm: 'auto' },
+                },
+              }}
+            >
+              {accountsNeedingDeactivation.users > 0 && (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => navigate('/user-management')}
+                  sx={{ 
+                    textTransform: 'none',
+                    width: { xs: '100%', sm: 'auto' },
+                    minWidth: { xs: '100%', sm: 'auto' },
+                  }}
+                >
+                  View Users ({accountsNeedingDeactivation.users})
+                </Button>
+              )}
+              {accountsNeedingDeactivation.admins > 0 && (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => navigate('/admin-management')}
+                  sx={{ 
+                    textTransform: 'none',
+                    width: { xs: '100%', sm: 'auto' },
+                    minWidth: { xs: '100%', sm: 'auto' },
+                  }}
+                >
+                  View Admins ({accountsNeedingDeactivation.admins})
+                </Button>
+              )}
+            </Box>
+          }
+        >
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 600, 
+              mb: 0.5,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+            }}
+          >
+            Accounts Need Deactivation
+          </Typography>
+          <Typography 
+            variant="body2"
+            sx={{
+              fontSize: { xs: '0.875rem', sm: '0.875rem' },
+            }}
+          >
+            {accountsNeedingDeactivation.users > 0 && accountsNeedingDeactivation.admins > 0 && (
+              <>There are <strong>{accountsNeedingDeactivation.users}</strong> user{accountsNeedingDeactivation.users !== 1 ? 's' : ''} and <strong>{accountsNeedingDeactivation.admins}</strong> admin{accountsNeedingDeactivation.admins !== 1 ? 's' : ''} that need to be deactivated.</>
+            )}
+            {accountsNeedingDeactivation.users > 0 && accountsNeedingDeactivation.admins === 0 && (
+              <>There are <strong>{accountsNeedingDeactivation.users}</strong> user{accountsNeedingDeactivation.users !== 1 ? 's' : ''} that need to be deactivated.</>
+            )}
+            {accountsNeedingDeactivation.users === 0 && accountsNeedingDeactivation.admins > 0 && (
+              <>There are <strong>{accountsNeedingDeactivation.admins}</strong> admin{accountsNeedingDeactivation.admins !== 1 ? 's' : ''} that need to be deactivated.</>
+            )}
+          </Typography>
+          <Typography 
+            variant="body2"
+            sx={{
+              fontSize: { xs: '0.8rem', sm: '0.8rem' },
+              color: 'text.secondary',
+              mt: 1,
+              fontStyle: 'italic',
+            }}
+          >
+            Reason: These accounts have not logged out for more than 1 minute, indicating prolonged inactivity.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Quick Actions Card */}
+      <Card 
+        sx={{ 
+          mb: 4,
+          borderRadius: 2,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #e0e0e0',
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 600, 
+              mb: 2,
+              color: '#1a1a2e',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+            }}
+          >
+            Quick Actions
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => setDialogOpen(true)}
+              sx={{
+                textTransform: 'none',
+                borderRadius: 2,
+                px: 3,
+                py: 1.5,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%)',
+                  boxShadow: '0 6px 16px rgba(102, 126, 234, 0.35)',
+                  transform: 'translateY(-2px)',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              Create Admin
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
         
       {/* Statistics Cards */}
       <Box
@@ -499,6 +818,99 @@ const SuperAdminDashboard: React.FC = () => {
           </Box>
         )}
         </Paper>
+
+      {/* Create Admin Dialog */}
+      <Dialog open={dialogOpen} onClose={() => {
+        setDialogOpen(false);
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+      }} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Admin Account</DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={(e) => { e.preventDefault(); handleCreateAdmin(); }} sx={{ pt: 2 }}>
+            {createAdminError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {createAdminError}
+              </Alert>
+            )}
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={newAdminData.email}
+              onChange={(e) => setNewAdminData({ ...newAdminData, email: e.target.value })}
+              margin="normal"
+              required
+              disabled={processing}
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              value={newAdminData.password}
+              onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
+              margin="normal"
+              required
+              disabled={processing}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      disabled={processing}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Confirm Password"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={newAdminData.confirmPassword}
+              onChange={(e) => setNewAdminData({ ...newAdminData, confirmPassword: e.target.value })}
+              margin="normal"
+              required
+              disabled={processing}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                      disabled={processing}
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setDialogOpen(false);
+            setCreateAdminError('');
+            setNewAdminData({ email: '', password: '', confirmPassword: '' });
+            setShowPassword(false);
+            setShowConfirmPassword(false);
+          }} disabled={processing}>
+            Cancel
+          </Button>
+          <Button
+            onClick={(e) => { e.preventDefault(); handleCreateAdmin(); }}
+            variant="contained"
+            disabled={processing || !newAdminData.email || !newAdminData.password}
+            type="button"
+          >
+            {processing ? <CircularProgress size={20} /> : 'Create Admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

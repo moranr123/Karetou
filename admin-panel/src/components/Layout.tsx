@@ -32,6 +32,7 @@ import {
   ExpandLess,
   ExpandMore,
   History as HistoryIcon,
+  Inbox,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -43,6 +44,7 @@ const Layout: React.FC = () => {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [drawerHovered, setDrawerHovered] = useState(false);
   const [businessMenuOpen, setBusinessMenuOpen] = useState(false);
+  const [archiveMenuOpen, setArchiveMenuOpen] = useState(false);
   const { userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,7 +76,7 @@ const Layout: React.FC = () => {
   let menuItems = [];
   
   if (userRole?.role === 'superadmin') {
-    // Superadmin menu - Dashboard, Admin Management, User Management, and History Log
+    // Superadmin menu - Dashboard, Admin Management, User Management, History Log, and Archive
     menuItems = [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
       { text: 'Admin Management', icon: <AdminIcon />, path: '/admin-management' },
@@ -94,6 +96,11 @@ const Layout: React.FC = () => {
     { text: 'Archived Business', icon: <RejectedIcon />, path: '/business/rejected' },
   ];
 
+  const archiveSubItems = [
+    { text: 'Users', icon: <PeopleIcon />, path: '/archive?tab=user', tab: 'user' },
+    { text: 'Admins', icon: <AdminIcon />, path: '/archive?tab=admin', tab: 'admin' },
+  ];
+
   const isExpanded = drawerHovered;
   const isMobileDrawer = window.innerWidth < 600; // Check if mobile
   const showText = isMobileDrawer || isExpanded; // Show text on mobile or when hovered on desktop
@@ -111,6 +118,20 @@ const Layout: React.FC = () => {
       setBusinessMenuOpen(true);
     }
   }, [mobileOpen]);
+
+  // Auto-expand Archive menu if on archive route
+  React.useEffect(() => {
+    if (location.pathname === '/archive') {
+      setArchiveMenuOpen(true);
+    }
+  }, [location.pathname]);
+
+  // Auto-expand Archive menu on mobile when drawer opens
+  React.useEffect(() => {
+    if (mobileOpen && window.innerWidth < 600 && location.pathname === '/archive') {
+      setArchiveMenuOpen(true);
+    }
+  }, [mobileOpen, location.pathname]);
 
   const drawer = (
     <Box
@@ -310,6 +331,117 @@ const Layout: React.FC = () => {
                           '& .MuiTypography-root': {
                             fontSize: '0.9rem',
                             fontWeight: location.pathname === subItem.path ? 600 : 400,
+                          },
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </>
+        )}
+
+        {/* Archive menu item with sub-items (only for superadmin) */}
+        {userRole?.role === 'superadmin' && (
+          <>
+            <Tooltip title={!isExpanded ? 'Archive' : ''} placement="right" arrow>
+              <ListItem disablePadding sx={{ mb: 1 }}>
+                <ListItemButton
+                  selected={location.pathname === '/archive'}
+                  onClick={() => {
+                    // On mobile, always expand the menu when clicking Archive
+                    if (window.innerWidth < 600) {
+                      setArchiveMenuOpen(!archiveMenuOpen);
+                    } else if (isExpanded) {
+                      setArchiveMenuOpen(!archiveMenuOpen);
+                    } else {
+                      navigate('/archive?tab=user');
+                    }
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    minHeight: 48,
+                    justifyContent: isExpanded ? 'initial' : 'center',
+                    px: 2.5,
+                    '&.Mui-selected': {
+                      bgcolor: '#667eea',
+                      '&:hover': {
+                        bgcolor: '#5568d3',
+                      },
+                    },
+                    '&:hover': {
+                      bgcolor: 'rgba(102, 126, 234, 0.1)',
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: isExpanded ? 2 : 'auto',
+                      justifyContent: 'center',
+                      color: location.pathname === '/archive' ? '#fff' : '#a0a0b0',
+                    }}
+                  >
+                    <Inbox />
+                  </ListItemIcon>
+                  {showText && (
+                    <>
+                      <ListItemText
+                        primary="Archive"
+                        sx={{
+                          opacity: 1,
+                          '& .MuiTypography-root': {
+                            fontWeight: location.pathname === '/archive' ? 600 : 400,
+                          },
+                        }}
+                      />
+                      {archiveMenuOpen ? <ExpandLess /> : <ExpandMore />}
+                    </>
+                  )}
+                </ListItemButton>
+              </ListItem>
+            </Tooltip>
+            
+            {/* Archive sub-items */}
+            <Collapse in={archiveMenuOpen && showText} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {archiveSubItems.map((subItem) => (
+                  <ListItem key={subItem.text} disablePadding sx={{ mb: 1 }}>
+                    <ListItemButton
+                      selected={location.pathname === '/archive' && location.search.includes(`tab=${subItem.tab}`)}
+                      onClick={() => navigate(subItem.path)}
+                      sx={{
+                        borderRadius: 2,
+                        minHeight: 40,
+                        pl: 5,
+                        '&.Mui-selected': {
+                          bgcolor: 'rgba(102, 126, 234, 0.7)',
+                          '&:hover': {
+                            bgcolor: 'rgba(102, 126, 234, 0.6)',
+                          },
+                        },
+                        '&:hover': {
+                          bgcolor: 'rgba(102, 126, 234, 0.05)',
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 0,
+                          mr: 2,
+                          justifyContent: 'center',
+                          color: location.pathname === '/archive' && location.search.includes(`tab=${subItem.tab}`) ? '#fff' : '#a0a0b0',
+                        }}
+                      >
+                        {subItem.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={subItem.text}
+                        sx={{
+                          '& .MuiTypography-root': {
+                            fontSize: '0.9rem',
+                            fontWeight: location.pathname === '/archive' && location.search.includes(`tab=${subItem.tab}`) ? 600 : 400,
                           },
                         }}
                       />

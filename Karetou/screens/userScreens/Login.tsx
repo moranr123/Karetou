@@ -204,7 +204,8 @@ export default function Login({ navigation }: Props) {
       console.log('✅ Login Debug - User signed in successfully:', user.uid);
       
       // Check if user has a Firestore document
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
       
       if (!userDoc.exists()) {
         console.log('✅ Login Debug - No Firestore document found, treating as regular user');
@@ -231,6 +232,9 @@ export default function Login({ navigation }: Props) {
           console.log('✅ Login Debug - User type is user or undefined, allowing login');
           // Set user type as regular user
           setUserType('user');
+          
+          // Don't update lastLogin on login anymore - we track logout time instead
+          
           Alert.alert('Success', 'Welcome back!');
         } else {
           console.log('❌ Login Debug - User type is business, blocking login');

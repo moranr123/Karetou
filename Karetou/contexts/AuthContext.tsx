@@ -5,7 +5,7 @@ import { Appearance, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService, { NotificationData } from '../services/NotificationService';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 type Theme = 'light' | 'dark';
 type UserType = 'user' | 'business' | null;
@@ -111,6 +111,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔓 Logging out. Current userType:', userType, 'Setting as lastUserType');
       setLastUserType(userType);
       
+      // Update lastLogin (logout time) for users
+      if (user?.uid) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          await updateDoc(userDocRef, {
+            lastLogin: new Date().toISOString(), // Store logout time
+          });
+        } catch (updateError) {
+          console.error('Error updating user lastLogin on logout:', updateError);
+        }
+      }
+      
       // Clean up notification listeners before logout
       notificationService.cleanup();
       
@@ -121,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  }, [userType]);
+  }, [userType, user]);
 
   const markNotificationAsRead = useCallback(async (notificationId: string) => {
     try {
