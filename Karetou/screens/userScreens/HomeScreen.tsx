@@ -676,6 +676,28 @@ const HomeScreen = () => {
       fontWeight: '600',
       marginLeft: spacing.xs,
     },
+    viewReviewsBtn: {
+      marginTop: spacing.md,
+      width: '100%',
+      backgroundColor: '#667eea',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: 12,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    viewReviewsText: {
+      color: '#fff',
+      fontWeight: '600',
+      marginLeft: spacing.xs,
+      fontSize: 16,
+    },
     reviewButtonDetails: {
       marginTop: spacing.md,
       width: '100%',
@@ -2177,43 +2199,26 @@ const HomeScreen = () => {
                     <Text style={styles.viewMapText}> View on Map</Text>
                   </TouchableOpacity>
                 )}
-                {/* Review Button */}
+                {/* View Reviews Button */}
                 <TouchableOpacity
-                  style={[
-                    styles.reviewButtonDetails,
-                    userReview && styles.reviewButtonDetailsDisabled
-                  ]}
-                  onPress={async () => {
-                    if (!selectedPlace) return;
-                    
-                    // Check if already reviewed
-                    const alreadyReviewed = await checkIfUserReviewed(selectedPlace.id);
-                    if (alreadyReviewed) {
-                      Alert.alert(
-                        'Already Reviewed',
-                        'You have already reviewed this business. Thank you for your feedback!'
-                      );
-                      return;
-                    }
-                    
-                    // Fetch user review and open review modal
-                    await fetchUserReview(selectedPlace.id);
+                  style={styles.viewReviewsBtn}
+                  onPress={() => {
+                    // Close the current modal first
                     setDetailsModalVisible(false);
-                    setReviewModalVisible(true);
+                    
+                    // Navigate to ReviewsScreen with business data
+                    (navigation as any).navigate('ReviewsScreen', {
+                      businessToView: {
+                        id: selectedPlace.id,
+                        name: selectedPlace.name,
+                        businessType: selectedPlace.businessType,
+                        businessAddress: selectedPlace.location || selectedPlace.businessAddress,
+                      }
+                    });
                   }}
-                  disabled={!!userReview}
                 >
-                  <Ionicons 
-                    name={userReview ? "checkmark-circle" : "star"} 
-                    size={20} 
-                    color={userReview ? "#4CAF50" : "#fff"} 
-                  />
-                  <Text style={[
-                    styles.reviewButtonDetailsText,
-                    userReview && styles.reviewButtonDetailsTextDisabled
-                  ]}>
-                    {userReview ? 'Reviewed' : 'Write Review'}
-                  </Text>
+                  <Ionicons name="star" size={20} color="#fff" />
+                  <Text style={styles.viewReviewsText}> View Reviews</Text>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.closeButtonModal} onPress={() => setDetailsModalVisible(false)}>
@@ -2387,9 +2392,6 @@ const HomeScreen = () => {
                       <Text style={styles.loyaltyBusinessName} numberOfLines={1}>
                         {item.businessName}
                       </Text>
-                      <Text style={styles.loyaltyBusinessScans}>
-                        {item.scans} {item.scans === 1 ? 'scan' : 'scans'}
-                      </Text>
                     </View>
                     <View style={styles.loyaltyBusinessRight}>
                       <View style={styles.loyaltyBusinessPoints}>
@@ -2436,6 +2438,7 @@ const HomeScreen = () => {
           setTransferPointsModalVisible(false);
           setPointsToTransfer('');
           setSelectedBusinessForTransfer(null);
+          setTransferring(false); // Reset transferring state
         }}
       >
         <View style={styles.loyaltyModalOverlay}>
@@ -2447,6 +2450,7 @@ const HomeScreen = () => {
                   setTransferPointsModalVisible(false);
                   setPointsToTransfer('');
                   setSelectedBusinessForTransfer(null);
+                  setTransferring(false); // Reset transferring state
                 }}
               >
                 <Ionicons name="close" size={28} color="#000" />
@@ -2509,13 +2513,17 @@ const HomeScreen = () => {
                       );
                       
                       if (result.success) {
+                        // Reset all states first
+                        setTransferring(false);
+                        setPointsToTransfer('');
+                        const businessToClose = selectedBusinessForTransfer;
+                        setSelectedBusinessForTransfer(null);
+                        
                         Alert.alert('Success!', result.message, [
                           {
                             text: 'OK',
                             onPress: () => {
                               setTransferPointsModalVisible(false);
-                              setPointsToTransfer('');
-                              setSelectedBusinessForTransfer(null);
                               loadUserPoints(); // Reload points
                             },
                           },

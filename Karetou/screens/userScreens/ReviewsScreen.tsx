@@ -12,6 +12,7 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc, orderBy, limit } from 'firebase/firestore';
 import NotificationService from '../../services/NotificationService';
+import PointsService from '../../services/PointsService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -57,6 +59,8 @@ const ReviewsScreen = () => {
   const [allReviewsForBusiness, setAllReviewsForBusiness] = useState<any[]>([]);
   const [isFromQRCode, setIsFromQRCode] = useState(false);
   const [reviewedBusinessIds, setReviewedBusinessIds] = useState<Set<string>>(new Set());
+  const [scannedBusinessIds, setScannedBusinessIds] = useState<Set<string>>(new Set());
+  const pointsService = PointsService.getInstance();
 
   // Check if user has already reviewed a business
   const checkIfUserReviewed = async (businessId: string): Promise<boolean> => {
@@ -121,27 +125,84 @@ const ReviewsScreen = () => {
     }
   }, [route.params, navigation, user]);
 
+  // Handle business to view from navigation params
+  const handleBusinessToView = useCallback(async () => {
+    const params = (route.params as any);
+    
+    if (params?.businessToView) {
+      const businessToView = params.businessToView;
+      console.log('📱 ReviewsScreen - Business to view:', businessToView);
+      
+      // Find the business in the businesses list
+      const business = businesses.find(b => b.id === businessToView.id);
+      
+      if (business) {
+        // Load all reviews and show modal
+        try {
+          const reviewsRef = collection(db, 'businesses', businessToView.id, 'reviews');
+          const reviewsSnapshot = await getDocs(reviewsRef);
+          
+          const reviews = reviewsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          
+          // Sort by date (newest first)
+          reviews.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            return dateB - dateA;
+          });
+          
+          setAllReviewsForBusiness(reviews);
+          setSelectedBusinessForAllReviews(business);
+          setAllReviewsModalVisible(true);
+        } catch (error) {
+          console.error('Error loading all reviews:', error);
+        }
+      }
+      
+      // Clear the params to avoid reopening
+      navigation.setParams({ businessToView: undefined });
+    }
+  }, [route.params, navigation, businesses]);
+
   // Check on mount and when route params change
   useEffect(() => {
     handleQRBusiness();
   }, [handleQRBusiness]);
 
+  // Handle business to view after businesses are loaded
+  useEffect(() => {
+    if (businesses.length > 0) {
+      handleBusinessToView();
+    }
+  }, [businesses, handleBusinessToView]);
+
   // Also check when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       handleQRBusiness();
-    }, [handleQRBusiness])
+      handleBusinessToView();
+    }, [handleQRBusiness, handleBusinessToView])
   );
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
 
-  // Load which businesses the user has reviewed
+  // Load which businesses the user has reviewed and scanned
   const loadUserReviewedBusinesses = useCallback(async () => {
     if (!user?.uid) return;
     
     try {
       const reviewedIds = new Set<string>();
+      const scannedIds = new Set<string>();
+      
+      // Get user's scan history
+      const userPoints = await pointsService.getUserPoints(user.uid);
+      userPoints.scanHistory.forEach(scan => {
+        scannedIds.add(scan.businessId);
+      });
       
       // Get all businesses
       const businessesQuery = query(
@@ -163,6 +224,7 @@ const ReviewsScreen = () => {
       }
       
       setReviewedBusinessIds(reviewedIds);
+      setScannedBusinessIds(scannedIds);
     } catch (error) {
       console.error('Error loading user reviewed businesses:', error);
     }
@@ -293,13 +355,26 @@ const ReviewsScreen = () => {
     
     setReviewLoading(true);
     try {
+      // Check if user has scanned the business's QR code
+      const hasScanned = await pointsService.hasScannedBusiness(user.uid, selectedBusiness.id);
+      
+      if (!hasScanned) {
+        Alert.alert(
+          'QR Code Required',
+          'You must scan this business\'s QR code before you can leave a review. Please visit the business and scan their QR code first.',
+          [{ text: 'OK' }]
+        );
+        setReviewLoading(false);
+        return;
+      }
+      
       // Check if user already reviewed this business
       const reviewsRef = collection(db, 'businesses', selectedBusiness.id, 'reviews');
       const q = query(reviewsRef, where('userId', '==', user.uid));
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
-        alert('You have already reviewed this business!');
+        Alert.alert('Already Reviewed', 'You have already reviewed this business!');
         setReviewLoading(false);
         return;
       }
@@ -353,39 +428,41 @@ const ReviewsScreen = () => {
             </Text>
           )}
         </View>
-        <TouchableOpacity
-          style={[
-            styles.reviewButton,
-            reviewedBusinessIds.has(item.id) && styles.reviewButtonDisabled
-          ]}
-          onPress={async () => {
-            // Check if already reviewed
-            const alreadyReviewed = reviewedBusinessIds.has(item.id) || await checkIfUserReviewed(item.id);
-            if (alreadyReviewed) {
-              Alert.alert(
-                'Already Reviewed',
-                'You have already reviewed this business. Thank you for your feedback!'
-              );
-              return;
-            }
-            setSelectedBusiness(item);
-            setReviewModalVisible(true);
-          }}
-          disabled={reviewedBusinessIds.has(item.id)}
-        >
-          <Ionicons 
-            name={reviewedBusinessIds.has(item.id) ? "checkmark-circle" : "star"} 
-            size={16} 
-            color={reviewedBusinessIds.has(item.id) ? "#4CAF50" : "#FFD700"} 
-            style={styles.reviewButtonIcon} 
-          />
-          <Text style={[
-            styles.reviewButtonText,
-            reviewedBusinessIds.has(item.id) && styles.reviewButtonTextDisabled
-          ]}>
-            {reviewedBusinessIds.has(item.id) ? 'Reviewed' : 'Review'}
-          </Text>
-        </TouchableOpacity>
+        {scannedBusinessIds.has(item.id) && (
+          <TouchableOpacity
+            style={[
+              styles.reviewButton,
+              reviewedBusinessIds.has(item.id) && styles.reviewButtonDisabled
+            ]}
+            onPress={async () => {
+              // Check if already reviewed
+              const alreadyReviewed = reviewedBusinessIds.has(item.id) || await checkIfUserReviewed(item.id);
+              if (alreadyReviewed) {
+                Alert.alert(
+                  'Already Reviewed',
+                  'You have already reviewed this business. Thank you for your feedback!'
+                );
+                return;
+              }
+              setSelectedBusiness(item);
+              setReviewModalVisible(true);
+            }}
+            disabled={reviewedBusinessIds.has(item.id)}
+          >
+            <Ionicons 
+              name={reviewedBusinessIds.has(item.id) ? "checkmark-circle" : "star"} 
+              size={16} 
+              color={reviewedBusinessIds.has(item.id) ? "#E0E0E0" : "#FFD700"} 
+              style={styles.reviewButtonIcon} 
+            />
+            <Text style={[
+              styles.reviewButtonText,
+              reviewedBusinessIds.has(item.id) && styles.reviewButtonTextDisabled
+            ]}>
+              {reviewedBusinessIds.has(item.id) ? 'Reviewed' : 'Review'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Rating Summary */}

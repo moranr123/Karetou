@@ -127,6 +127,20 @@ class PointsService {
     }
   }
 
+  // Check if user has ever scanned this business (for review validation)
+  async hasScannedBusiness(userId: string, businessId: string): Promise<boolean> {
+    try {
+      const userPoints = await this.getUserPoints(userId);
+
+      return userPoints.scanHistory.some(scan => {
+        return scan.businessId === businessId;
+      });
+    } catch (error) {
+      console.error('Error checking if user scanned business:', error);
+      return false;
+    }
+  }
+
   // Get points value for a business (default: 10 points)
   async getBusinessPoints(businessId: string): Promise<number> {
     try {
