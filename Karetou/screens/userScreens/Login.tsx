@@ -30,7 +30,7 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
-  BusinessLogin: undefined;
+  BusinessSignUp: undefined;
   EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
 
@@ -45,6 +45,7 @@ export default function Login({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userType, setUserTypeState] = useState<'user' | 'business'>('user');
   const { setUserType } = useAuth();
   const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
   
@@ -112,6 +113,50 @@ export default function Login({ navigation }: Props) {
     },
     formContainer: {
       width: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg * spacingMultiplier,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    userTypeSelector: {
+      flexDirection: 'row',
+      backgroundColor: '#f0f0f0',
+      borderRadius: borderRadius.lg,
+      padding: spacing.xs * spacingMultiplier,
+      marginBottom: spacing.lg * spacingMultiplier,
+    },
+    userTypeButton: {
+      flex: 1,
+      paddingVertical: spacing.sm * spacingMultiplier,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    userTypeButtonActive: {
+      backgroundColor: '#667eea',
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+    },
+    userTypeButtonInactive: {
+      backgroundColor: 'transparent',
+    },
+    userTypeButtonText: {
+      fontSize: fontSizes.sm,
+      fontWeight: '600',
+    },
+    userTypeButtonTextActive: {
+      color: '#fff',
+    },
+    userTypeButtonTextInactive: {
+      color: '#666',
     },
     inputContainer: {
       flexDirection: 'row',
@@ -200,49 +245,84 @@ export default function Login({ navigation }: Props) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      console.log('✅ Login Debug - User signed in successfully:', user.uid);
-      
+
+      // Check email verification status
+      if (!user.emailVerified) {
+        await auth.signOut();
+        Alert.alert(
+          'Email Not Verified',
+          'Please verify your email address before signing in. Check your inbox for the verification email.',
+          [
+            {
+              text: 'Resend Email',
+              onPress: () => navigation.navigate('EmailVerification', { email, password, userType: userType }),
+            },
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ]
+        );
+        return;
+      }
+
       // Check if user has a Firestore document
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
       
       if (!userDoc.exists()) {
-        console.log('✅ Login Debug - No Firestore document found, treating as regular user');
-        // Set user type as regular user for accounts without Firestore document
-        setUserType('user');
-        Alert.alert('Success', 'Welcome back!');
-      } else {
-        const userData = userDoc.data();
-        const userType = userData?.userType;
-        const isActive = userData?.isActive !== undefined ? userData.isActive : true;
-        
-        // Check if user account is active
-        if (!isActive) {
-          console.log('❌ Login Debug - User account is deactivated');
-          await auth.signOut();
-          Alert.alert(
-            'Account Deactivated',
-            'Your account has been deactivated. Please contact support for assistance.'
-          );
-          return;
-        }
-        
-        if (!userType || userType === 'user') {
-          console.log('✅ Login Debug - User type is user or undefined, allowing login');
-          // Set user type as regular user
+        // No Firestore document - only allow if user type is 'user'
+        if (userType === 'user') {
+          console.log('✅ Login Debug - No Firestore document found, treating as regular user');
           setUserType('user');
-          
-          // Don't update lastLogin on login anymore - we track logout time instead
-          
           Alert.alert('Success', 'Welcome back!');
         } else {
-          console.log('❌ Login Debug - User type is business, blocking login');
-          // This is a business account, show alert and log out
           await auth.signOut();
           Alert.alert(
             'Login Error',
-            'This is a business account. Please use the business login screen.'
+            'Business account not found. Please register a business account first.'
+          );
+        }
+        return;
+      }
+
+      const userData = userDoc.data();
+      const accountUserType = userData?.userType;
+      const isActive = userData?.isActive !== undefined ? userData.isActive : true;
+      
+      // Check if user account is active
+      if (!isActive) {
+        console.log('❌ Login Debug - User account is deactivated');
+        await auth.signOut();
+        Alert.alert(
+          'Account Deactivated',
+          `Your ${userType === 'business' ? 'business' : ''} account has been deactivated. Please contact support for assistance.`
+        );
+        return;
+      }
+      
+      // Validate user type matches selected type
+      if (userType === 'business') {
+        if (accountUserType === 'business') {
+          setUserType('business');
+          Alert.alert('Success', 'Welcome back, Business Owner!');
+        } else {
+          await auth.signOut();
+          Alert.alert(
+            'Login Error',
+            'This is not a business account. Please select "User" to login.'
+          );
+        }
+      } else {
+        // User login
+        if (!accountUserType || accountUserType === 'user') {
+          setUserType('user');
+          Alert.alert('Success', 'Welcome back!');
+        } else {
+          await auth.signOut();
+          Alert.alert(
+            'Login Error',
+            'This is a business account. Please select "Business Owner" to login.'
           );
         }
       }
@@ -350,11 +430,51 @@ export default function Login({ navigation }: Props) {
 
             {/* Form */}
             <ResponsiveView style={styles.formContainer}>
+              {/* User Type Selector */}
+              <ResponsiveView style={styles.userTypeSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.userTypeButton,
+                    userType === 'user' ? styles.userTypeButtonActive : styles.userTypeButtonInactive
+                  ]}
+                  onPress={() => setUserTypeState('user')}
+                >
+                  <ResponsiveText 
+                    size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} 
+                    weight="600" 
+                    style={[
+                      styles.userTypeButtonText,
+                      userType === 'user' ? styles.userTypeButtonTextActive : styles.userTypeButtonTextInactive
+                    ]}
+                  >
+                    User
+                  </ResponsiveText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.userTypeButton,
+                    userType === 'business' ? styles.userTypeButtonActive : styles.userTypeButtonInactive
+                  ]}
+                  onPress={() => setUserTypeState('business')}
+                >
+                  <ResponsiveText 
+                    size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} 
+                    weight="600" 
+                    style={[
+                      styles.userTypeButtonText,
+                      userType === 'business' ? styles.userTypeButtonTextActive : styles.userTypeButtonTextInactive
+                    ]}
+                  >
+                    Business Owner
+                  </ResponsiveText>
+                </TouchableOpacity>
+              </ResponsiveView>
+
               <ResponsiveView style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email"
+                  placeholder={userType === 'business' ? 'Business Email' : 'Email'}
                   placeholderTextColor="#999"
                   value={email}
                   onChangeText={setEmail}
@@ -415,20 +535,17 @@ export default function Login({ navigation }: Props) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.forgotPasswordButton}
-                onPress={() => navigation.navigate('BusinessLogin')}
-              >
-                <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#667eea" style={styles.forgotPasswordText}>
-                  Business Owner? Register here.
-                </ResponsiveText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={[styles.button, styles.signupButton, loading && styles.buttonDisabled]}
-                onPress={() => navigation.navigate('Signup')}
+                onPress={() => {
+                  if (userType === 'business') {
+                    navigation.navigate('BusinessSignUp');
+                  } else {
+                    navigation.navigate('Signup');
+                  }
+                }}
                 disabled={loading}
               >
-                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#667eea" style={[styles.buttonText, styles.signupButtonText]}>
+                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={[styles.buttonText, styles.signupButtonText]}>
                   Create Account
                 </ResponsiveText>
               </TouchableOpacity>

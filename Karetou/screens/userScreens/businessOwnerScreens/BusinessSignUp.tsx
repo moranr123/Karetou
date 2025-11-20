@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
+  SafeAreaView,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -19,11 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width, height } = Dimensions.get('window');
 
 type RootStackParamList = {
-  BusinessLogin: undefined;
+  Login: undefined;
   BusinessSignUp: undefined;
   EmailVerification: { email: string; password?: string; userType?: 'user' | 'business' };
 };
@@ -54,6 +55,194 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { setUserType } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  
+  // Device size detection
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
+  const isSmallDevice = screenWidth < 375 || screenHeight < 667;
+  const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
+  const isTablet = screenWidth > 768;
+  
+  // Responsive calculations
+  const spacingMultiplier = isSmallDevice ? 0.8 : isMediumDevice ? 1 : isTablet ? 1.5 : 1.1;
+  const logoSizePercent = isSmallDevice ? 16 : isMediumDevice ? 20 : isTablet ? 30 : 22;
+  const inputHeight = isSmallDevice ? 6 : isMediumDevice ? 6.5 : isTablet ? 8 : 7;
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg * spacingMultiplier,
+      paddingTop: spacing.lg * spacingMultiplier,
+      paddingBottom: spacing.md * spacingMultiplier,
+      justifyContent: 'flex-start',
+      width: '100%',
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: spacing.lg * spacingMultiplier,
+    },
+    logoContainer: {
+      width: getResponsiveWidth(logoSizePercent),
+      height: getResponsiveWidth(logoSizePercent),
+      borderRadius: getResponsiveWidth(logoSizePercent / 2),
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md * spacingMultiplier,
+    },
+    logoImage: {
+      width: '80%',
+      height: '80%',
+      resizeMode: 'contain',
+    },
+    title: {
+      marginBottom: spacing.sm * spacingMultiplier,
+      textAlign: 'center',
+    },
+    subtitle: {
+      textAlign: 'center',
+      paddingHorizontal: spacing.md * spacingMultiplier,
+      marginBottom: spacing.sm * spacingMultiplier,
+    },
+    formContainer: {
+      width: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg * spacingMultiplier,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: borderRadius.lg,
+      marginBottom: spacing.lg * spacingMultiplier,
+      paddingHorizontal: spacing.lg,
+      height: getResponsiveHeight(inputHeight),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+    },
+    inputIcon: {
+      marginRight: spacing.sm,
+    },
+    input: {
+      flex: 1,
+      fontSize: fontSizes.md,
+      color: '#000',
+    },
+    inputError: {
+      borderColor: '#FF4444',
+      borderWidth: 2,
+    },
+    eyeIcon: {
+      padding: spacing.xs,
+    },
+    button: {
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md * spacingMultiplier,
+      minHeight: getResponsiveHeight(inputHeight),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+    },
+    signupButton: {
+      backgroundColor: '#4CAF50',
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+    },
+    errorText: {
+      fontSize: fontSizes.sm,
+      color: '#FF4444',
+      marginTop: spacing.xs * spacingMultiplier,
+      marginBottom: spacing.sm * spacingMultiplier,
+      marginLeft: spacing.sm,
+    },
+    passwordRequirementsContainer: {
+      backgroundColor: '#f8f9fa',
+      borderRadius: borderRadius.md,
+      padding: spacing.md * spacingMultiplier,
+      marginBottom: spacing.md * spacingMultiplier,
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+    },
+    passwordRequirementsTitle: {
+      marginBottom: spacing.sm * spacingMultiplier,
+    },
+    requirementItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs * spacingMultiplier,
+    },
+    requirementText: {
+      marginLeft: spacing.sm,
+      lineHeight: fontSizes.sm * 1.4,
+    },
+    requirementMet: {
+      fontWeight: '500',
+    },
+    termsContainer: {
+      marginTop: spacing.sm * spacingMultiplier,
+      marginBottom: spacing.md * spacingMultiplier,
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    termsTextContainer: {
+      flex: 1,
+      marginLeft: spacing.sm,
+    },
+    termsText: {
+      lineHeight: fontSizes.sm * 1.4,
+    },
+    termsLink: {
+      textDecorationLine: 'underline',
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: spacing.xl * spacingMultiplier,
+      paddingTop: spacing.lg * spacingMultiplier,
+    },
+    footerText: {
+      color: '#666',
+      fontSize: fontSizes.md,
+    },
+    linkText: {
+      color: '#667eea',
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+    },
+  });
 
   const validatePassword = (pwd: string) => {
     const requirements = {
@@ -189,41 +378,37 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       colors={['#F5F5F5', '#F5F5F5']}
       style={styles.container}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../../assets/logo.png')} 
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.title}>Create Business Account</Text>
-            <Text style={styles.subtitle}>Join us and grow your business</Text>
-          </View>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header */}
+            <ResponsiveView style={styles.header}>
+              <ResponsiveView style={styles.logoContainer}>
+                <Image 
+                  source={require('../../../assets/logo.png')} 
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </ResponsiveView>
+              <ResponsiveText size={isSmallDevice ? "xl" : isTablet ? "xxxl" : "xxl"} weight="bold" color="#000" style={styles.title}>
+                Create Business Account
+              </ResponsiveText>
+              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} color="#666" style={styles.subtitle}>
+                Join us and grow your business
+              </ResponsiveText>
+            </ResponsiveView>
 
-          {/* Form */}
-          <View style={styles.formContainer}>
-            {/* Login/Register Toggle */}
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity
-                style={styles.toggleButtonInactive}
-                onPress={() => navigation.navigate('BusinessLogin')}
-              >
-                <Text style={styles.toggleTextInactive}>Log in</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.toggleButtonActive}>
-                <Text style={styles.toggleTextActive}>Register</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            {/* Form */}
+            <ResponsiveView style={styles.formContainer}>
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Full Name"
@@ -232,10 +417,10 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={setFullName}
                 autoCapitalize="words"
               />
-            </View>
+            </ResponsiveView>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Business Email"
@@ -246,10 +431,10 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-            </View>
+            </ResponsiveView>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, passwordError && styles.inputError]}
                 placeholder="Password"
@@ -265,65 +450,69 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
+                  size={iconSizes.md}
                   color="#667eea"
                 />
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
 
             {/* Password Requirements */}
             {password.length > 0 && (
-              <View style={styles.passwordRequirementsContainer}>
-                <Text style={styles.passwordRequirementsTitle}>Password Requirements:</Text>
-                <View style={styles.requirementItem}>
+              <ResponsiveView style={styles.passwordRequirementsContainer}>
+                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} weight="600" color="#333" style={styles.passwordRequirementsTitle}>
+                  Password Requirements:
+                </ResponsiveText>
+                <ResponsiveView style={styles.requirementItem}>
                   <Ionicons
                     name={passwordRequirements.minLength ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={16}
+                    size={iconSizes.sm}
                     color={passwordRequirements.minLength ? '#4CAF50' : '#999'}
                   />
-                  <Text style={[styles.requirementText, passwordRequirements.minLength && styles.requirementMet]}>
+                  <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "xs"} color={passwordRequirements.minLength ? "#4CAF50" : "#666"} style={[styles.requirementText, passwordRequirements.minLength && styles.requirementMet]}>
                     At least 8 characters
-                  </Text>
-                </View>
-                <View style={styles.requirementItem}>
+                  </ResponsiveText>
+                </ResponsiveView>
+                <ResponsiveView style={styles.requirementItem}>
                   <Ionicons
                     name={passwordRequirements.hasUppercase ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={16}
+                    size={iconSizes.sm}
                     color={passwordRequirements.hasUppercase ? '#4CAF50' : '#999'}
                   />
-                  <Text style={[styles.requirementText, passwordRequirements.hasUppercase && styles.requirementMet]}>
+                  <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "xs"} color={passwordRequirements.hasUppercase ? "#4CAF50" : "#666"} style={[styles.requirementText, passwordRequirements.hasUppercase && styles.requirementMet]}>
                     One uppercase letter (A-Z)
-                  </Text>
-                </View>
-                <View style={styles.requirementItem}>
+                  </ResponsiveText>
+                </ResponsiveView>
+                <ResponsiveView style={styles.requirementItem}>
                   <Ionicons
                     name={passwordRequirements.hasLowercase ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={16}
+                    size={iconSizes.sm}
                     color={passwordRequirements.hasLowercase ? '#4CAF50' : '#999'}
                   />
-                  <Text style={[styles.requirementText, passwordRequirements.hasLowercase && styles.requirementMet]}>
+                  <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "xs"} color={passwordRequirements.hasLowercase ? "#4CAF50" : "#666"} style={[styles.requirementText, passwordRequirements.hasLowercase && styles.requirementMet]}>
                     One lowercase letter (a-z)
-                  </Text>
-                </View>
-                <View style={styles.requirementItem}>
+                  </ResponsiveText>
+                </ResponsiveView>
+                <ResponsiveView style={styles.requirementItem}>
                   <Ionicons
                     name={passwordRequirements.hasNumber ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={16}
+                    size={iconSizes.sm}
                     color={passwordRequirements.hasNumber ? '#4CAF50' : '#999'}
                   />
-                  <Text style={[styles.requirementText, passwordRequirements.hasNumber && styles.requirementMet]}>
+                  <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "xs"} color={passwordRequirements.hasNumber ? "#4CAF50" : "#666"} style={[styles.requirementText, passwordRequirements.hasNumber && styles.requirementMet]}>
                     One number (0-9)
-                  </Text>
-                </View>
-              </View>
+                  </ResponsiveText>
+                </ResponsiveView>
+              </ResponsiveView>
             )}
 
             {passwordError ? (
-              <Text style={styles.errorText}>{passwordError}</Text>
+              <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "xs"} color="#FF4444" style={styles.errorText}>
+                {passwordError}
+              </ResponsiveText>
             ) : null}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#667eea" style={styles.inputIcon} />
+            <ResponsiveView style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={iconSizes.md} color="#667eea" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Confirm Password"
@@ -339,14 +528,14 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons
                   name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
+                  size={iconSizes.md}
                   color="#667eea"
                 />
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
 
             {/* Terms and Conditions */}
-            <View style={styles.termsContainer}>
+            <ResponsiveView style={styles.termsContainer}>
               <TouchableOpacity
                 style={styles.checkboxContainer}
                 onPress={() => setAcceptedTerms(!acceptedTerms)}
@@ -354,19 +543,23 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons
                   name={acceptedTerms ? 'checkbox' : 'square-outline'}
-                  size={20}
+                  size={iconSizes.md}
                   color={acceptedTerms ? '#667eea' : '#999'}
                 />
-                <View style={styles.termsTextContainer}>
-                  <Text style={styles.termsText}>
-                    I agree to the{' '}
-                    <Text style={styles.termsLink} onPress={showTermsAndConditions}>
-                      Terms and Conditions
-                    </Text>
-                  </Text>
-                </View>
+                <ResponsiveView style={styles.termsTextContainer}>
+                  <ResponsiveView style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#666" style={styles.termsText}>
+                      I agree to the{' '}
+                    </ResponsiveText>
+                    <TouchableOpacity onPress={showTermsAndConditions}>
+                      <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#667eea" weight="600" style={styles.termsLink}>
+                        Terms and Conditions
+                      </ResponsiveText>
+                    </TouchableOpacity>
+                  </ResponsiveView>
+                </ResponsiveView>
               </TouchableOpacity>
-            </View>
+            </ResponsiveView>
 
             {/* Buttons */}
             <TouchableOpacity
@@ -374,197 +567,28 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleSignup}
               disabled={loading || !acceptedTerms}
             >
-              <Text style={styles.buttonText}>
+              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={styles.buttonText}>
                 {loading ? 'Creating Account...' : 'Create Account'}
-              </Text>
+              </ResponsiveText>
             </TouchableOpacity>
-    </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+            {/* Footer */}
+            <ResponsiveView style={styles.footer}>
+              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} color="#666" style={styles.footerText}>
+                Already have an account?{' '}
+              </ResponsiveText>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} weight="600" color="#667eea" style={styles.linkText}>
+                  Sign In
+                </ResponsiveText>
+              </TouchableOpacity>
+            </ResponsiveView>
+            </ResponsiveView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </LinearGradient>
   );
 };
 
 export default BusinessSignUpScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.02,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: height * 0.04,
-  },
-  logoContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: (width * 0.3) / 2,
-    width: width * 0.3,
-    height: width * 0.3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: height * 0.02,
-  },
-  logoImage: {
-    width: '80%',
-    height: '80%',
-  },
-  title: {
-    fontSize: width * 0.08,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: height * 0.01,
-  },
-  subtitle: {
-    fontSize: width * 0.04,
-    color: '#666',
-  },
-  formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    padding: width * 0.06,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: height * 0.03,
-  },
-  toggleButtonActive: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderBottomWidth: 2,
-    borderColor: '#333',
-  },
-  toggleButtonInactive: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderBottomWidth: 2,
-    borderColor: 'transparent',
-  },
-  toggleTextActive: {
-    fontSize: width * 0.045,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  toggleTextInactive: {
-    fontSize: width * 0.045,
-    color: '#aaa',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    marginBottom: height * 0.02,
-    paddingHorizontal: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    color: '#333',
-    fontSize: width * 0.04,
-  },
-  eyeIcon: {
-    padding: 5,
-  },
-  button: {
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  signupButton: {
-    backgroundColor: '#667eea',
-  },
-  buttonDisabled: {
-    backgroundColor: '#a3a3a3',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: width * 0.045,
-    fontWeight: 'bold',
-  },
-  loginLink: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  loginLinkText: {
-    color: '#667eea',
-    fontSize: width * 0.035,
-  },
-  inputError: {
-    borderColor: '#FF4444',
-    borderWidth: 2,
-  },
-  errorText: {
-    fontSize: width * 0.035,
-    color: '#FF4444',
-    marginTop: 5,
-    marginBottom: 10,
-    marginLeft: 5,
-  },
-  passwordRequirementsContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  passwordRequirementsTitle: {
-    fontSize: width * 0.038,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  requirementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  requirementText: {
-    fontSize: width * 0.035,
-    color: '#666',
-    marginLeft: 8,
-  },
-  requirementMet: {
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-  termsContainer: {
-    marginTop: 15,
-    marginBottom: 15,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  termsTextContainer: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  termsText: {
-    fontSize: width * 0.035,
-    color: '#666',
-    lineHeight: width * 0.035 * 1.4,
-  },
-  termsLink: {
-    color: '#667eea',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-});

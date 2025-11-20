@@ -9,7 +9,6 @@ import EmailVerificationScreen from './screens/userScreens/EmailVerificationScre
 import MainTabNavigator from './components/MainTabNavigator';
 import { SearchBarScreen } from './screens/userScreens/SearchBarScreen';
 import ReviewsScreen from './screens/userScreens/ReviewsScreen';
-import BusinessLogin from './screens/userScreens/businessOwnerScreens/BusinessLogin';
 import BusinessSignUp from './screens/userScreens/businessOwnerScreens/BusinessSignUp';
 import BusinessHomeScreen from './screens/userScreens/businessOwnerScreens/BusinessHomeScreen';
 import BusinessTabNavigator from './components/BusinessTabNavigator';
@@ -30,14 +29,8 @@ import BusinessTransactionHistoryScreen from './screens/userScreens/businessOwne
 const Stack = createStackNavigator();
 
 const AuthStack = ({ lastUserType }) => {
-  let initialRoute = 'Login'; // Default to regular user login
-  
-  if (lastUserType === 'business') {
-    initialRoute = 'BusinessLogin';
-  } else if (lastUserType === 'user') {
-    initialRoute = 'Login';
-  }
-  // If lastUserType is null or undefined, default to 'Login'
+  // Always use Login screen since it now handles both user and business owner login
+  const initialRoute = 'Login';
   
   console.log('🔐 AuthStack - lastUserType:', lastUserType, 'initialRoute:', initialRoute);
   
@@ -51,7 +44,6 @@ const AuthStack = ({ lastUserType }) => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
-      <Stack.Screen name="BusinessLogin" component={BusinessLogin} />
       <Stack.Screen name="BusinessSignUp" component={BusinessSignUp} />
     </Stack.Navigator>
   );

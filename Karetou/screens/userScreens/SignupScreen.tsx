@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
+  SafeAreaView,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -72,6 +71,9 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     container: {
       flex: 1,
     },
+    safeArea: {
+      flex: 1,
+    },
     keyboardView: {
       flex: 1,
     },
@@ -112,6 +114,14 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     },
     formContainer: {
       width: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg * spacingMultiplier,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
     },
     inputContainer: {
       flexDirection: 'row',
@@ -194,8 +204,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       lineHeight: fontSizes.sm * 1.4,
     },
     termsLink: {
-      color: '#667eea',
-      fontWeight: '600',
       textDecorationLine: 'underline',
     },
   });
@@ -306,10 +314,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       colors={['#F5F5F5', '#F5F5F5']}
       style={styles.container}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -432,12 +441,16 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
                   color={acceptedTerms ? '#667eea' : '#999'}
                 />
                 <ResponsiveView style={styles.termsTextContainer}>
-                  <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#666" style={styles.termsText}>
-                    I agree to the{' '}
-                    <Text style={styles.termsLink} onPress={showTermsAndConditions}>
-                      Terms and Conditions
-                    </Text>
-                  </ResponsiveText>
+                  <ResponsiveView style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#666" style={styles.termsText}>
+                      I agree to the{' '}
+                    </ResponsiveText>
+                    <TouchableOpacity onPress={showTermsAndConditions}>
+                      <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#667eea" weight="600" style={styles.termsLink}>
+                        Terms and Conditions
+                      </ResponsiveText>
+                    </TouchableOpacity>
+                  </ResponsiveView>
                 </ResponsiveView>
               </TouchableOpacity>
             </ResponsiveView>
@@ -467,6 +480,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           </ResponsiveView>
         </ScrollView>
       </KeyboardAvoidingView>
+      </SafeAreaView>
     </LinearGradient>
   );
 };
