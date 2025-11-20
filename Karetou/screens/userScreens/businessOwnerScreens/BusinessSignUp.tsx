@@ -160,7 +160,25 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
         ]
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      let errorMessage = 'An error occurred. Please try again.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email address is already registered. Please sign in or use a different email.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please ensure your password meets all the requirements shown above.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many signup attempts. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Signup Error', errorMessage);
     } finally {
       setLoading(false);
     }

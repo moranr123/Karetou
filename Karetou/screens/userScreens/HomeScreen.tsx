@@ -14,12 +14,14 @@ import {
   RefreshControl,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
+import PointsService from '../../services/PointsService';
 import { collection, query, getDocs, where, orderBy, limit, addDoc, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import LoadingImage from '../../components/LoadingImage';
 import NotificationService from '../../services/NotificationService';
@@ -215,6 +217,14 @@ const HomeScreen = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [businessRatings, setBusinessRatings] = useState<{ [businessId: string]: { average: string, count: number } }>({});
   const [userLocation, setUserLocation] = useState<string>('Silay City'); // Default fallback
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [loyaltyPointsModalVisible, setLoyaltyPointsModalVisible] = useState(false);
+  const [businessLoyaltyPoints, setBusinessLoyaltyPoints] = useState<any[]>([]);
+  const [selectedBusinessForTransfer, setSelectedBusinessForTransfer] = useState<any | null>(null);
+  const [transferPointsModalVisible, setTransferPointsModalVisible] = useState(false);
+  const [pointsToTransfer, setPointsToTransfer] = useState<string>('');
+  const [transferring, setTransferring] = useState(false);
+  const pointsService = PointsService.getInstance();
   const [locationLoading, setLocationLoading] = useState(true);
   const [savedBusinesses, setSavedBusinesses] = useState<string[]>([]);
   const [userPreferences, setUserPreferences] = useState<string[]>([]);
@@ -261,6 +271,26 @@ const HomeScreen = () => {
     headerRightContainer: {
       flexDirection: 'row',
       alignItems: 'center',
+    },
+    pointsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 215, 0, 0.15)',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.md,
+      marginRight: spacing.sm,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 215, 0, 0.3)',
+    },
+    pointsText: {
+      marginLeft: spacing.xs,
+      color: '#FFD700',
+    },
+    qrScannerButton: {
+      position: 'relative',
+      padding: spacing.sm,
+      marginRight: spacing.sm,
     },
     notificationButton: {
       position: 'relative',
@@ -646,22 +676,256 @@ const HomeScreen = () => {
       fontWeight: '600',
       marginLeft: spacing.xs,
     },
-    rateButton: {
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    reviewButtonDetails: {
+      marginTop: spacing.md,
+      width: '100%',
+      backgroundColor: '#667eea',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.xl,
-      zIndex: 2,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
     },
-    rateButtonText: {
+    reviewButtonDetailsDisabled: {
+      backgroundColor: '#9E9E9E',
+      opacity: 0.6,
+    },
+    reviewButtonDetailsText: {
       color: '#fff',
-      marginLeft: 4,
       fontWeight: '600',
+      marginLeft: spacing.xs,
+      fontSize: 16,
+    },
+    reviewButtonDetailsTextDisabled: {
+      color: '#E0E0E0',
+    },
+    loyaltyModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 9999,
+    },
+    loyaltyModalContent: {
+      width: screenWidth * 0.9,
+      maxHeight: screenHeight * 0.8,
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      padding: 20,
+    },
+    loyaltyModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    loyaltyModalTitleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    loyaltyModalTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#333',
+      marginLeft: 10,
+    },
+    loyaltyTotalContainer: {
+      backgroundColor: 'rgba(255, 215, 0, 0.1)',
+      borderRadius: 15,
+      padding: 20,
+      alignItems: 'center',
+      marginBottom: 20,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 215, 0, 0.3)',
+    },
+    loyaltyTotalLabel: {
+      fontSize: 14,
+      color: '#666',
+      marginBottom: 5,
+    },
+    loyaltyTotalPoints: {
+      fontSize: 36,
+      fontWeight: 'bold',
+      color: '#FFD700',
+    },
+    loyaltySectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: 15,
+    },
+    loyaltyList: {
+      maxHeight: screenHeight * 0.4,
+    },
+    loyaltyBusinessCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: '#f5f5f5',
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 10,
+    },
+    loyaltyBusinessInfo: {
+      flex: 1,
+      marginRight: 10,
+    },
+    loyaltyBusinessName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: 5,
+    },
+    loyaltyBusinessScans: {
+      fontSize: 12,
+      color: '#666',
+    },
+    loyaltyBusinessRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    loyaltyBusinessPoints: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+    },
+    loyaltyBusinessPointsText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#FFD700',
+      marginLeft: 5,
+    },
+    sendPointsButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#667eea',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 5,
+    },
+    sendPointsButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    transferModalContent: {
+      width: screenWidth * 0.9,
+      maxHeight: screenHeight * 0.7,
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      padding: 20,
+      elevation: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      zIndex: 10000,
+      overflow: 'visible',
+    },
+    transferBusinessInfo: {
+      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 20,
+    },
+    transferBusinessName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: 8,
+    },
+    transferBusinessPoints: {
+      fontSize: 14,
+      color: '#666',
+    },
+    transferBusinessPointsValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#FFD700',
+    },
+    transferLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: 10,
+    },
+    transferInputContainer: {
+      marginBottom: 20,
+    },
+    transferInput: {
+      borderWidth: 3,
+      borderColor: '#667eea',
+      borderRadius: 12,
+      padding: 18,
+      fontSize: 24,
+      fontWeight: 'bold',
+      backgroundColor: '#f0f0f0',
+      color: '#000',
+      minHeight: 60,
+      textAlign: 'center',
+      width: '100%',
+    },
+    transferButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#667eea',
+      borderRadius: 12,
+      padding: 15,
+      gap: 8,
+    },
+    transferButtonDisabled: {
+      backgroundColor: '#ccc',
+      opacity: 0.6,
+    },
+    transferButtonText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    loyaltyEmptyContainer: {
+      alignItems: 'center',
+      paddingVertical: 40,
+    },
+    loyaltyEmptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#666',
+      marginTop: 15,
+    },
+    loyaltyEmptySubtext: {
+      fontSize: 14,
+      color: '#999',
+      marginTop: 5,
+    },
+    transactionHistoryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(102, 126, 234, 0.3)',
+    },
+    transactionHistoryButtonText: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#667eea',
     },
     reviewModalOverlay: {
       flex: 1,
@@ -1262,6 +1526,42 @@ const HomeScreen = () => {
   };
 
 
+  // Load user points
+  const loadUserPoints = async () => {
+    if (!user?.uid) return;
+    try {
+      const totalPoints = await pointsService.getTotalPoints(user.uid);
+      setUserPoints(totalPoints);
+      
+      // Load business loyalty points
+      const loyaltyPoints = await pointsService.getBusinessLoyaltyPoints(user.uid);
+      setBusinessLoyaltyPoints(loyaltyPoints);
+    } catch (error) {
+      console.error('Error loading user points:', error);
+    }
+  };
+
+  // Set up real-time listener for user points
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    loadUserPoints();
+
+    // Set up real-time listener for points updates
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const userData = docSnapshot.data();
+        const points = userData.points?.totalPoints || 0;
+        const loyaltyPoints = userData.points?.businessLoyaltyPoints || [];
+        setUserPoints(points);
+        setBusinessLoyaltyPoints(loyaltyPoints);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
   useEffect(() => {
     getUserLocation(); // Get user's real location
     loadSavedBusinesses(); // Load saved businesses
@@ -1274,7 +1574,7 @@ const HomeScreen = () => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([getUserLocation(), loadSavedBusinesses(), loadUserPreferences(), loadSuggestedPlaces(), loadPlacesToVisit(), loadPromosAndDeals(), loadAllReviews()]).finally(() => {
+    Promise.all([getUserLocation(), loadSavedBusinesses(), loadUserPreferences(), loadSuggestedPlaces(), loadPlacesToVisit(), loadPromosAndDeals(), loadAllReviews(), loadUserPoints()]).finally(() => {
       setRefreshing(false);
     });
   }, []);
@@ -1292,6 +1592,20 @@ const HomeScreen = () => {
       setUserReview(null);
     }
     setReviewLoading(false);
+  };
+
+  // Check if user has already reviewed a business
+  const checkIfUserReviewed = async (businessId: string): Promise<boolean> => {
+    if (!user?.uid) return false;
+    try {
+      const reviewsRef = collection(db, 'businesses', businessId, 'reviews');
+      const reviewQuery = query(reviewsRef, where('userId', '==', user.uid));
+      const reviewSnapshot = await getDocs(reviewQuery);
+      return !reviewSnapshot.empty;
+    } catch (error) {
+      console.error('Error checking user review:', error);
+      return false;
+    }
   };
 
   // Load all reviews from all businesses
@@ -1400,6 +1714,24 @@ const HomeScreen = () => {
               )}
             </ResponsiveView>
             <ResponsiveView style={styles.headerRightContainer}>
+              {/* Points Display */}
+              {user && (
+                <TouchableOpacity 
+                  style={styles.pointsContainer}
+                  onPress={() => setLoyaltyPointsModalVisible(true)}
+                >
+                  <Ionicons name="trophy" size={iconSizes.md} color="#FFD700" />
+                  <ResponsiveText size="sm" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.pointsText}>
+                    {userPoints}
+                  </ResponsiveText>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                style={styles.qrScannerButton}
+                onPress={() => (navigation as any).navigate('QRScannerScreen')}
+              >
+                <Ionicons name="qr-code-outline" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#333'} />
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.notificationButton}
                 onPress={() => (navigation as any).navigate('NotificationScreen')}
@@ -1413,11 +1745,6 @@ const HomeScreen = () => {
                     </ResponsiveText>
                   </View>
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.logoWrapper}>
-                <View style={styles.logoContainer}>
-                  <Image source={require('../../assets/logo.png')} style={styles.logoImage} />
-                </View>
               </TouchableOpacity>
             </ResponsiveView>
           </ResponsiveView>
@@ -1662,6 +1989,10 @@ const HomeScreen = () => {
                   }
                   
                   setSelectedPlace(item);
+                  // Fetch user review when place is selected
+                  if (user?.uid && item.id) {
+                    fetchUserReview(item.id);
+                  }
                   setDetailsModalVisible(true);
                 }}
               >
@@ -1801,15 +2132,6 @@ const HomeScreen = () => {
                   renderItem={({ item, index }) => (
                     <View style={styles.imageContainer}>
                       <CachedImage source={{ uri: item }} style={styles.detailsImage} resizeMode="cover" />
-                      <TouchableOpacity style={styles.rateButton} onPress={async () => {
-                        console.log('Rate button pressed', selectedPlace?.id);
-                        await fetchUserReview(selectedPlace.id);
-                        setDetailsModalVisible(false);
-                        setReviewModalVisible(true);
-                      }}>
-                        <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.rateButtonText}>Rate</Text>
-                      </TouchableOpacity>
                       {index === 0 && (selectedPlace.allImages?.length > 1 || selectedPlace.image) && (
                         <View style={styles.swipeIndicator}>
                           <Ionicons name="chevron-forward" size={24} color="#fff" />
@@ -1855,6 +2177,44 @@ const HomeScreen = () => {
                     <Text style={styles.viewMapText}> View on Map</Text>
                   </TouchableOpacity>
                 )}
+                {/* Review Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.reviewButtonDetails,
+                    userReview && styles.reviewButtonDetailsDisabled
+                  ]}
+                  onPress={async () => {
+                    if (!selectedPlace) return;
+                    
+                    // Check if already reviewed
+                    const alreadyReviewed = await checkIfUserReviewed(selectedPlace.id);
+                    if (alreadyReviewed) {
+                      Alert.alert(
+                        'Already Reviewed',
+                        'You have already reviewed this business. Thank you for your feedback!'
+                      );
+                      return;
+                    }
+                    
+                    // Fetch user review and open review modal
+                    await fetchUserReview(selectedPlace.id);
+                    setDetailsModalVisible(false);
+                    setReviewModalVisible(true);
+                  }}
+                  disabled={!!userReview}
+                >
+                  <Ionicons 
+                    name={userReview ? "checkmark-circle" : "star"} 
+                    size={20} 
+                    color={userReview ? "#4CAF50" : "#fff"} 
+                  />
+                  <Text style={[
+                    styles.reviewButtonDetailsText,
+                    userReview && styles.reviewButtonDetailsTextDisabled
+                  ]}>
+                    {userReview ? 'Reviewed' : 'Write Review'}
+                  </Text>
+                </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.closeButtonModal} onPress={() => setDetailsModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#333" />
@@ -1972,6 +2332,223 @@ const HomeScreen = () => {
           </View>
         </View>
       </Modal>
+      
+      {/* Loyalty Points Modal */}
+      <Modal
+        visible={loyaltyPointsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setLoyaltyPointsModalVisible(false)}
+      >
+        <View style={styles.loyaltyModalOverlay}>
+          <View style={styles.loyaltyModalContent}>
+            <View style={styles.loyaltyModalHeader}>
+              <View style={styles.loyaltyModalTitleContainer}>
+                <Ionicons name="trophy" size={28} color="#FFD700" />
+                <Text style={styles.loyaltyModalTitle}>Loyalty Points</Text>
+              </View>
+              <TouchableOpacity onPress={() => setLoyaltyPointsModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.loyaltyTotalContainer}>
+              <Text style={styles.loyaltyTotalLabel}>Total Points</Text>
+              <Text style={styles.loyaltyTotalPoints}>{userPoints}</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.transactionHistoryButton}
+              onPress={() => {
+                setLoyaltyPointsModalVisible(false);
+                (navigation as any).navigate('TransactionHistoryScreen');
+              }}
+            >
+              <Ionicons name="receipt-outline" size={20} color="#667eea" />
+              <Text style={styles.transactionHistoryButtonText}>View Transaction History</Text>
+              <Ionicons name="chevron-forward" size={20} color="#667eea" />
+            </TouchableOpacity>
+            
+            <Text style={styles.loyaltySectionTitle}>Points by Business</Text>
+            
+            {businessLoyaltyPoints.length === 0 ? (
+              <View style={styles.loyaltyEmptyContainer}>
+                <Ionicons name="business-outline" size={48} color="#999" />
+                <Text style={styles.loyaltyEmptyText}>No loyalty points yet</Text>
+                <Text style={styles.loyaltyEmptySubtext}>Scan QR codes to earn points!</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={businessLoyaltyPoints.sort((a, b) => b.points - a.points)}
+                keyExtractor={(item) => item.businessId}
+                renderItem={({ item }) => (
+                  <View style={styles.loyaltyBusinessCard}>
+                    <View style={styles.loyaltyBusinessInfo}>
+                      <Text style={styles.loyaltyBusinessName} numberOfLines={1}>
+                        {item.businessName}
+                      </Text>
+                      <Text style={styles.loyaltyBusinessScans}>
+                        {item.scans} {item.scans === 1 ? 'scan' : 'scans'}
+                      </Text>
+                    </View>
+                    <View style={styles.loyaltyBusinessRight}>
+                      <View style={styles.loyaltyBusinessPoints}>
+                        <Ionicons name="star" size={20} color="#FFD700" />
+                        <Text style={styles.loyaltyBusinessPointsText}>{item.points}</Text>
+                      </View>
+                      {item.points > 0 && (
+                        <TouchableOpacity
+                          style={styles.sendPointsButton}
+                          onPress={() => {
+                            console.log('Send button pressed for:', item.businessName);
+                            setSelectedBusinessForTransfer(item);
+                            setPointsToTransfer(''); // Reset input
+                            // Close loyalty points modal first
+                            setLoyaltyPointsModalVisible(false);
+                            // Small delay to ensure modal closes before opening new one
+                            setTimeout(() => {
+                              setTransferPointsModalVisible(true);
+                              console.log('Transfer modal should be visible now');
+                            }, 300);
+                          }}
+                        >
+                          <Ionicons name="send" size={16} color="#fff" />
+                          <Text style={styles.sendPointsButtonText}>Send</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                )}
+                style={styles.loyaltyList}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Transfer Points Modal */}
+      <Modal
+        visible={transferPointsModalVisible}
+        animationType="slide"
+        transparent={true}
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setTransferPointsModalVisible(false);
+          setPointsToTransfer('');
+          setSelectedBusinessForTransfer(null);
+        }}
+      >
+        <View style={styles.loyaltyModalOverlay}>
+          <View style={styles.transferModalContent}>
+            <View style={styles.loyaltyModalHeader}>
+              <Text style={[styles.loyaltyModalTitle, { color: '#000' }]}>Send Points</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setTransferPointsModalVisible(false);
+                  setPointsToTransfer('');
+                  setSelectedBusinessForTransfer(null);
+                }}
+              >
+                <Ionicons name="close" size={28} color="#000" />
+              </TouchableOpacity>
+            </View>
+            
+            {selectedBusinessForTransfer ? (
+              <>
+                <View style={styles.transferBusinessInfo}>
+                  <Text style={[styles.transferBusinessName, { color: '#000' }]}>
+                    {selectedBusinessForTransfer.businessName}
+                  </Text>
+                  <Text style={[styles.transferBusinessPoints, { color: '#666' }]}>
+                    Your points: <Text style={[styles.transferBusinessPointsValue, { color: '#FFD700' }]}>{selectedBusinessForTransfer.points}</Text>
+                  </Text>
+                </View>
+                
+                <Text style={[styles.transferLabel, { color: '#000' }]}>Amount to send:</Text>
+                <View style={styles.transferInputContainer}>
+                  <TextInput
+                    style={styles.transferInput}
+                    value={pointsToTransfer}
+                    onChangeText={(text) => {
+                      // Only allow numbers
+                      const numericText = text.replace(/[^0-9]/g, '');
+                      setPointsToTransfer(numericText);
+                      console.log('Input changed:', numericText);
+                    }}
+                    placeholder="Enter points"
+                    keyboardType="numeric"
+                    placeholderTextColor="#999"
+                    returnKeyType="done"
+                    editable={!transferring}
+                    selectTextOnFocus={true}
+                  />
+                </View>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.transferButton,
+                    (transferring || !pointsToTransfer || isNaN(parseInt(pointsToTransfer)) || parseInt(pointsToTransfer) <= 0 || parseInt(pointsToTransfer) > selectedBusinessForTransfer.points) && styles.transferButtonDisabled
+                  ]}
+                  disabled={transferring || !pointsToTransfer || isNaN(parseInt(pointsToTransfer)) || parseInt(pointsToTransfer) <= 0 || parseInt(pointsToTransfer) > selectedBusinessForTransfer.points}
+                  onPress={async () => {
+                    if (!user || !selectedBusinessForTransfer) return;
+                    
+                    const points = parseInt(pointsToTransfer);
+                    if (isNaN(points) || points <= 0 || points > selectedBusinessForTransfer.points) {
+                      Alert.alert('Invalid Amount', 'Please enter a valid amount of points.');
+                      return;
+                    }
+                    
+                    setTransferring(true);
+                    try {
+                      const result = await pointsService.transferPointsToBusiness(
+                        user.uid,
+                        selectedBusinessForTransfer.businessId,
+                        points,
+                        user.displayName || user.email || 'Anonymous User'
+                      );
+                      
+                      if (result.success) {
+                        Alert.alert('Success!', result.message, [
+                          {
+                            text: 'OK',
+                            onPress: () => {
+                              setTransferPointsModalVisible(false);
+                              setPointsToTransfer('');
+                              setSelectedBusinessForTransfer(null);
+                              loadUserPoints(); // Reload points
+                            },
+                          },
+                        ]);
+                      } else {
+                        Alert.alert('Error', result.message);
+                        setTransferring(false);
+                      }
+                    } catch (error) {
+                      console.error('Error transferring points:', error);
+                      Alert.alert('Error', 'Failed to transfer points. Please try again.');
+                      setTransferring(false);
+                    }
+                  }}
+                >
+                  {transferring ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="send" size={20} color="#fff" />
+                      <Text style={styles.transferButtonText}>Send Points</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={{ padding: 20 }}>
+                <Text style={{ color: '#000' }}>No business selected</Text>
+              </View>
+            )}
+          </View>
+          </View>
+        </Modal>
     </LinearGradient>
   );
 };

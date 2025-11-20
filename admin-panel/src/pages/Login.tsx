@@ -40,6 +40,10 @@ const Login: React.FC = () => {
         return 'Too many failed login attempts. Please try again later.';
       case 'auth/network-request-failed':
         return 'Network error. Please check your connection and try again.';
+      case 'auth/operation-not-allowed':
+        return 'This sign-in method is not enabled. Please contact an administrator.';
+      case 'auth/requires-recent-login':
+        return 'Please sign out and sign in again to perform this action.';
       default:
         // Check if it's a custom error message from AuthContext
         if (error?.message) {

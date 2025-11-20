@@ -22,6 +22,9 @@ import MyBusinessScreen from './screens/userScreens/businessOwnerScreens/MyBusin
 import PromotionsScreen from './screens/userScreens/businessOwnerScreens/PromotionsScreen';
 import NotificationScreen from './screens/userScreens/NotificationScreen';
 import DiscoverSilayScreen from './screens/userScreens/DiscoverSilayScreen';
+import QRScannerScreen from './screens/userScreens/QRScannerScreen';
+import TransactionHistoryScreen from './screens/userScreens/TransactionHistoryScreen';
+import BusinessTransactionHistoryScreen from './screens/userScreens/businessOwnerScreens/BusinessTransactionHistoryScreen';
 
 
 const Stack = createStackNavigator();
@@ -65,6 +68,8 @@ const UserAppStack = () => (
     <Stack.Screen name="ReviewsScreen" component={ReviewsScreen} />
     <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
     <Stack.Screen name="DiscoverSilay" component={DiscoverSilayScreen} />
+    <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} />
+    <Stack.Screen name="TransactionHistoryScreen" component={TransactionHistoryScreen} />
   </Stack.Navigator>
 );
 
@@ -83,6 +88,7 @@ const BusinessAppStack = () => (
     <Stack.Screen name="MyBusiness" component={MyBusinessScreen} />
     <Stack.Screen name="Promotions" component={PromotionsScreen} />
     <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
+    <Stack.Screen name="BusinessTransactionHistoryScreen" component={BusinessTransactionHistoryScreen} />
   </Stack.Navigator>
 );
 

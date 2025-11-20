@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -21,6 +21,9 @@ import { db } from '../../../firebase';
 import { doc, collection, query, where, getDocs, deleteDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import LoadingImage from '../../../components/LoadingImage';
+import QRCode from 'react-native-qrcode-svg';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -34,6 +37,9 @@ const MyBusinessScreen = () => {
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState<string>('Registered');
+  const [qrCodeVisible, setQrCodeVisible] = useState(false);
+  const [downloadingQR, setDownloadingQR] = useState(false);
+  const qrCodeRef = useRef<View>(null);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -229,6 +235,71 @@ const MyBusinessScreen = () => {
   const handleChangeBusinessHours = (business: any) => {
     setModalVisible(false);
     (navigation as any).navigate('EditBusiness', { business, focusOnHours: true });
+  };
+
+  const generateQRCodeData = (business: any) => {
+    // Generate QR code data with business information
+    const qrData = {
+      type: 'business',
+      id: business.id,
+      name: business.businessName,
+      businessType: business.selectedType,
+      address: business.businessAddress,
+      contact: business.contactNumber,
+    };
+    return JSON.stringify(qrData);
+  };
+
+  const handleDownloadQRCode = async (business: any) => {
+    if (!business || business.status !== 'approved') {
+      Alert.alert('Error', 'QR code is only available for registered businesses.');
+      return;
+    }
+
+    setDownloadingQR(true);
+    try {
+      // Show QR code modal first
+      setQrCodeVisible(true);
+      
+      // Wait a bit for the QR code to render
+      setTimeout(async () => {
+        try {
+          if (qrCodeRef.current) {
+            const uri = await captureRef(qrCodeRef.current, {
+              format: 'png',
+              quality: 1.0,
+            });
+
+            // Check if sharing is available
+            const isAvailable = await Sharing.isAvailableAsync();
+            if (isAvailable) {
+              await Sharing.shareAsync(uri, {
+                mimeType: 'image/png',
+                dialogTitle: 'Share QR Code',
+              });
+            } else {
+              Alert.alert('Success', 'QR code generated. Please take a screenshot to save it.');
+            }
+
+            setQrCodeVisible(false);
+          }
+        } catch (error) {
+          console.error('Error downloading QR code:', error);
+          Alert.alert(
+            'Download Unavailable',
+            'Unable to download automatically. The QR code is displayed - you can take a screenshot to save it.',
+            [{ text: 'OK' }]
+          );
+        } finally {
+          setDownloadingQR(false);
+        }
+      }, 500);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      Alert.alert('Error', 'Failed to generate QR code. Please try again.');
+      setDownloadingQR(false);
+      setQrCodeVisible(false);
+    }
   };
 
 
@@ -486,6 +557,30 @@ const MyBusinessScreen = () => {
                   <Text style={styles.editButtonText}>Change Business Hours</Text>
                 </TouchableOpacity>
 
+                {selectedBusiness?.status === 'approved' && (
+                  <TouchableOpacity 
+                    style={[styles.qrButton, downloadingQR && styles.qrButtonDisabled]}
+                    onPress={() => handleDownloadQRCode(selectedBusiness)}
+                    disabled={downloadingQR}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['#4CAF50', '#45a049']}
+                      style={styles.qrButtonGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      {downloadingQR ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Ionicons name="qr-code" size={22} color="#fff" />
+                      )}
+                      <Text style={styles.qrButtonText}>
+                        {downloadingQR ? 'Generating QR Code...' : 'Download QR Code'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Business Images Carousel */}
@@ -570,6 +665,47 @@ const MyBusinessScreen = () => {
               </View>
             </ScrollView>
           </SafeAreaView>
+        </Modal>
+
+        {/* QR Code Modal */}
+        <Modal
+          visible={qrCodeVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setQrCodeVisible(false)}
+        >
+          <View style={styles.qrModalOverlay}>
+            <View style={styles.qrModalContent}>
+              <View style={styles.qrModalHeader}>
+                <Text style={styles.qrModalTitle}>Business QR Code</Text>
+                <TouchableOpacity
+                  onPress={() => setQrCodeVisible(false)}
+                  style={styles.qrCloseButton}
+                >
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.qrCodeContainer} ref={qrCodeRef} collapsable={false}>
+                {selectedBusiness && (
+                  <>
+                    <Text style={styles.qrBusinessName}>{selectedBusiness.businessName}</Text>
+                    <QRCode
+                      value={generateQRCodeData(selectedBusiness)}
+                      size={250}
+                      color="#000000"
+                      backgroundColor="#FFFFFF"
+                    />
+                    <Text style={styles.qrBusinessInfo}>{selectedBusiness.selectedType}</Text>
+                    {selectedBusiness.businessAddress && (
+                      <Text style={styles.qrBusinessAddress} numberOfLines={2}>
+                        {selectedBusiness.businessAddress}
+                      </Text>
+                    )}
+                  </>
+                )}
+              </View>
+            </View>
+          </View>
         </Modal>
       </SafeAreaView>
     </LinearGradient>
@@ -936,9 +1072,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   topButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
     padding: 20,
     gap: 10,
   },
@@ -1009,6 +1145,96 @@ const styles = StyleSheet.create({
   },
   filterButtonLast: {
     marginRight: 4,
+  },
+  qrButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#4CAF50',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  qrButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  qrButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 8,
+    letterSpacing: 0.3,
+  },
+  qrButtonDisabled: {
+    opacity: 0.7,
+  },
+  qrModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  qrModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  qrModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  qrCloseButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrCodeContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrBusinessName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  qrBusinessInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  qrBusinessAddress: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 10,
+    textAlign: 'center',
+    paddingHorizontal: 10,
   },
 });
 

@@ -50,6 +50,12 @@
           "color": "#667eea",
           "defaultChannel": "default"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Karetou to access your camera to scan QR codes."
+        }
       ]
     ]
   }

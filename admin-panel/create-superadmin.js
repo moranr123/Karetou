@@ -30,6 +30,7 @@ async function createSuperAdmin() {
     console.log('🔑 Password: Moranmoran12');
     console.log('🆔 UID:', userCredential.user.uid);
     console.log('\n📝 Next steps:');
+    
     console.log('1. Copy the UID above');
     console.log('2. Open admin-panel/src/contexts/AuthContext.tsx');
     console.log('3. Replace the superAdminUids array with:');

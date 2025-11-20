@@ -259,6 +259,27 @@ const BusinessHomeScreen = () => {
             </View>
           </View>
 
+          {/* --- Transaction History --- */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={[styles.transactionHistoryCard, { backgroundColor: theme === 'dark' ? '#2a2a2a' : '#fff' }]}
+              onPress={() => (navigation as any).navigate('BusinessTransactionHistoryScreen')}
+            >
+              <View style={styles.transactionHistoryIcon}>
+                <Ionicons name="receipt" size={24} color="#667eea" />
+              </View>
+              <View style={styles.transactionHistoryInfo}>
+                <Text style={[styles.transactionHistoryTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+                  Transaction History
+                </Text>
+                <Text style={[styles.transactionHistorySubtitle, { color: theme === 'dark' ? '#AAA' : '#666' }]}>
+                  View received points
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#667eea" />
+            </TouchableOpacity>
+          </View>
+
           {/* --- Recent Reviews --- */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -513,6 +534,39 @@ const styles = StyleSheet.create({
     fontSize: screenWidth * 0.035,
     fontWeight: '600',
     marginRight: screenWidth * 0.01,
+  },
+  transactionHistoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: screenWidth * 0.04,
+    borderRadius: 15,
+    marginHorizontal: screenWidth * 0.05,
+    marginBottom: screenHeight * 0.02,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  transactionHistoryIcon: {
+    width: screenWidth * 0.12,
+    height: screenWidth * 0.12,
+    borderRadius: (screenWidth * 0.12) / 2,
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: screenWidth * 0.04,
+  },
+  transactionHistoryInfo: {
+    flex: 1,
+  },
+  transactionHistoryTitle: {
+    fontSize: screenWidth * 0.045,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  transactionHistorySubtitle: {
+    fontSize: screenWidth * 0.035,
   },
 });
 

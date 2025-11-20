@@ -531,15 +531,6 @@ const SearchBarScreen = () => {
                   renderItem={({ item, index }) => (
                     <View style={styles.imageContainer}>
                       <CachedImage source={{ uri: item }} style={styles.detailsImage} resizeMode="cover" />
-                      <TouchableOpacity style={styles.rateButton} onPress={async () => {
-                        console.log('Rate button pressed', selectedPlace?.id);
-                        await fetchUserReview(selectedPlace.id);
-                        setDetailsModalVisible(false);
-                        setReviewModalVisible(true);
-                      }}>
-                        <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.rateButtonText}>Rate</Text>
-                      </TouchableOpacity>
                       {index === 0 && (selectedPlace.businessImages?.length > 1 || selectedPlace.image) && (
                         <View style={styles.swipeIndicator}>
                           <Ionicons name="chevron-forward" size={24} color="#fff" />
@@ -1008,23 +999,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     marginLeft: 4,
-  },
-  rateButton: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    zIndex: 2,
-  },
-  rateButtonText: {
-    color: '#fff',
-    marginLeft: 4,
-    fontWeight: '600',
   },
   reviewModalOverlay: {
     flex: 1,

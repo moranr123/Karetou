@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc, orderBy, limit } from 'firebase/firestore';
@@ -41,6 +41,7 @@ interface BusinessWithReview {
 
 const ReviewsScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const { theme, user } = useAuth();
   const [businesses, setBusinesses] = useState<BusinessWithReview[]>([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithReview[]>([]);
@@ -54,9 +55,118 @@ const ReviewsScreen = () => {
   const [allReviewsModalVisible, setAllReviewsModalVisible] = useState(false);
   const [selectedBusinessForAllReviews, setSelectedBusinessForAllReviews] = useState<any | null>(null);
   const [allReviewsForBusiness, setAllReviewsForBusiness] = useState<any[]>([]);
+  const [isFromQRCode, setIsFromQRCode] = useState(false);
+  const [reviewedBusinessIds, setReviewedBusinessIds] = useState<Set<string>>(new Set());
+
+  // Check if user has already reviewed a business
+  const checkIfUserReviewed = async (businessId: string): Promise<boolean> => {
+    if (!user?.uid) return false;
+    try {
+      const reviewsRef = collection(db, 'businesses', businessId, 'reviews');
+      const reviewQuery = query(reviewsRef, where('userId', '==', user.uid));
+      const reviewSnapshot = await getDocs(reviewQuery);
+      return !reviewSnapshot.empty;
+    } catch (error) {
+      console.error('Error checking user review:', error);
+      return false;
+    }
+  };
+
+  // Handle QR code business data from route params
+  const handleQRBusiness = useCallback(async () => {
+    const params = (route.params as any);
+    console.log('📱 ReviewsScreen - Route params:', params);
+    
+    if (params?.businessFromQR) {
+      const qrBusiness = params.businessFromQR;
+      console.log('📱 ReviewsScreen - Business from QR:', qrBusiness);
+      
+      // Check if user has already reviewed this business
+      const alreadyReviewed = await checkIfUserReviewed(qrBusiness.id);
+      
+      if (alreadyReviewed) {
+        Alert.alert(
+          'Already Reviewed',
+          'You have already reviewed this business. Thank you for your feedback!',
+          [{ text: 'OK' }]
+        );
+        // Clear the params
+        setTimeout(() => {
+          navigation.setParams({ businessFromQR: undefined });
+        }, 100);
+        return;
+      }
+      
+      // Format the business data to match the expected structure
+      const formattedBusiness = {
+        id: qrBusiness.id,
+        name: qrBusiness.name || qrBusiness.businessName,
+        businessType: qrBusiness.businessType || qrBusiness.selectedType,
+        businessAddress: qrBusiness.address || qrBusiness.businessAddress,
+        contactNumber: qrBusiness.contact || qrBusiness.contactNumber,
+      };
+      
+      console.log('📱 ReviewsScreen - Formatted business:', formattedBusiness);
+      
+      setSelectedBusiness(formattedBusiness);
+      setIsFromQRCode(true);
+      setReviewModalVisible(true);
+      
+      console.log('📱 ReviewsScreen - Review modal should be visible now');
+      
+      // Clear the params to avoid reopening on navigation back
+      setTimeout(() => {
+        navigation.setParams({ businessFromQR: undefined });
+      }, 100);
+    }
+  }, [route.params, navigation, user]);
+
+  // Check on mount and when route params change
+  useEffect(() => {
+    handleQRBusiness();
+  }, [handleQRBusiness]);
+
+  // Also check when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      handleQRBusiness();
+    }, [handleQRBusiness])
+  );
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  // Load which businesses the user has reviewed
+  const loadUserReviewedBusinesses = useCallback(async () => {
+    if (!user?.uid) return;
+    
+    try {
+      const reviewedIds = new Set<string>();
+      
+      // Get all businesses
+      const businessesQuery = query(
+        collection(db, 'businesses'),
+        where('status', '==', 'approved'),
+        where('displayInUserApp', '==', true)
+      );
+      const businessesSnapshot = await getDocs(businessesQuery);
+      
+      // Check each business for user's review
+      for (const businessDoc of businessesSnapshot.docs) {
+        const reviewsRef = collection(db, 'businesses', businessDoc.id, 'reviews');
+        const reviewQuery = query(reviewsRef, where('userId', '==', user.uid));
+        const reviewSnapshot = await getDocs(reviewQuery);
+        
+        if (!reviewSnapshot.empty) {
+          reviewedIds.add(businessDoc.id);
+        }
+      }
+      
+      setReviewedBusinessIds(reviewedIds);
+    } catch (error) {
+      console.error('Error loading user reviewed businesses:', error);
+    }
+  }, [user?.uid]);
 
   // Load all businesses with their latest review
   const loadBusinessesWithReviews = async () => {
@@ -135,7 +245,8 @@ const ReviewsScreen = () => {
 
   useEffect(() => {
     loadBusinessesWithReviews();
-  }, []);
+    loadUserReviewedBusinesses();
+  }, [user?.uid, loadUserReviewedBusinesses]);
 
   // Filter businesses based on search query
   useEffect(() => {
@@ -218,7 +329,9 @@ const ReviewsScreen = () => {
       setReviewComment('');
       setReviewModalVisible(false);
       setSelectedBusiness(null);
+      setIsFromQRCode(false);
       loadBusinessesWithReviews();
+      loadUserReviewedBusinesses(); // Reload reviewed businesses
     } catch (error) {
       console.error('Error submitting review:', error);
       alert('Failed to submit review. Please try again.');
@@ -241,14 +354,37 @@ const ReviewsScreen = () => {
           )}
         </View>
         <TouchableOpacity
-          style={styles.reviewButton}
-          onPress={() => {
+          style={[
+            styles.reviewButton,
+            reviewedBusinessIds.has(item.id) && styles.reviewButtonDisabled
+          ]}
+          onPress={async () => {
+            // Check if already reviewed
+            const alreadyReviewed = reviewedBusinessIds.has(item.id) || await checkIfUserReviewed(item.id);
+            if (alreadyReviewed) {
+              Alert.alert(
+                'Already Reviewed',
+                'You have already reviewed this business. Thank you for your feedback!'
+              );
+              return;
+            }
             setSelectedBusiness(item);
             setReviewModalVisible(true);
           }}
+          disabled={reviewedBusinessIds.has(item.id)}
         >
-          <Ionicons name="star" size={16} color="#FFD700" style={styles.reviewButtonIcon} />
-          <Text style={styles.reviewButtonText}>Review</Text>
+          <Ionicons 
+            name={reviewedBusinessIds.has(item.id) ? "checkmark-circle" : "star"} 
+            size={16} 
+            color={reviewedBusinessIds.has(item.id) ? "#4CAF50" : "#FFD700"} 
+            style={styles.reviewButtonIcon} 
+          />
+          <Text style={[
+            styles.reviewButtonText,
+            reviewedBusinessIds.has(item.id) && styles.reviewButtonTextDisabled
+          ]}>
+            {reviewedBusinessIds.has(item.id) ? 'Reviewed' : 'Review'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -390,6 +526,7 @@ const ReviewsScreen = () => {
           setSelectedBusiness(null);
           setReviewRating(0);
           setReviewComment('');
+          setIsFromQRCode(false);
         }}
       >
         <View style={styles.modalOverlay}>
@@ -401,10 +538,19 @@ const ReviewsScreen = () => {
                 setSelectedBusiness(null);
                 setReviewRating(0);
                 setReviewComment('');
+                setIsFromQRCode(false);
               }}>
                 <Ionicons name="close" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
+            {isFromQRCode && (
+              <View style={styles.qrCodeIndicator}>
+                <Ionicons name="qr-code" size={16} color="#667eea" />
+                <Text style={styles.qrCodeIndicatorText}>
+                  Reviewing from QR code scan
+                </Text>
+              </View>
+            )}
             <View style={styles.reviewForm}>
               <Text style={styles.reviewLabel}>Your Rating</Text>
               <View style={styles.starsInput}>
@@ -635,6 +781,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  reviewButtonDisabled: {
+    backgroundColor: '#9E9E9E',
+    opacity: 0.6,
+  },
   reviewButtonIcon: {
     marginRight: 4,
   },
@@ -642,6 +792,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: '600',
+  },
+  reviewButtonTextDisabled: {
+    color: '#E0E0E0',
   },
   ratingSummary: {
     flexDirection: 'row',
@@ -763,6 +916,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     flex: 1,
+  },
+  qrCodeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#667eea',
+  },
+  qrCodeIndicatorText: {
+    color: '#667eea',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   reviewForm: {
     padding: 20,

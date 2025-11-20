@@ -279,7 +279,11 @@ const BusinessLocationScreen = () => {
         updatedAt: new Date(),
       };
 
-      await setDoc(doc(db, 'businesses', user.uid), completeFormData);
+      // Use addDoc to create a new business document with auto-generated ID
+      // This allows one business owner to have multiple businesses
+      const businessRef = await addDoc(collection(db, 'businesses'), completeFormData);
+      
+      console.log('Business registered with ID:', businessRef.id);
       
       Alert.alert(
         'Registration Submitted!',

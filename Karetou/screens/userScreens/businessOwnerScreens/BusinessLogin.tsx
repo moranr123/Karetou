@@ -130,6 +130,14 @@ export default function BusinessLogin({ navigation }: Props) {
         errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled. Please contact support for assistance.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'This sign-in method is not enabled. Please contact support.';
+      } else if (error.code === 'auth/requires-recent-login') {
+        errorMessage = 'Please sign out and sign in again to perform this action.';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -159,7 +167,23 @@ export default function BusinessLogin({ navigation }: Props) {
         ]
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      let errorMessage = 'An error occurred. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many password reset attempts. Please try again later.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Password reset is not enabled. Please contact support.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
     }
   };
 
