@@ -518,7 +518,6 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                         <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Address</TableCell>
                         <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Permit Number</TableCell>
                         <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Applied Date</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Status</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -596,14 +595,6 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
                               </Typography>
                             </Box>
                           </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={business.status.toUpperCase()}
-                              color={getStatusColor(business.status) as any}
-                              size="small"
-                              sx={{ fontWeight: 600 }}
-                            />
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -638,17 +629,11 @@ const BusinessApprovals: React.FC<BusinessApprovalsProps> = ({ tab }) => {
           >
                   <CardActionArea>
                     <CardContent sx={{ p: 2.5 }}>
-                {/* Header with Business Name and Status */}
+                {/* Header with Business Name */}
                       <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                         <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1, fontWeight: 600, color: '#1a1a2e', fontSize: '1.1rem' }}>
                     {business.businessName}
                   </Typography>
-                  <Chip
-                    label={business.status.toUpperCase()}
-                    color={getStatusColor(business.status) as any}
-                    size="small"
-                    sx={{ fontWeight: 600 }}
-                  />
                 </Box>
 
                 {/* Business Details */}

@@ -93,7 +93,6 @@ const Layout: React.FC = () => {
   const businessSubItems = [
     { text: 'Business Applications', icon: <PendingIcon />, path: '/business/pending' },
     { text: 'Registered Business', icon: <ApprovedIcon />, path: '/business/approved' },
-    { text: 'Archived Business', icon: <RejectedIcon />, path: '/business/rejected' },
   ];
 
   const archiveSubItems = [

@@ -578,7 +578,6 @@ const AdminDashboard: React.FC = () => {
                 borderRadius: 2, 
             }}
           >
-            <CardActionArea onClick={() => navigate('/business/rejected')}>
             <CardContent>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
                 Inactive/Closed Accounts
@@ -590,7 +589,6 @@ const AdminDashboard: React.FC = () => {
                 Not operational
               </Typography>
           </CardContent>
-          </CardActionArea>
         </Card>
       </Box>
       </Paper>
