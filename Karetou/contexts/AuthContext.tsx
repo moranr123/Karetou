@@ -70,6 +70,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const notificationService = NotificationService.getInstance();
 
+  // Load theme preference based on user type
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        if (userType) {
+          const themeKey = `theme_${userType}`;
+          const savedTheme = await AsyncStorage.getItem(themeKey);
+          if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+            setTheme(savedTheme as Theme);
+          } else {
+            // If no saved theme, use system preference
+            setTheme(Appearance.getColorScheme() || 'light');
+          }
+        } else {
+          // If no user type, use system preference
+          setTheme(Appearance.getColorScheme() || 'light');
+        }
+      } catch (error) {
+        console.error('Error loading theme:', error);
+        setTheme(Appearance.getColorScheme() || 'light');
+      }
+    };
+    loadTheme();
+  }, [userType]);
+
   // Load lastUserType from AsyncStorage on app start
   useEffect(() => {
     const loadLastUserType = async () => {
@@ -101,9 +126,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     saveLastUserType();
   }, [lastUserType]);
 
-  const toggleTheme = useCallback(() => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
-  }, []);
+  const toggleTheme = useCallback(async () => {
+    setTheme(prevTheme => {
+      const newTheme = prevTheme === 'light' ? 'dark' : 'light';
+      
+      // Save theme preference per user type
+      if (userType) {
+        const themeKey = `theme_${userType}`;
+        AsyncStorage.setItem(themeKey, newTheme).catch(error => {
+          console.error('Error saving theme:', error);
+        });
+      }
+      
+      return newTheme;
+    });
+  }, [userType]);
 
   const logout = useCallback(async () => {
     try {

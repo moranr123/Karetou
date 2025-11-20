@@ -9,6 +9,7 @@ import {
   Dimensions,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -36,6 +37,7 @@ const BusinessSettingsScreen = () => {
   const { user, theme, toggleTheme, logout } = useAuth();
   const [userFullName, setUserFullName] = useState<string>('');
   const [loadingUserData, setLoadingUserData] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -74,8 +76,10 @@ const BusinessSettingsScreen = () => {
           text: "OK", 
           onPress: async () => {
             try {
+              setLoggingOut(true);
               await logout();
             } catch (error: any) {
+              setLoggingOut(false);
               Alert.alert('Logout Error', error?.message || 'Failed to logout');
             }
           }
@@ -91,8 +95,8 @@ const BusinessSettingsScreen = () => {
     </View>
   );
 
-  const SettingRow = ({ icon, name, description, children, onPress }: SettingRowProps) => (
-    <TouchableOpacity onPress={onPress} disabled={!onPress}>
+  const SettingRow = ({ icon, name, description, children, onPress }: SettingRowProps) => {
+    const content = (
       <View style={styles.row}>
         <View style={styles.rowIconContainer}>
           <Feather name={icon} size={20 * FONT_SCALE} color="#5A67D8" />
@@ -103,8 +107,18 @@ const BusinessSettingsScreen = () => {
         </View>
         {children || (onPress && <Feather name="chevron-right" size={20 * FONT_SCALE} color="#C0C0C0" />)}
       </View>
-    </TouchableOpacity>
-  );
+    );
+
+    if (onPress) {
+      return (
+        <TouchableOpacity onPress={onPress}>
+          {content}
+        </TouchableOpacity>
+      );
+    }
+
+    return content;
+  };
 
   const Divider = () => <View style={styles.divider} />;
 
@@ -157,12 +171,18 @@ const BusinessSettingsScreen = () => {
 
           {/* Account Section */}
           <Section title="Account">
-            <SettingRow 
-              icon="log-out" 
-              name="Logout" 
-              description="Sign out of your account"
-              onPress={handleLogout}
-            />
+            <TouchableOpacity onPress={handleLogout} disabled={loggingOut}>
+              <View style={styles.logoutRow}>
+                <SettingRow 
+                  icon="log-out" 
+                  name="Logout" 
+                  description={loggingOut ? "Signing out..." : "Sign out of your account"}
+                />
+                {loggingOut && (
+                  <ActivityIndicator size="small" color="#667eea" style={styles.logoutIndicator} />
+                )}
+              </View>
+            </TouchableOpacity>
           </Section>
         </ScrollView>
       </SafeAreaView>
@@ -263,6 +283,14 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#EAEAEA',
     marginLeft: width * 0.1,
+  },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logoutIndicator: {
+    marginRight: width * 0.04,
   },
 });
 

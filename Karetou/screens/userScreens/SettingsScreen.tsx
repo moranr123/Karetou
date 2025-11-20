@@ -9,6 +9,7 @@ import {
   Switch,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -36,6 +37,7 @@ const SettingsScreen = () => {
   const { user, theme, toggleTheme, logout } = useAuth();
   const [userFullName, setUserFullName] = useState<string>('');
   const [loadingUserData, setLoadingUserData] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -72,8 +74,10 @@ const SettingsScreen = () => {
           text: "OK", 
           onPress: async () => {
             try {
+              setLoggingOut(true);
               await logout();
             } catch (error: any) {
+              setLoggingOut(false);
               Alert.alert('Logout Error', error?.message || 'Failed to logout');
             }
           }
@@ -180,8 +184,13 @@ const SettingsScreen = () => {
 
           {/* Account Section */}
           <Section title="Account">
-            <TouchableOpacity onPress={handleLogout}>
-              <SettingRow icon="log-out" name="Logout" description="Sign out of your account" />
+            <TouchableOpacity onPress={handleLogout} disabled={loggingOut}>
+              <View style={styles.logoutRow}>
+                <SettingRow icon="log-out" name="Logout" description={loggingOut ? "Signing out..." : "Sign out of your account"} />
+                {loggingOut && (
+                  <ActivityIndicator size="small" color="#667eea" style={styles.logoutIndicator} />
+                )}
+              </View>
             </TouchableOpacity>
             <View style={styles.divider} />
             <TouchableOpacity onPress={handleDeleteAccount}>
@@ -297,6 +306,14 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#EAEAEA',
     marginLeft: width * 0.1,
+  },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logoutIndicator: {
+    marginRight: width * 0.04,
   },
 });
 

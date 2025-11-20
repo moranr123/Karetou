@@ -1350,7 +1350,14 @@ const HomeScreen = () => {
       // Apply preference-based filtering
       const preferenceFiltered = applyPreferenceFilter(businesses.length > 0 ? businesses : fallbackSuggestedPlaces);
       
-      setSuggestedPlaces(preferenceFiltered);
+      // Sort by rating (highest first) - initial sort based on business data rating
+      const sorted = [...preferenceFiltered].sort((a, b) => {
+        const ratingA = parseFloat(a.rating || '0');
+        const ratingB = parseFloat(b.rating || '0');
+        return ratingB - ratingA;
+      });
+      
+      setSuggestedPlaces(sorted);
       
       // Preload suggested places images
       const preloadPromises: Promise<void>[] = [];
@@ -1680,8 +1687,10 @@ const HomeScreen = () => {
 
   // Real-time listener for reviews of all loaded businesses
   useEffect(() => {
-    if (!placesToVisit.length) return;
+    if (!placesToVisit.length && !suggestedPlaces.length) return;
     const unsubscribes: (() => void)[] = [];
+    
+    // Listen to reviews for places to visit
     placesToVisit.forEach((place) => {
       const reviewsRef = collection(db, 'businesses', place.id, 'reviews');
       const unsubscribe = onSnapshot(reviewsRef, (snapshot) => {
@@ -1704,10 +1713,52 @@ const HomeScreen = () => {
       });
       unsubscribes.push(unsubscribe);
     });
+    
+    // Listen to reviews for suggested places
+    suggestedPlaces.forEach((place) => {
+      const reviewsRef = collection(db, 'businesses', place.id, 'reviews');
+      const unsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+        let total = 0;
+        let count = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (typeof data.rating === 'number') {
+            total += data.rating;
+            count++;
+          }
+        });
+        setBusinessRatings(prev => ({
+          ...prev,
+          [place.id]: {
+            average: count > 0 ? (total / count).toFixed(1) : '0.0',
+            count,
+          },
+        }));
+      });
+      unsubscribes.push(unsubscribe);
+    });
+    
     return () => {
       unsubscribes.forEach(unsub => unsub());
     };
-  }, [placesToVisit]);
+  }, [placesToVisit, suggestedPlaces]);
+
+  // Sort suggested places by real ratings when businessRatings updates
+  useEffect(() => {
+    if (suggestedPlaces.length > 0) {
+      const sorted = [...suggestedPlaces].sort((a, b) => {
+        const ratingA = parseFloat(businessRatings[a.id]?.average || a.rating || '0');
+        const ratingB = parseFloat(businessRatings[b.id]?.average || b.rating || '0');
+        return ratingB - ratingA; // Highest first
+      });
+      // Only update if order actually changed to avoid infinite loop
+      const currentIds = suggestedPlaces.map(p => p.id).join(',');
+      const sortedIds = sorted.map(p => p.id).join(',');
+      if (currentIds !== sortedIds) {
+        setSuggestedPlaces(sorted);
+      }
+    }
+  }, [businessRatings]);
 
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={{flex: 1}}>
@@ -1827,7 +1878,7 @@ const HomeScreen = () => {
                       <View style={styles.ratingContainer}>
                         <Ionicons name="star" size={iconSizes.sm} color="#FFD700" />
                         <ResponsiveText size="sm" weight="bold" color="#fff" style={styles.ratingText}>
-                          {item.rating}
+                          {businessRatings[item.id]?.average || item.rating || '0.0'}
                         </ResponsiveText>
                       </View>
                       <View style={styles.suggestedCardContent}>

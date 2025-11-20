@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -177,6 +178,13 @@ const DiscoverSilayScreen = () => {
   const [detailModalVisible, setDetailModalVisible] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  
+  // Video player setup
+  const player = useVideoPlayer(require('../../assets/SilayCity.mp4'), (player) => {
+    player.loop = true;
+    player.muted = false;
+    player.play();
+  });
 
   const styles = StyleSheet.create({
     container: {
@@ -238,14 +246,111 @@ const DiscoverSilayScreen = () => {
       textAlign: 'center',
       opacity: 0.9,
     },
+    heroVideoSection: {
+      marginBottom: spacing.xl,
+      paddingHorizontal: spacing.md,
+    },
+    videoContainer: {
+      width: '100%',
+      height: getResponsiveHeight(30),
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    },
+    heroVideo: {
+      width: '100%',
+      height: '100%',
+    },
+    videoOverlay: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    videoContent: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: spacing.lg,
+      alignItems: 'center',
+    },
+    heroVideoTitle: {
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
+      marginBottom: spacing.xs,
+      textAlign: 'center',
+    },
+    heroVideoSubtitle: {
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
+      marginBottom: spacing.md,
+      textAlign: 'center',
+      opacity: 0.95,
+    },
+    highlightBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(102, 126, 234, 0.9)',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.full,
+      borderWidth: 2,
+      borderColor: '#FFD700',
+    },
+    highlightText: {
+      marginLeft: spacing.xs,
+      textShadowColor: 'rgba(0, 0, 0, 0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+    playPauseButton: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: borderRadius.full,
+      width: 44,
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#fff',
+    },
     section: {
+      marginBottom: spacing.xl,
+      paddingHorizontal: spacing.md,
+    },
+    sectionHeader: {
       marginBottom: spacing.lg,
-      paddingHorizontal: spacing.xs, // Add small horizontal padding
+    },
+    sectionTitleGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.xl,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+    },
+    sectionIcon: {
+      marginRight: spacing.sm,
+    },
+    sectionTitleText: {
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     sectionTitle: {
       fontWeight: 'bold',
       marginBottom: spacing.md,
-      paddingHorizontal: spacing.sm, // Add padding to title
+      paddingHorizontal: spacing.sm,
     },
     activityCard: {
       backgroundColor: '#fff',
@@ -376,34 +481,38 @@ const DiscoverSilayScreen = () => {
     },
     // Horizontal card styles for Top Things to Do
     horizontalCard: {
-      width: getResponsiveWidth(screenWidth < 400 ? 75 : 70), // Wider on smaller screens
+      width: getResponsiveWidth(screenWidth < 400 ? 75 : 70),
       marginRight: spacing.md,
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.xl,
       overflow: 'hidden',
-      elevation: 2,
+      elevation: 6,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(102, 126, 234, 0.1)',
     },
     horizontalCardImage: {
       width: '100%',
-      height: getResponsiveHeight(screenHeight < 700 ? 18 : 22), // Increased height for better image visibility
+      height: getResponsiveHeight(screenHeight < 700 ? 20 : 24),
     },
     horizontalCardContent: {
-      padding: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: '#fff',
     },
     horizontalCardTitle: {
       fontWeight: 'bold',
       marginBottom: spacing.xs,
-      fontSize: fontSizes.sm,
-      lineHeight: fontSizes.sm * 1.2,
+      fontSize: fontSizes.md,
+      lineHeight: fontSizes.md * 1.3,
+      color: '#333',
     },
     horizontalCardDescription: {
       color: '#666',
-      fontSize: fontSizes.xs,
-      lineHeight: fontSizes.xs * 1.3,
+      fontSize: fontSizes.sm,
+      lineHeight: fontSizes.sm * 1.4,
     },
     // Food section styles
     sectionDescription: {
@@ -648,11 +757,68 @@ const DiscoverSilayScreen = () => {
             paddingTop: spacing.sm
           }}
         >
+          {/* Hero Video Section */}
+          <ResponsiveView style={styles.heroVideoSection}>
+            <View style={styles.videoContainer}>
+              <VideoView
+                player={player}
+                style={styles.heroVideo}
+                contentFit="cover"
+                nativeControls={false}
+                allowsFullscreen={false}
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.7)']}
+                style={styles.videoOverlay}
+              />
+              <View style={styles.videoContent}>
+                <ResponsiveText size="xxl" weight="bold" color="#fff" style={styles.heroVideoTitle}>
+                  Discover Silay City
+                </ResponsiveText>
+                <ResponsiveText size="lg" color="#fff" style={styles.heroVideoSubtitle}>
+                  Heritage • Culture • Beauty
+                </ResponsiveText>
+                <View style={styles.highlightBadge}>
+                  <Ionicons name="star" size={20} color="#FFD700" />
+                  <ResponsiveText size="md" weight="bold" color="#fff" style={styles.highlightText}>
+                    The Paris of Negros
+                  </ResponsiveText>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.playPauseButton}
+                onPress={() => {
+                  if (player.playing) {
+                    player.pause();
+                  } else {
+                    player.play();
+                  }
+                }}
+              >
+                <Ionicons 
+                  name={player.playing ? "pause" : "play"} 
+                  size={24} 
+                  color="#fff" 
+                />
+              </TouchableOpacity>
+            </View>
+          </ResponsiveView>
+
           {/* Top Things to Do Section */}
           <ResponsiveView style={styles.section}>
-            <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.sectionTitle}>
-              TOP THINGS TO DO
-            </ResponsiveText>
+            <View style={styles.sectionHeader}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.sectionTitleGradient}
+              >
+                <Ionicons name="star" size={iconSizes.md} color="#FFD700" style={styles.sectionIcon} />
+                <ResponsiveText size="xl" weight="bold" color="#fff" style={styles.sectionTitleText}>
+                  TOP THINGS TO DO
+                </ResponsiveText>
+              </LinearGradient>
+            </View>
             
             <FlatList
               data={topThingsToDo}
@@ -719,9 +885,19 @@ const DiscoverSilayScreen = () => {
 
           {/* FOOD Section */}
           <ResponsiveView style={styles.section}>
-            <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.sectionTitle}>
-              📍 FOOD
-            </ResponsiveText>
+            <View style={styles.sectionHeader}>
+              <LinearGradient
+                colors={['#f093fb', '#f5576c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.sectionTitleGradient}
+              >
+                <Ionicons name="restaurant" size={iconSizes.md} color="#fff" style={styles.sectionIcon} />
+                <ResponsiveText size="xl" weight="bold" color="#fff" style={styles.sectionTitleText}>
+                  FOOD
+                </ResponsiveText>
+              </LinearGradient>
+            </View>
             
             <FlatList
               data={foodData}
@@ -788,9 +964,19 @@ const DiscoverSilayScreen = () => {
 
           {/* WHERE TO STAY Section */}
           <ResponsiveView style={styles.section}>
-            <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.sectionTitle}>
-              📍 WHERE TO STAY
-            </ResponsiveText>
+            <View style={styles.sectionHeader}>
+              <LinearGradient
+                colors={['#4facfe', '#00f2fe']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.sectionTitleGradient}
+              >
+                <Ionicons name="bed" size={iconSizes.md} color="#fff" style={styles.sectionIcon} />
+                <ResponsiveText size="xl" weight="bold" color="#fff" style={styles.sectionTitleText}>
+                  WHERE TO STAY
+                </ResponsiveText>
+              </LinearGradient>
+            </View>
             
             <FlatList
               data={stayData}

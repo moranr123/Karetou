@@ -2106,48 +2106,72 @@ const Navigate = () => {
 
 
               {/* Business markers - keep visible but dimmed during navigation */}
-              {places.map((place) => (
-              <Marker
-                key={place.id}
-                coordinate={{
-                    latitude: place.businessLocation.latitude,
-                    longitude: place.businessLocation.longitude
-                }}
-                title={place.name}
-                  description={place.businessType}
-                                    onPress={() => {
-                    handlePlaceSelect(place);
-                  }}
-                >
-                  <View style={{
-                    backgroundColor: 
-                      isNavigating && selectedPlace?.id === place.id ? '#FF3B30' :
-                      isNavigating ? 'rgba(75, 80, 230, 0.3)' : '#4B50E6',
-                    borderRadius: 20,
-                    padding: isNavigating && selectedPlace?.id === place.id ? 12 : 8,
-                    borderWidth: isNavigating && selectedPlace?.id === place.id ? 4 : 2,
-                    borderColor: '#fff',
-                    elevation: isNavigating && selectedPlace?.id === place.id ? 8 : (isNavigating ? 1 : 3),
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isNavigating && selectedPlace?.id === place.id ? 0.4 : (isNavigating ? 0.1 : 0.25),
-                    shadowRadius: 3.84,
-                  }}>
-                    <Ionicons 
-                      name={isNavigating && selectedPlace?.id === place.id ? "location" : "business"}
-                      size={isNavigating && selectedPlace?.id === place.id ? 24 : 20} 
-                      color={
-                        isNavigating && selectedPlace?.id === place.id ? '#fff' :
-                        isNavigating ? 'rgba(255, 255, 255, 0.5)' : '#fff'
-                      } 
-                    />
-                  </View>
-                </Marker>
-              ))}
+              {places.map((place) => {
+                const businessImage = place.image || (place.allImages && place.allImages.length > 0 ? place.allImages[0] : null);
+                const hasImage = !!businessImage;
+                
+                return (
+                  <Marker
+                    key={place.id}
+                    coordinate={{
+                      latitude: place.businessLocation.latitude,
+                      longitude: place.businessLocation.longitude
+                    }}
+                    title={place.name}
+                    description={place.businessType}
+                    onPress={() => {
+                      handlePlaceSelect(place);
+                    }}
+                  >
+                    <View style={styles.pinMarkerContainer}>
+                      {/* Pin head (circular part with image) */}
+                      <View style={[
+                        styles.pinMarkerHead,
+                        {
+                          borderWidth: isNavigating && selectedPlace?.id === place.id ? 4 : 2,
+                          borderColor: isNavigating && selectedPlace?.id === place.id ? '#FF3B30' : '#fff',
+                          opacity: isNavigating && selectedPlace?.id !== place.id ? 0.6 : 1,
+                          elevation: isNavigating && selectedPlace?.id === place.id ? 8 : (isNavigating ? 1 : 3),
+                          shadowOpacity: isNavigating && selectedPlace?.id === place.id ? 0.4 : (isNavigating ? 0.1 : 0.25),
+                        }
+                      ]}>
+                        {hasImage ? (
+                          <Image
+                            source={{ uri: businessImage }}
+                            style={styles.businessMarkerImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={[
+                            styles.businessMarkerFallback,
+                            {
+                              backgroundColor: isNavigating && selectedPlace?.id === place.id ? '#FF3B30' : '#4B50E6',
+                            }
+                          ]}>
+                            <Ionicons 
+                              name={isNavigating && selectedPlace?.id === place.id ? "location" : "business"}
+                              size={isNavigating && selectedPlace?.id === place.id ? 24 : 20} 
+                              color="#fff" 
+                            />
+                          </View>
+                        )}
+                      </View>
+                      {/* Pin point (triangular bottom) */}
+                      <View style={[
+                        styles.pinMarkerPoint,
+                        {
+                          borderTopColor: isNavigating && selectedPlace?.id === place.id ? '#FF3B30' : '#fff',
+                          opacity: isNavigating && selectedPlace?.id !== place.id ? 0.6 : 1,
+                        }
+                      ]} />
+                    </View>
+                  </Marker>
+                );
+              })}
 
 
 
-              {/* Destination marker - Large red target marker */}
+              {/* Destination marker - Default marker icon */}
               {isNavigating && selectedPlace?.businessLocation && (
               <Marker
                   key={`destination-${selectedPlace.id}`}
@@ -2158,11 +2182,7 @@ const Navigate = () => {
                   title={`📍 ${selectedPlace.name}`}
                   description="Destination"
                   zIndex={2000}
-                >
-                  <View style={styles.destinationMarker}>
-                    <Ionicons name="location" size={36} color="#fff" />
-                  </View>
-                </Marker>
+                />
               )}
 
               {/* Route line - solid during navigation, no preview when not navigating */}
@@ -3169,6 +3189,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 70,
     height: 70,
+  },
+  pinMarkerContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  pinMarkerHead: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3.84,
+    backgroundColor: '#fff',
+  },
+  businessMarkerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
+  },
+  businessMarkerFallback: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinMarkerPoint: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#fff',
+    marginTop: -2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   navigationControls: {
     position: 'absolute',

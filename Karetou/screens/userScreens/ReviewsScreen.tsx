@@ -192,7 +192,12 @@ const ReviewsScreen = () => {
 
   // Load which businesses the user has reviewed and scanned
   const loadUserReviewedBusinesses = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      // Clear if no user
+      setReviewedBusinessIds(new Set());
+      setScannedBusinessIds(new Set());
+      return;
+    }
     
     try {
       const reviewedIds = new Set<string>();
@@ -212,7 +217,7 @@ const ReviewsScreen = () => {
       );
       const businessesSnapshot = await getDocs(businessesQuery);
       
-      // Check each business for user's review
+      // Check each business for user's review - IMPORTANT: Only check for current user's reviews
       for (const businessDoc of businessesSnapshot.docs) {
         const reviewsRef = collection(db, 'businesses', businessDoc.id, 'reviews');
         const reviewQuery = query(reviewsRef, where('userId', '==', user.uid));
@@ -225,8 +230,14 @@ const ReviewsScreen = () => {
       
       setReviewedBusinessIds(reviewedIds);
       setScannedBusinessIds(scannedIds);
+      
+      console.log('✅ Loaded reviewed businesses for user:', user.uid, 'Count:', reviewedIds.size);
+      console.log('✅ Loaded scanned businesses for user:', user.uid, 'Count:', scannedIds.size);
     } catch (error) {
       console.error('Error loading user reviewed businesses:', error);
+      // Clear on error
+      setReviewedBusinessIds(new Set());
+      setScannedBusinessIds(new Set());
     }
   }, [user?.uid]);
 
@@ -306,8 +317,17 @@ const ReviewsScreen = () => {
   };
 
   useEffect(() => {
-    loadBusinessesWithReviews();
-    loadUserReviewedBusinesses();
+    // Clear reviewed and scanned business IDs when user changes
+    setReviewedBusinessIds(new Set());
+    setScannedBusinessIds(new Set());
+    
+    if (user?.uid) {
+      loadBusinessesWithReviews();
+      loadUserReviewedBusinesses();
+    } else {
+      // If no user, still load businesses but clear reviewed/scanned lists
+      loadBusinessesWithReviews();
+    }
   }, [user?.uid, loadUserReviewedBusinesses]);
 
   // Filter businesses based on search query
