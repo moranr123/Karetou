@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Dimensions,
   SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,17 +17,34 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import PointsService from '../../services/PointsService';
-
-const { width, height } = Dimensions.get('window');
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../components';
 
 const QRScannerScreen = () => {
   const navigation = useNavigation();
   const { theme, user } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, getResponsiveWidth, getResponsiveHeight, dimensions, responsiveHeight, responsiveWidth } = useResponsive();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [facing, setFacing] = useState<CameraType>('back');
   const pointsService = PointsService.getInstance();
   const isProcessingRef = useRef(false);
+  
+  // Device size detection with fallbacks
+  const isSmallScreen = (dimensions?.width || 360) < 360;
+  const isSmallDevice = dimensions?.isSmallDevice || false;
+  const minTouchTarget = 44;
+  
+  // Calculate header padding with fallbacks
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? (spacing?.md || 12) + (isSmallDevice ? (spacing?.xs || 4) : (spacing?.sm || 8))
+    : statusBarHeight + (spacing?.sm || 8);
+  
+  // Calculate scan area size (responsive square) with fallbacks
+  const screenWidth = dimensions?.width || 360;
+  const screenHeight = dimensions?.height || 640;
+  const scanAreaSize = Math.min(screenWidth * 0.7, screenHeight * 0.4);
 
   useEffect(() => {
     if (!permission) {
@@ -203,13 +221,164 @@ const QRScannerScreen = () => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   };
 
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingTop: headerPaddingTop,
+      paddingBottom: spacing?.sm || 8,
+      backgroundColor: 'transparent',
+    },
+    backButton: {
+      width: minTouchTarget,
+      height: minTouchTarget,
+      borderRadius: minTouchTarget / 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: fontSizes?.lg || 18,
+      fontWeight: 'bold',
+      color: '#000',
+    },
+    flipButton: {
+      width: minTouchTarget,
+      height: minTouchTarget,
+      borderRadius: minTouchTarget / 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeholder: {
+      width: minTouchTarget,
+    },
+    cameraContainer: {
+      flex: 1,
+      margin: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      borderRadius: borderRadiusValues?.xl || 20,
+      overflow: 'hidden',
+    },
+    camera: {
+      flex: 1,
+    },
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scanArea: {
+      width: scanAreaSize,
+      height: scanAreaSize,
+      position: 'relative',
+    },
+    corner: {
+      position: 'absolute',
+      width: Math.max(24, Math.min(screenWidth * 0.08, 36)),
+      height: Math.max(24, Math.min(screenWidth * 0.08, 36)),
+      borderColor: '#667eea',
+      borderWidth: Math.max(3, Math.min(screenWidth * 0.01, 5)),
+    },
+    topLeft: {
+      top: 0,
+      left: 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 0,
+    },
+    topRight: {
+      top: 0,
+      right: 0,
+      borderLeftWidth: 0,
+      borderBottomWidth: 0,
+    },
+    bottomLeft: {
+      bottom: 0,
+      left: 0,
+      borderRightWidth: 0,
+      borderTopWidth: 0,
+    },
+    bottomRight: {
+      bottom: 0,
+      right: 0,
+      borderLeftWidth: 0,
+      borderTopWidth: 0,
+    },
+    instructionText: {
+      color: '#fff',
+      fontSize: fontSizes?.md || 16,
+      marginTop: spacing?.lg || 16,
+      textAlign: 'center',
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+    },
+    scanAgainButton: {
+      backgroundColor: '#667eea',
+      marginHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      marginBottom: spacing?.md || 12,
+      paddingVertical: spacing?.md || 12,
+      borderRadius: borderRadiusValues?.md || 12,
+      alignItems: 'center',
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    scanAgainButtonText: {
+      color: '#fff',
+      fontSize: fontSizes?.md || 16,
+      fontWeight: '600',
+    },
+    permissionContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: isSmallScreen ? (spacing?.md || 12) : (spacing?.xl || 24),
+    },
+    permissionTitle: {
+      fontSize: fontSizes?.xxl || 24,
+      fontWeight: 'bold',
+      color: '#000',
+      marginTop: spacing?.lg || 16,
+      marginBottom: spacing?.sm || 8,
+      textAlign: 'center',
+    },
+    permissionText: {
+      fontSize: fontSizes?.md || 16,
+      color: '#666',
+      textAlign: 'center',
+      marginBottom: spacing?.xl || 24,
+      lineHeight: (fontSizes?.md || 16) * 1.5,
+    },
+    permissionButton: {
+      backgroundColor: '#667eea',
+      paddingVertical: spacing?.md || 12,
+      paddingHorizontal: spacing?.xl || 24,
+      borderRadius: borderRadiusValues?.md || 12,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    permissionButtonText: {
+      color: '#fff',
+      fontSize: fontSizes?.md || 16,
+      fontWeight: '600',
+    },
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, isSmallScreen, isSmallDevice, minTouchTarget, headerPaddingTop, scanAreaSize, screenWidth]);
+
   if (!permission) {
     return (
       <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.permissionContainer}>
-            <Text style={styles.permissionText}>Requesting camera permission...</Text>
-          </View>
+          <ResponsiveView style={styles.permissionContainer}>
+            <ResponsiveText size="md" color="#666" style={styles.permissionText}>Requesting camera permission...</ResponsiveText>
+          </ResponsiveView>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -219,29 +388,29 @@ const QRScannerScreen = () => {
     return (
       <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
+          <ResponsiveView style={styles.header}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+              <Ionicons name="arrow-back" size={iconSizes?.md || 24} color={theme === 'dark' ? '#FFF' : '#000'} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>QR Scanner</Text>
+            <ResponsiveText size="lg" weight="bold" color="#000" style={styles.headerTitle}>QR Scanner</ResponsiveText>
             <View style={styles.placeholder} />
-          </View>
-          <View style={styles.permissionContainer}>
-            <Ionicons name="camera-outline" size={80} color="#667eea" />
-            <Text style={styles.permissionTitle}>Camera Permission Required</Text>
-            <Text style={styles.permissionText}>
+          </ResponsiveView>
+          <ResponsiveView style={styles.permissionContainer}>
+            <Ionicons name="camera-outline" size={iconSizes?.xxxxl || 80} color="#667eea" />
+            <ResponsiveText size="xxl" weight="bold" color="#000" style={styles.permissionTitle}>Camera Permission Required</ResponsiveText>
+            <ResponsiveText size="md" color="#666" style={styles.permissionText}>
               We need access to your camera to scan QR codes.
-            </Text>
+            </ResponsiveText>
             <TouchableOpacity
               style={styles.permissionButton}
               onPress={requestPermission}
             >
-              <Text style={styles.permissionButtonText}>Grant Permission</Text>
+              <ResponsiveText size="md" weight="600" color="#fff" style={styles.permissionButtonText}>Grant Permission</ResponsiveText>
             </TouchableOpacity>
-          </View>
+          </ResponsiveView>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -250,23 +419,23 @@ const QRScannerScreen = () => {
   return (
     <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
+        <ResponsiveView style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+            <Ionicons name="arrow-back" size={iconSizes?.md || 24} color={theme === 'dark' ? '#FFF' : '#000'} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>QR Scanner</Text>
+          <ResponsiveText size="lg" weight="bold" color="#000" style={styles.headerTitle}>QR Scanner</ResponsiveText>
           <TouchableOpacity
             onPress={toggleCameraFacing}
             style={styles.flipButton}
           >
-            <Ionicons name="camera-reverse-outline" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+            <Ionicons name="camera-reverse-outline" size={iconSizes?.md || 24} color={theme === 'dark' ? '#FFF' : '#000'} />
           </TouchableOpacity>
-        </View>
+        </ResponsiveView>
 
-        <View style={styles.cameraContainer}>
+        <ResponsiveView style={styles.cameraContainer}>
           <CameraView
             style={styles.camera}
             facing={facing}
@@ -282,168 +451,25 @@ const QRScannerScreen = () => {
                 <View style={[styles.corner, styles.bottomLeft]} />
                 <View style={[styles.corner, styles.bottomRight]} />
               </View>
-              <Text style={styles.instructionText}>
+              <ResponsiveText size="md" color="#fff" style={styles.instructionText}>
                 Position the QR code within the frame
-              </Text>
+              </ResponsiveText>
             </View>
           </CameraView>
-        </View>
+        </ResponsiveView>
 
         {scanned && (
           <TouchableOpacity
             style={styles.scanAgainButton}
             onPress={() => setScanned(false)}
           >
-            <Text style={styles.scanAgainButtonText}>Tap to Scan Again</Text>
+            <ResponsiveText size="md" weight="600" color="#fff" style={styles.scanAgainButtonText}>Tap to Scan Again</ResponsiveText>
           </TouchableOpacity>
         )}
       </SafeAreaView>
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: 'transparent',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  flipButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholder: {
-    width: 40,
-  },
-  cameraContainer: {
-    flex: 1,
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  camera: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanArea: {
-    width: width * 0.7,
-    height: width * 0.7,
-    position: 'relative',
-  },
-  corner: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: '#667eea',
-    borderWidth: 4,
-  },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-  },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-  },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-  },
-  instructionText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: 30,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  scanAgainButton: {
-    backgroundColor: '#667eea',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    paddingVertical: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  scanAgainButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  permissionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 20,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  permissionText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  permissionButton: {
-    backgroundColor: '#667eea',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 12,
-  },
-  permissionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
 
 export default QRScannerScreen;
 

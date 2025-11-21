@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,10 @@ import {
   TouchableOpacity,
   FlatList,
   ImageBackground,
-  Dimensions,
   Alert,
   Modal,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,10 +19,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { collection, query, onSnapshot, doc, updateDoc, arrayRemove, getDoc, where } from 'firebase/firestore';
 import LoadingImage from '../../components/LoadingImage';
-
-const { width, height } = Dimensions.get('window');
-
-const FONT_SCALE = Math.min(width, height) / 400;
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../components';
 
 interface SavedItem {
   id: string;
@@ -66,6 +65,33 @@ const SavedScreen = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [commentText, setCommentText] = useState('');
   const { theme, user } = useAuth();
+  
+  // Get responsive values
+  const responsive = useResponsive();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, getResponsiveWidth, getResponsiveHeight, dimensions, responsiveHeight, responsiveWidth, responsiveFontSize } = responsive;
+  
+  // Safety check - ensure spacing exists
+  if (!spacing || !fontSizes || !iconSizes) {
+    console.error('useResponsive hook did not return required values');
+  }
+  
+  const isSmallScreen = dimensions?.width < 360;
+  const isSmallDevice = dimensions?.isSmallDevice;
+  const minTouchTarget = 44;
+  
+  // Calculate header padding with fallback
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? (spacing?.md || 12) + (spacing?.md || 12) + (isSmallDevice ? (spacing?.xs || 4) : (spacing?.sm || 8))
+    : statusBarHeight + (spacing?.sm || 8);
+  
+  // Calculate total header height: paddingTop + searchBar + searchBar marginTop + tabs + tab margins + paddingBottom
+  const searchBarHeight = minTouchTarget;
+  const searchBarMarginTop = spacing?.sm || 8;
+  const tabHeight = minTouchTarget;
+  const tabMarginVertical = (spacing?.sm || 8) * 2; // marginVertical applies to both top and bottom
+  const headerPaddingBottom = spacing?.md || 12;
+  const headerTotalHeight = headerPaddingTop + searchBarMarginTop + searchBarHeight + tabMarginVertical + tabHeight + headerPaddingBottom;
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -193,24 +219,395 @@ const SavedScreen = () => {
     return date.toLocaleDateString();
   };
 
+  // Create responsive styles using useMemo - MUST be before return statement
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    headerFixed: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      paddingTop: headerPaddingTop,
+      paddingBottom: spacing?.md || 12,
+      borderBottomLeftRadius: borderRadiusValues?.xl || 20,
+      borderBottomRightRadius: borderRadiusValues?.xl || 20,
+      zIndex: 10,
+      borderWidth: 1,
+      borderColor: theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+      borderTopWidth: 0,
+      backgroundColor: theme === 'light' ? '#F5F5F5' : '#232526',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.9)',
+      borderRadius: borderRadiusValues?.md || 8,
+      paddingHorizontal: spacing?.md || 12,
+      marginHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      marginTop: spacing?.sm || 8,
+      minHeight: minTouchTarget,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 2 },
+    },
+    searchInput: {
+      flex: 1,
+      minHeight: minTouchTarget,
+      fontSize: fontSizes?.md || 14,
+      marginLeft: spacing?.sm || 8,
+      color: '#333',
+    },
+    tabContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginVertical: spacing?.sm || 8,
+      borderRadius: borderRadiusValues?.md || 8,
+      marginHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      padding: spacing?.xs || 4,
+      gap: spacing?.xs || 4,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing?.sm || 8,
+      borderRadius: borderRadiusValues?.sm || 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.3)',
+      minHeight: minTouchTarget,
+    },
+    activeTab: {
+      backgroundColor: 'rgba(255,255,255,0.9)',
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 5,
+    },
+    tabText: {
+      fontSize: fontSizes?.md || 14,
+      fontWeight: '600',
+      color: '#666',
+    },
+    activeTabText: {
+      color: '#667eea',
+    },
+    listContainer: {
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingBottom: spacing?.lg || 16,
+      paddingTop: headerTotalHeight + (spacing?.sm || 8), // Add small spacing after header
+    },
+    card: {
+      marginBottom: spacing?.md || 12,
+      borderRadius: borderRadiusValues?.lg || 12,
+      overflow: 'hidden',
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+    },
+    cardImage: {
+      width: '100%',
+      height: responsiveHeight?.(20) || 200,
+    },
+    cardOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      justifyContent: 'space-between',
+      padding: spacing?.md || 12,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    rating: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      paddingHorizontal: spacing?.sm || 8,
+      paddingVertical: spacing?.xs || 4,
+      borderRadius: borderRadiusValues?.md || 8,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    ratingText: {
+      color: '#fff',
+      fontSize: fontSizes?.sm || 12,
+      fontWeight: '600',
+      marginLeft: spacing?.xs || 4,
+    },
+    bookmark: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      padding: spacing?.sm || 8,
+      borderRadius: borderRadiusValues?.xl || 16,
+      width: minTouchTarget,
+      height: minTouchTarget,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardFooter: {
+      alignItems: 'flex-start',
+    },
+    cardTitle: {
+      color: '#fff',
+      fontSize: fontSizes?.lg || 16,
+      fontWeight: 'bold',
+      marginBottom: spacing?.xs || 4,
+    },
+    cardLocation: {
+      color: '#fff',
+      fontSize: fontSizes?.xs || 10,
+      opacity: 0.9,
+    },
+    cardBusinessType: {
+      color: '#FFD700',
+      fontSize: fontSizes?.xs || 10,
+      fontWeight: '600',
+      marginTop: spacing?.xs || 4,
+    },
+    postCard: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues?.lg || 12,
+      padding: spacing?.md || 12,
+      marginBottom: spacing?.md || 12,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    postHeader: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      marginBottom: spacing?.sm || 8 
+    },
+    avatarContainer: {
+      marginRight: spacing?.sm || 8,
+    },
+    avatar: {
+      width: Math.max(36, Math.min((dimensions?.width || 375) * 0.1, 48)),
+      height: Math.max(36, Math.min((dimensions?.width || 375) * 0.1, 48)),
+      borderRadius: Math.max(18, Math.min((dimensions?.width || 375) * 0.05, 24)),
+    },
+    avatarPlaceholder: {
+      width: Math.max(36, Math.min((dimensions?.width || 375) * 0.1, 48)),
+      height: Math.max(36, Math.min((dimensions?.width || 375) * 0.1, 48)),
+      borderRadius: Math.max(18, Math.min((dimensions?.width || 375) * 0.05, 24)),
+      backgroundColor: '#f0f0f0',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerText: {
+      flex: 1,
+    },
+    businessName: { 
+      fontSize: fontSizes?.md || 14, 
+      fontWeight: 'bold', 
+      color: '#333' 
+    },
+    postTime: { 
+      fontSize: fontSizes?.xs || 10, 
+      color: '#888', 
+      marginTop: (spacing?.xs || 4) / 2 
+    },
+    postContent: { 
+      fontSize: fontSizes?.sm || 12, 
+      color: '#333', 
+      lineHeight: (fontSizes?.sm || 12) * 1.5,
+      marginBottom: spacing?.sm || 8
+    },
+    imageWrapper: {
+      marginBottom: spacing?.sm || 8,
+      borderRadius: borderRadiusValues?.md || 8,
+      overflow: 'hidden',
+      backgroundColor: '#f8f9fa',
+    },
+    postImage: {
+      width: '100%',
+      height: Math.max(180, Math.min((dimensions?.height || 667) * 0.25, 300)),
+      borderRadius: borderRadiusValues?.md || 8,
+    },
+    invalidImageContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#f8f9fa',
+      height: Math.max(180, Math.min((dimensions?.height || 667) * 0.25, 300)),
+    },
+    invalidImageText: {
+      fontSize: fontSizes?.sm || 12,
+      color: '#999',
+      marginTop: spacing?.sm || 8,
+    },
+    postActions: { 
+      flexDirection: 'row', 
+      alignItems: 'center',
+      paddingTop: spacing?.sm || 8,
+      borderTopWidth: 1,
+      borderTopColor: '#f0f0f0',
+    },
+    actionInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: spacing?.md || 12,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    actionCount: { 
+      fontSize: fontSizes?.sm || 12, 
+      color: '#888', 
+      marginLeft: spacing?.xs || 4 
+    },
+    viewCommentsText: {
+      fontSize: fontSizes?.sm || 12,
+      color: '#667eea',
+      fontWeight: '500',
+      minHeight: minTouchTarget,
+      textAlignVertical: 'center',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: responsiveHeight?.(20) || 200,
+    },
+    loadingText: {
+      color: '#000',
+      fontSize: fontSizes?.md || 14,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: responsiveHeight?.(15) || 150,
+    },
+    emptyText: {
+      color: '#000',
+      fontSize: fontSizes?.lg || 16,
+      fontWeight: 'bold',
+      marginTop: spacing?.md || 12,
+      textAlign: 'center',
+    },
+    emptySubtext: {
+      color: '#666',
+      fontSize: fontSizes?.sm || 12,
+      marginTop: spacing?.sm || 8,
+      textAlign: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    commentModal: {
+      backgroundColor: '#fff',
+      borderTopLeftRadius: borderRadiusValues?.xl || 20,
+      borderTopRightRadius: borderRadiusValues?.xl || 20,
+      maxHeight: '80%',
+      paddingBottom: spacing?.xl || 20,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing?.md || 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    modalTitle: {
+      fontSize: fontSizes?.lg || 16,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    commentsList: {
+      maxHeight: responsiveHeight?.(40) || 400,
+      paddingHorizontal: spacing?.md || 12,
+    },
+    commentItem: {
+      paddingVertical: spacing?.sm || 8,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    ownCommentItem: {
+      backgroundColor: '#f8f9ff',
+      borderLeftWidth: 3,
+      borderLeftColor: '#667eea',
+      paddingLeft: spacing?.md || 12,
+    },
+    authorCommentItem: {
+      backgroundColor: '#fff8f0',
+      borderLeftWidth: 3,
+      borderLeftColor: '#ff9800',
+      paddingLeft: spacing?.md || 12,
+    },
+    commentUser: {
+      fontSize: fontSizes?.sm || 12,
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: spacing?.xs || 4,
+    },
+    ownCommentUser: {
+      color: '#667eea',
+      fontWeight: '700',
+    },
+    authorCommentUser: {
+      color: '#ff9800',
+      fontWeight: '700',
+    },
+    commentText: {
+      fontSize: fontSizes?.sm || 12,
+      color: '#555',
+      lineHeight: (fontSizes?.sm || 12) * 1.5,
+      marginBottom: spacing?.xs || 4,
+    },
+    ownCommentText: {
+      color: '#444',
+      fontWeight: '500',
+    },
+    authorCommentText: {
+      color: '#444',
+      fontWeight: '500',
+    },
+    commentTime: {
+      fontSize: fontSizes?.xs || 10,
+      color: '#888',
+    },
+    noCommentsText: {
+      textAlign: 'center',
+      color: '#888',
+      fontStyle: 'italic',
+      paddingVertical: spacing?.lg || 16,
+      fontSize: fontSizes?.sm || 12,
+    },
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, isSmallScreen, isSmallDevice, minTouchTarget, headerPaddingTop, headerTotalHeight, responsiveHeight, theme]);
+
   const renderPlace = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.card}>
-      <ImageBackground source={{ uri: item.image }} style={styles.cardImage} imageStyle={{ borderRadius: 16 }}>
+      <ImageBackground source={{ uri: item.image }} style={styles.cardImage} imageStyle={{ borderRadius: borderRadiusValues.lg }} resizeMode="cover">
         <View style={styles.cardOverlay}>
           <View style={styles.cardHeader}>
             <View style={styles.rating}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.ratingText}>{item.rating}</Text>
+              <Ionicons name="star" size={iconSizes.sm} color="#FFD700" />
+              <ResponsiveText size="sm" weight="600" color="#fff" style={styles.ratingText}>{item.rating}</ResponsiveText>
             </View>
             <TouchableOpacity style={styles.bookmark} onPress={() => handleUnsaveBusiness(item.id)}>
-              <Ionicons name="bookmark" size={22} color="#fff" />
+              <Ionicons name="bookmark" size={iconSizes.md} color="#fff" />
             </TouchableOpacity>
           </View>
           <View style={styles.cardFooter}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardLocation}>{item.location}</Text>
+            <ResponsiveText size="lg" weight="bold" color="#fff" style={styles.cardTitle}>{item.name}</ResponsiveText>
+            <ResponsiveText size="xs" color="#fff" style={[styles.cardLocation, { opacity: 0.9 }]}>{item.location}</ResponsiveText>
             {item.businessType && (
-              <Text style={styles.cardBusinessType}>{item.businessType}</Text>
+              <ResponsiveText size="xs" weight="600" color="#FFD700" style={styles.cardBusinessType}>{item.businessType}</ResponsiveText>
             )}
           </View>
         </View>
@@ -219,54 +616,54 @@ const SavedScreen = () => {
   );
 
   const renderPost = ({ item }: { item: Post }) => (
-    <View style={styles.postCard}>
+    <ResponsiveView style={styles.postCard}>
       <View style={styles.postHeader}>
         <View style={styles.avatarContainer}>
           {item.businessImage && item.businessImage.trim() !== '' && item.businessImage.startsWith('http') ? (
-            <LoadingImage source={{ uri: item.businessImage }} style={styles.avatar} />
+            <LoadingImage source={{ uri: item.businessImage }} style={styles.avatar} resizeMode="cover" />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Ionicons name="storefront" size={20} color="#667eea" />
+              <Ionicons name="storefront" size={iconSizes.sm} color="#667eea" />
             </View>
           )}
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.businessName}>{item.businessName}</Text>
-          <Text style={styles.postTime}>{formatTime(item.createdAt)}</Text>
+          <ResponsiveText size="md" weight="bold" color="#333" style={styles.businessName}>{item.businessName}</ResponsiveText>
+          <ResponsiveText size="xs" color="#888" style={styles.postTime}>{formatTime(item.createdAt)}</ResponsiveText>
         </View>
-        <TouchableOpacity onPress={() => handleUnsavePost(item.id)}>
-          <Ionicons name="bookmark" size={24} color="#667eea" />
+        <TouchableOpacity onPress={() => handleUnsavePost(item.id)} style={{ minWidth: minTouchTarget, minHeight: minTouchTarget, justifyContent: 'center', alignItems: 'center' }}>
+          <Ionicons name="bookmark" size={iconSizes.md} color="#667eea" />
         </TouchableOpacity>
       </View>
       
-      <Text style={styles.postContent}>{item.content}</Text>
+      <ResponsiveText size="sm" color="#333" style={styles.postContent}>{item.content}</ResponsiveText>
       
-             {item.imageUrl && item.imageUrl.trim() !== '' && (
-         <View style={styles.imageWrapper}>
-           {item.imageUrl.startsWith('http') ? (
-             <LoadingImage 
-               source={{ uri: item.imageUrl }} 
-               style={styles.postImage} 
-               resizeMode="cover"
-               placeholder="image"
-             />
-           ) : (
-             <View style={[styles.postImage, styles.invalidImageContainer]}>
-               <Ionicons name="image-outline" size={40} color="#999" />
-               <Text style={styles.invalidImageText}>Invalid image URL</Text>
-             </View>
-           )}
-         </View>
-       )}
+      {item.imageUrl && item.imageUrl.trim() !== '' && (
+        <ResponsiveView style={styles.imageWrapper}>
+          {item.imageUrl.startsWith('http') ? (
+            <LoadingImage 
+              source={{ uri: item.imageUrl }} 
+              style={styles.postImage} 
+              resizeMode="contain"
+              placeholder="image"
+            />
+          ) : (
+            <View style={[styles.postImage, styles.invalidImageContainer]}>
+              <Ionicons name="image-outline" size={iconSizes.xl} color="#999" />
+              <ResponsiveText size="sm" color="#999" style={styles.invalidImageText}>Invalid image URL</ResponsiveText>
+            </View>
+          )}
+        </ResponsiveView>
+      )}
       
       <View style={styles.postActions}>
         <View style={styles.actionInfo}>
-          <Ionicons name="heart" size={16} color="#e91e63" />
-          <Text style={styles.actionCount}>{item.likes.length}</Text>
+          <Ionicons name="heart" size={iconSizes.sm} color="#e91e63" />
+          <ResponsiveText size="sm" color="#888" style={styles.actionCount}>{item.likes.length}</ResponsiveText>
         </View>
         <View style={styles.actionInfo}>
-          <Ionicons name="chatbubble" size={16} color="#667eea" />
-          <Text style={styles.actionCount}>{item.comments.length}</Text>
+          <Ionicons name="chatbubble" size={iconSizes.sm} color="#667eea" />
+          <ResponsiveText size="sm" color="#888" style={styles.actionCount}>{item.comments.length}</ResponsiveText>
         </View>
         <TouchableOpacity 
           onPress={() => {
@@ -274,26 +671,26 @@ const SavedScreen = () => {
             setCommentModalVisible(true);
           }}
         >
-          <Text style={styles.viewCommentsText}>View Comments</Text>
+          <ResponsiveText size="sm" weight="500" color="#667eea" style={styles.viewCommentsText}>View Comments</ResponsiveText>
         </TouchableOpacity>
       </View>
-    </View>
+    </ResponsiveView>
   );
 
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={{flex: 1}}>
     <SafeAreaView style={styles.container}>
-      <View style={[styles.headerFixed, { backgroundColor: 'transparent' }]}>
+      <View style={styles.headerFixed}>
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#888" />
+          <Ionicons name="search" size={iconSizes.md} color="#888" />
           <TextInput
             style={styles.searchInput}
             placeholder={activeTab === 'Posts' ? 'Search saved posts' : 'Search saved places'}
             placeholderTextColor="#888"
           />
-          <TouchableOpacity>
-            <Ionicons name="options-outline" size={22} color="#888" />
+          <TouchableOpacity style={{ minWidth: minTouchTarget, minHeight: minTouchTarget, justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="options-outline" size={iconSizes.md} color="#888" />
           </TouchableOpacity>
         </View>
 
@@ -303,18 +700,17 @@ const SavedScreen = () => {
             style={[styles.tab, activeTab === 'Places' && styles.activeTab]}
             onPress={() => setActiveTab('Places')}
           >
-            <Text style={[styles.tabText, activeTab === 'Places' && styles.activeTabText]}>
+            <ResponsiveText size="md" weight="600" style={[styles.tabText, activeTab === 'Places' && styles.activeTabText]}>
               Places
-            </Text>
+            </ResponsiveText>
           </TouchableOpacity>
-          <View style={{ width: width * 0.02 }} />
           <TouchableOpacity
             style={[styles.tab, activeTab === 'Posts' && styles.activeTab]}
             onPress={() => setActiveTab('Posts')}
           >
-            <Text style={[styles.tabText, activeTab === 'Posts' && styles.activeTabText]}>
+            <ResponsiveText size="md" weight="600" style={[styles.tabText, activeTab === 'Posts' && styles.activeTabText]}>
               Posts
-            </Text>
+            </ResponsiveText>
           </TouchableOpacity>
         </View>
       </View>
@@ -323,7 +719,7 @@ const SavedScreen = () => {
       {activeTab === 'Posts' ? (
         loading ? (
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading saved posts...</Text>
+            <ResponsiveText size="md" color="#000" style={styles.loadingText}>Loading saved posts...</ResponsiveText>
           </View>
         ) : (
           <FlatList
@@ -331,11 +727,12 @@ const SavedScreen = () => {
             renderItem={renderPost}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="bookmark-outline" size={60} color="#ccc" />
-                <Text style={styles.emptyText}>No saved posts</Text>
-                <Text style={styles.emptySubtext}>Posts you save will appear here</Text>
+                <Ionicons name="bookmark-outline" size={iconSizes.xxxxl} color="#ccc" />
+                <ResponsiveText size="lg" weight="bold" color="#000" style={styles.emptyText}>No saved posts</ResponsiveText>
+                <ResponsiveText size="sm" color="#666" style={styles.emptySubtext}>Posts you save will appear here</ResponsiveText>
               </View>
             }
           />
@@ -343,7 +740,7 @@ const SavedScreen = () => {
       ) : (
         loading ? (
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading saved places...</Text>
+            <ResponsiveText size="md" color="#000" style={styles.loadingText}>Loading saved places...</ResponsiveText>
           </View>
         ) : (
           <FlatList
@@ -351,11 +748,12 @@ const SavedScreen = () => {
             renderItem={renderPlace}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="location-outline" size={60} color="#ccc" />
-                <Text style={styles.emptyText}>No saved places</Text>
-                <Text style={styles.emptySubtext}>Places you save will appear here</Text>
+                <Ionicons name="location-outline" size={iconSizes.xxxxl} color="#ccc" />
+                <ResponsiveText size="lg" weight="bold" color="#000" style={styles.emptyText}>No saved places</ResponsiveText>
+                <ResponsiveText size="sm" color="#666" style={styles.emptySubtext}>Places you save will appear here</ResponsiveText>
               </View>
             }
           />
@@ -369,12 +767,12 @@ const SavedScreen = () => {
         transparent={true}
         onRequestClose={() => setCommentModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <SafeAreaView style={styles.modalOverlay}>
           <View style={styles.commentModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Comments</Text>
-              <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+              <ResponsiveText size="lg" weight="bold" color="#333" style={styles.modalTitle}>Comments</ResponsiveText>
+              <TouchableOpacity onPress={() => setCommentModalVisible(false)} style={{ minWidth: minTouchTarget, minHeight: minTouchTarget, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="close" size={iconSizes.md} color="#333" />
               </TouchableOpacity>
             </View>
             
@@ -382,6 +780,7 @@ const SavedScreen = () => {
               data={selectedPost?.comments || []}
               keyExtractor={item => item.id}
               style={styles.commentsList}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => {
                 const isOwnComment = item.userId === user?.uid;
                 const isAuthorComment = item.userId === selectedPost?.ownerId;
@@ -400,383 +799,46 @@ const SavedScreen = () => {
                     isOwnComment && styles.ownCommentItem,
                     isAuthorComment && !isOwnComment && styles.authorCommentItem
                   ]}>
-                    <Text style={[
-                      styles.commentUser,
-                      isOwnComment && styles.ownCommentUser,
-                      isAuthorComment && !isOwnComment && styles.authorCommentUser
-                    ]}>
+                    <ResponsiveText 
+                      size="sm" 
+                      weight={isOwnComment || isAuthorComment ? '700' : 'bold'} 
+                      color={isOwnComment ? '#667eea' : (isAuthorComment ? '#ff9800' : '#333')}
+                      style={[
+                        styles.commentUser,
+                        isOwnComment && styles.ownCommentUser,
+                        isAuthorComment && !isOwnComment && styles.authorCommentUser
+                      ]}
+                    >
                       {displayName}
-                    </Text>
-                    <Text style={[
-                      styles.commentText,
-                      isOwnComment && styles.ownCommentText,
-                      isAuthorComment && !isOwnComment && styles.authorCommentText
-                    ]}>
+                    </ResponsiveText>
+                    <ResponsiveText 
+                      size="sm" 
+                      weight={isOwnComment || isAuthorComment ? '500' : 'normal'} 
+                      color="#555"
+                      style={[
+                        styles.commentText,
+                        isOwnComment && styles.ownCommentText,
+                        isAuthorComment && !isOwnComment && styles.authorCommentText
+                      ]}
+                    >
                       {item.text}
-                    </Text>
-                    <Text style={styles.commentTime}>
+                    </ResponsiveText>
+                    <ResponsiveText size="xs" color="#888" style={styles.commentTime}>
                       {new Date(item.createdAt).toLocaleDateString()}
-                    </Text>
+                    </ResponsiveText>
                   </View>
                 );
               }}
               ListEmptyComponent={
-                <Text style={styles.noCommentsText}>No comments yet</Text>
+                <ResponsiveText size="sm" color="#888" style={styles.noCommentsText}>No comments yet</ResponsiveText>
               }
             />
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerFixed: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: height * 0.05,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    zIndex: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderTopWidth: 0,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 12,
-    paddingHorizontal: width * 0.04,
-    marginHorizontal: width * 0.04,
-    marginTop: height * 0.02,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  searchInput: {
-    flex: 1,
-    height: height * 0.06,
-    fontSize: 16 * FONT_SCALE,
-    marginLeft: width * 0.03,
-    color: '#333',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: height * 0.02,
-    borderRadius: 12,
-    marginHorizontal: width * 0.04,
-    padding: width * 0.01,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: height * 0.01,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  activeTab: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  tabText: {
-    fontSize: 16 * FONT_SCALE,
-    fontWeight: '600',
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#667eea',
-  },
-  listContainer: {
-    paddingHorizontal: width * 0.04,
-    paddingBottom: height * 0.02,
-    paddingTop: height * 0.19,
-  },
-  card: {
-    marginBottom: height * 0.02,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  cardImage: {
-    width: '100%',
-    height: height * 0.2,
-  },
-  cardOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'space-between',
-    padding: width * 0.04,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: width * 0.02,
-    paddingVertical: height * 0.005,
-    borderRadius: 12,
-  },
-  ratingText: {
-    color: '#fff',
-    fontSize: 14 * FONT_SCALE,
-    fontWeight: '600',
-    marginLeft: width * 0.01,
-  },
-  bookmark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: width * 0.02,
-    borderRadius: 20,
-  },
-  cardFooter: {
-    alignItems: 'flex-start',
-  },
-  cardTitle: {
-    color: '#fff',
-    fontSize: 18 * FONT_SCALE,
-    fontWeight: 'bold',
-    marginBottom: height * 0.005,
-  },
-  cardLocation: {
-    color: '#fff',
-    fontSize: 12 * FONT_SCALE,
-    opacity: 0.9,
-  },
-  cardBusinessType: {
-    color: '#FFD700',
-    fontSize: 11 * FONT_SCALE,
-    fontWeight: '600',
-    marginTop: height * 0.003,
-  },
-  postCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  postHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 12 
-  },
-  avatarContainer: {
-    marginRight: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerText: {
-    flex: 1,
-  },
-  businessName: { 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    color: '#333' 
-  },
-  postTime: { 
-    fontSize: 12, 
-    color: '#888', 
-    marginTop: 2 
-  },
-  postContent: { 
-    fontSize: 15, 
-    color: '#333', 
-    lineHeight: 22,
-    marginBottom: 12
-  },
-  imageWrapper: {
-    marginBottom: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#f8f9fa',
-  },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-  },
-  invalidImageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  invalidImageText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-  },
-  postActions: { 
-    flexDirection: 'row', 
-    alignItems: 'center',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  actionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  actionCount: { 
-    fontSize: 14, 
-    color: '#888', 
-    marginLeft: 4 
-  },
-  viewCommentsText: {
-    fontSize: 14,
-    color: '#667eea',
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: height * 0.2,
-  },
-  loadingText: {
-    color: '#000',
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: height * 0.15,
-  },
-  emptyText: {
-    color: '#000',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    color: '#666',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  commentModal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  commentsList: {
-    maxHeight: 300,
-    paddingHorizontal: 16,
-  },
-  commentItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  ownCommentItem: {
-    backgroundColor: '#f8f9ff',
-    borderLeftWidth: 3,
-    borderLeftColor: '#667eea',
-    paddingLeft: 16,
-  },
-  authorCommentItem: {
-    backgroundColor: '#fff8f0',
-    borderLeftWidth: 3,
-    borderLeftColor: '#ff9800',
-    paddingLeft: 16,
-  },
-  commentUser: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  ownCommentUser: {
-    color: '#667eea',
-    fontWeight: '700',
-  },
-  authorCommentUser: {
-    color: '#ff9800',
-    fontWeight: '700',
-  },
-  commentText: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  ownCommentText: {
-    color: '#444',
-    fontWeight: '500',
-  },
-  authorCommentText: {
-    color: '#444',
-    fontWeight: '500',
-  },
-  commentTime: {
-    fontSize: 12,
-    color: '#888',
-  },
-  noCommentsText: {
-    textAlign: 'center',
-    color: '#888',
-    fontStyle: 'italic',
-    paddingVertical: 20,
-  },
-});
 
 export default SavedScreen; 

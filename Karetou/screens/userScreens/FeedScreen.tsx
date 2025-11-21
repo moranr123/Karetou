@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, RefreshControl, StyleSheet, Platform, StatusBar, Image, Alert, Modal, Dimensions, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, TextInput, FlatList, TouchableOpacity, RefreshControl, StyleSheet, Platform, StatusBar, Image, Alert, Modal, Dimensions, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,8 +9,6 @@ import LoadingImage from '../../components/LoadingImage';
 import NotificationService from '../../services/NotificationService';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ResponsiveText, ResponsiveView, ResponsiveCard, ResponsiveButton } from '../../components';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 interface Post {
   id: string;
@@ -41,10 +39,451 @@ const FeedScreen = () => {
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
   
   const { theme, user } = useAuth();
-  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, getResponsiveWidth, getResponsiveHeight, dimensions, responsiveHeight, responsiveWidth, responsiveFontSize } = useResponsive();
+  
+  // Calculate responsive dimensions
+  const avatarSize = Math.max(36, Math.min(dimensions.width * 0.1, 48));
+  const postImageHeight = Math.max(180, Math.min(dimensions.height * 0.25, 300));
+  const minTouchTarget = 44;
+  const isSmallScreen = dimensions.width < 360;
+  
+  // Calculate header padding - reduce for both platforms
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? spacing.md + (dimensions.isSmallDevice ? spacing.xs : spacing.sm)
+    : statusBarHeight + spacing.sm; // Reduced padding for Android
+  
+  // Calculate total header height: paddingTop + title height + margin + search bar height + paddingBottom
+  const headerTitleHeight = fontSizes.xl * 1.2 + spacing.xs; // Title height with line height
+  const headerMarginBottom = spacing.md;
+  const searchBarHeight = 44; // minHeight from searchBarContainer
+  const headerPaddingBottom = spacing.md;
+  const headerTotalHeight = headerPaddingTop + headerTitleHeight + headerMarginBottom + searchBarHeight + headerPaddingBottom;
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+  
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
+    safeArea: {
+      flex: 1,
+    },
+    modalSafeArea: {
+      flex: 1,
+    },
+    gradient: { 
+      flex: 1 
+    },
+    headerFixed: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
+      paddingTop: headerPaddingTop,
+      paddingBottom: spacing.md,
+      borderBottomLeftRadius: borderRadiusValues.xl,
+      borderBottomRightRadius: borderRadiusValues.xl,
+      borderWidth: 1,
+      borderColor: theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+      backgroundColor: theme === 'light' ? '#F5F5F5' : '#232526',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+      borderTopWidth: 0,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: spacing.md,
+    },
+    headerTitle: {
+      fontSize: fontSizes.xl,
+      fontWeight: '700',
+      color: '#000',
+    },
+    searchBarContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.9)',
+      borderRadius: borderRadiusValues.lg,
+      marginHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      minHeight: 44,
+    },
+    searchIcon: {
+      marginLeft: spacing.sm,
+    },
+    searchBar: {
+      flex: 1,
+      fontSize: fontSizes.md,
+      color: '#222',
+      padding: spacing.sm,
+      backgroundColor: 'transparent',
+      minHeight: 36,
+    },
+    filterButton: {
+      padding: spacing.xs,
+      marginLeft: spacing.sm,
+      marginRight: spacing.xs,
+      minWidth: 44,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    listContent: {
+      paddingBottom: responsiveHeight(12),
+      paddingTop: headerTotalHeight + spacing.md, // Add spacing for better visual separation
+    },
+    card: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.lg,
+      padding: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: spacing.lg,
+      marginHorizontal: isSmallScreen ? spacing.sm : spacing.lg,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    cardHeader: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      marginBottom: spacing.md 
+    },
+    avatarContainer: {
+      marginRight: spacing.md,
+    },
+    avatar: {
+      borderRadius: 50,
+    },
+    avatarPlaceholder: {
+      backgroundColor: '#f0f0f0',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    userName: { 
+      fontSize: fontSizes.md, 
+      fontWeight: 'bold', 
+      color: '#333' 
+    },
+    time: { 
+      fontSize: fontSizes.sm, 
+      color: '#888', 
+      marginTop: spacing.xs / 2 
+    },
+    postText: { 
+      fontSize: fontSizes.md, 
+      color: '#333', 
+      lineHeight: fontSizes.md * 1.5,
+      marginBottom: spacing.md
+    },
+    imageWrapper: {
+      marginBottom: spacing.md,
+      borderRadius: borderRadiusValues.md,
+      overflow: 'hidden',
+      backgroundColor: '#f8f9fa',
+      width: '100%',
+    },
+    postImage: {
+      width: '100%',
+      borderRadius: borderRadiusValues.md,
+    },
+    invalidImageContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#f8f9fa',
+    },
+    invalidImageText: {
+      fontSize: fontSizes.sm,
+      color: '#999',
+      marginTop: spacing.sm,
+    },
+    actions: { 
+      flexDirection: 'row', 
+      alignItems: 'center',
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: '#f0f0f0',
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: isSmallScreen ? spacing.md : spacing.lg,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: spacing.xs,
+    },
+    actionCount: { 
+      fontSize: fontSizes.sm, 
+      color: '#888', 
+      marginLeft: spacing.xs 
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: responsiveHeight(20),
+    },
+    loadingText: {
+      color: '#000',
+      fontSize: fontSizes.lg,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: responsiveHeight(15),
+      paddingHorizontal: spacing.lg,
+    },
+    emptyText: {
+      color: '#000',
+      fontSize: fontSizes.lg,
+      fontWeight: 'bold',
+      marginTop: spacing.lg,
+      textAlign: 'center',
+    },
+    emptySubtext: {
+      color: '#666',
+      fontSize: fontSizes.md,
+      marginTop: spacing.sm,
+      textAlign: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      paddingVertical: isSmallScreen ? spacing.md : spacing.lg,
+    },
+    commentModal: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.xl,
+      width: '100%',
+      maxWidth: isSmallScreen ? dimensions.width * 0.95 : Math.min(dimensions.width * 0.9, 500),
+      maxHeight: dimensions.height * 0.85,
+      paddingBottom: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    modalTitle: {
+      fontSize: fontSizes.xl,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    closeButton: {
+      padding: spacing.xs,
+      minWidth: 44,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    commentsList: {
+      maxHeight: responsiveHeight(40),
+      paddingHorizontal: spacing.lg,
+    },
+    commentItem: {
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    ownCommentItem: {
+      backgroundColor: '#f8f9ff',
+      borderLeftWidth: 3,
+      borderLeftColor: '#667eea',
+      paddingLeft: spacing.lg,
+      marginLeft: spacing.xs,
+    },
+    authorCommentItem: {
+      backgroundColor: '#fff8f0',
+      borderLeftWidth: 3,
+      borderLeftColor: '#ff9800',
+      paddingLeft: spacing.lg,
+      marginLeft: spacing.xs,
+    },
+    commentUser: {
+      fontSize: fontSizes.sm,
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: spacing.xs,
+    },
+    ownCommentUser: {
+      color: '#667eea',
+      fontWeight: '700',
+    },
+    authorCommentUser: {
+      color: '#ff9800',
+      fontWeight: '700',
+    },
+    commentText: {
+      fontSize: fontSizes.sm,
+      color: '#555',
+      lineHeight: fontSizes.sm * 1.4,
+      marginBottom: spacing.xs,
+    },
+    ownCommentText: {
+      color: '#444',
+      fontWeight: '500',
+    },
+    authorCommentText: {
+      color: '#444',
+      fontWeight: '500',
+    },
+    commentTime: {
+      fontSize: fontSizes.xs,
+      color: '#888',
+    },
+    noCommentsText: {
+      textAlign: 'center',
+      color: '#888',
+      fontStyle: 'italic',
+      paddingVertical: spacing.lg,
+      fontSize: fontSizes.md,
+    },
+    commentInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      padding: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: '#f0f0f0',
+    },
+    commentInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: borderRadiusValues.xl,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      maxHeight: responsiveHeight(10),
+      marginRight: spacing.md,
+      fontSize: fontSizes.md,
+      minHeight: 44,
+    },
+    sendButton: {
+      padding: spacing.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sendButtonDisabled: {
+      opacity: 0.5,
+    },
+    commentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: spacing.sm,
+    },
+    commentUserInfo: {
+      flex: 1,
+      minWidth: 0,
+    },
+    editedText: {
+      fontSize: fontSizes.xs,
+      color: '#999',
+      fontStyle: 'italic',
+    },
+    commentMenuContainer: {
+      position: 'relative',
+    },
+    menuButton: {
+      padding: spacing.xs,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    dropdown: {
+      position: 'absolute',
+      top: 30,
+      right: 0,
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.sm,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      minWidth: responsiveWidth(25),
+      zIndex: 1000,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    dropdownText: {
+      fontSize: fontSizes.sm,
+      color: '#333',
+      marginLeft: spacing.sm,
+    },
+    editCommentContainer: {
+      marginTop: spacing.sm,
+    },
+    editCommentInput: {
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: borderRadiusValues.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      fontSize: fontSizes.sm,
+      maxHeight: responsiveHeight(10),
+      minHeight: 44,
+    },
+    editCommentActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: spacing.sm,
+    },
+    editCancelButton: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      marginRight: spacing.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    editCancelText: {
+      fontSize: fontSizes.sm,
+      color: '#888',
+    },
+    editSaveButton: {
+      backgroundColor: '#667eea',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadiusValues.xs,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    editSaveText: {
+      fontSize: fontSizes.sm,
+      color: '#fff',
+      fontWeight: '500',
+    },
+    loadingSpinner: {
+      transform: [{ rotate: '360deg' }],
+    },
+  }), [spacing, fontSizes, borderRadiusValues, dimensions, responsiveHeight, responsiveWidth, isSmallScreen, headerPaddingTop, headerTotalHeight, theme]);
 
   // Real-time posts listener
   useEffect(() => {
@@ -335,15 +774,19 @@ const FeedScreen = () => {
         <ResponsiveView style={styles.cardHeader}>
           <ResponsiveView style={styles.avatarContainer}>
             {item.businessImage && item.businessImage.trim() !== '' && item.businessImage.startsWith('http') ? (
-              <LoadingImage source={{ uri: item.businessImage }} style={styles.avatar} />
+              <LoadingImage 
+                source={{ uri: item.businessImage }} 
+                style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }} 
+                resizeMode="cover"
+              />
             ) : (
-              <ResponsiveView style={styles.avatarPlaceholder}>
+              <ResponsiveView style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
                 <Ionicons name="storefront" size={iconSizes.md} color="#667eea" />
               </ResponsiveView>
             )}
           </ResponsiveView>
           <ResponsiveView style={styles.headerText}>
-            <ResponsiveText size="md" weight="600" color="#000" style={styles.userName}>
+            <ResponsiveText size="md" weight="600" color="#000" style={styles.userName} numberOfLines={1}>
               {item.businessName}
             </ResponsiveText>
             <ResponsiveText size="sm" color="#666" style={styles.time}>
@@ -361,12 +804,12 @@ const FeedScreen = () => {
             {item.imageUrl.startsWith('http') ? (
               <LoadingImage 
                 source={{ uri: item.imageUrl }} 
-                style={styles.postImage} 
-                resizeMode="cover"
+                style={{ width: '100%', height: postImageHeight, borderRadius: borderRadiusValues.md }} 
+                resizeMode="contain"
                 placeholder="image"
               />
             ) : (
-              <ResponsiveView style={[styles.postImage, styles.invalidImageContainer]}>
+              <ResponsiveView style={[styles.postImage, styles.invalidImageContainer, { height: postImageHeight }]}>
                 <Ionicons name="image-outline" size={iconSizes.xl} color="#999" />
                 <ResponsiveText size="sm" color="#999" style={styles.invalidImageText}>
                   Invalid image URL
@@ -377,23 +820,28 @@ const FeedScreen = () => {
         )}
         
         <ResponsiveView style={styles.actions}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { minWidth: minTouchTarget, minHeight: minTouchTarget }]} 
+            onPress={() => handleLike(item.id)}
+            activeOpacity={0.7}
+          >
             <Ionicons 
               name={isLiked ? "heart" : "heart-outline"} 
               size={iconSizes.lg} 
               color={isLiked ? "#e91e63" : "#888"} 
             />
-            <ResponsiveText size="sm" color={isLiked ? "#e91e63" : "#888"} style={[styles.actionCount, isLiked && { color: "#e91e63" }]}>
+            <ResponsiveText size="sm" color={isLiked ? "#e91e63" : "#888"} style={styles.actionCount}>
               {item.likes.length}
             </ResponsiveText>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.actionButton} 
+            style={[styles.actionButton, { minWidth: minTouchTarget, minHeight: minTouchTarget }]} 
             onPress={() => {
               setSelectedPost(item);
               setCommentModalVisible(true);
             }}
+            activeOpacity={0.7}
           >
             <Ionicons name="chatbubble-outline" size={iconSizes.lg} color="#888" />
             <ResponsiveText size="sm" color="#888" style={styles.actionCount}>
@@ -401,7 +849,11 @@ const FeedScreen = () => {
             </ResponsiveText>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.id)}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { minWidth: minTouchTarget, minHeight: minTouchTarget }]} 
+            onPress={() => handleSave(item.id)}
+            activeOpacity={0.7}
+          >
             <Feather 
               name={isSaved ? "bookmark" : "bookmark"} 
               size={iconSizes.lg} 
@@ -414,84 +866,96 @@ const FeedScreen = () => {
   };
 
   return (
-    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.gradient}>
-      {/* Fixed Header */}
-      <ResponsiveView style={[styles.headerFixed, { backgroundColor: 'transparent' }]}>
-        <ResponsiveView style={styles.headerContent}>
-          <ResponsiveText size="xl" weight="bold" color="#000" style={styles.headerTitle}>
-            Feed
-          </ResponsiveText>
-        </ResponsiveView>
-        {/* Search Bar */}
-        <ResponsiveView style={styles.searchBarContainer}>
-          <Ionicons name="search" size={iconSizes.md} color="#888" style={{ marginLeft: spacing.sm }} />
-          <TextInput
-            style={styles.searchBar}
-            placeholder="Search posts..."
-            value={search}
-            onChangeText={setSearch}
-            placeholderTextColor="#888"
-          />
-          <TouchableOpacity>
-            <Ionicons name="filter" size={iconSizes.lg} color="#888" style={{ marginLeft: spacing.sm, marginRight: spacing.xs }} />
-          </TouchableOpacity>
-        </ResponsiveView>
-      </ResponsiveView>
-
-      {/* Feed List */}
-      {loading ? (
-        <ResponsiveView style={styles.loadingContainer}>
-          <ResponsiveText size="lg" weight="600" color="#000" style={styles.loadingText}>
-            Loading posts...
-          </ResponsiveText>
-        </ResponsiveView>
-      ) : (
-      <FlatList
-          data={filteredPosts}
-        keyExtractor={item => item.id}
-          contentContainerStyle={{ paddingBottom: 100, paddingTop: 150 }}
-          renderItem={renderPost}
-        refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme === 'dark' ? '#FFF' : '#333'}
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.gradient}>
+        {/* Fixed Header */}
+        <ResponsiveView style={styles.headerFixed}>
+          <ResponsiveView style={styles.headerContent}>
+            <ResponsiveText size="xl" weight="bold" color="#000" style={styles.headerTitle}>
+              Feed
+            </ResponsiveText>
+          </ResponsiveView>
+          {/* Search Bar */}
+          <ResponsiveView style={styles.searchBarContainer}>
+            <Ionicons name="search" size={iconSizes.md} color="#888" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search posts..."
+              value={search}
+              onChangeText={setSearch}
+              placeholderTextColor="#888"
+              returnKeyType="search"
             />
-          }
-          ListEmptyComponent={
-            <ResponsiveView style={styles.emptyContainer}>
-              <Ionicons name="newspaper-outline" size={iconSizes.xxxl} color="#ccc" />
-              <ResponsiveText size="lg" weight="600" color="#000" style={styles.emptyText}>
-                No posts yet
-              </ResponsiveText>
-              <ResponsiveText size="md" color="#666" style={styles.emptySubtext}>
-                Posts from businesses will appear here
-              </ResponsiveText>
-            </ResponsiveView>
-          }
-        />
-      )}
+            <TouchableOpacity 
+              style={styles.filterButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="filter" size={iconSizes.lg} color="#888" />
+            </TouchableOpacity>
+          </ResponsiveView>
+        </ResponsiveView>
+
+        {/* Feed List */}
+        {loading ? (
+          <ResponsiveView style={styles.loadingContainer}>
+            <ResponsiveText size="lg" weight="600" color="#000" style={styles.loadingText}>
+              Loading posts...
+            </ResponsiveText>
+          </ResponsiveView>
+        ) : (
+        <FlatList
+            data={filteredPosts}
+          keyExtractor={item => item.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={renderPost}
+            showsVerticalScrollIndicator={false}
+          refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme === 'dark' ? '#FFF' : '#333'}
+              />
+            }
+            ListEmptyComponent={
+              <ResponsiveView style={styles.emptyContainer}>
+                <Ionicons name="newspaper-outline" size={iconSizes.xxxl} color="#ccc" />
+                <ResponsiveText size="lg" weight="600" color="#000" style={styles.emptyText}>
+                  No posts yet
+                </ResponsiveText>
+                <ResponsiveText size="md" color="#666" style={styles.emptySubtext}>
+                  Posts from businesses will appear here
+                </ResponsiveText>
+              </ResponsiveView>
+            }
+          />
+        )}
 
       {/* Comment Modal */}
       <Modal
         visible={commentModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setCommentModalVisible(false)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <ResponsiveView style={styles.commentModal}>
-            <ResponsiveView style={styles.modalHeader}>
-              <ResponsiveText size="xl" weight="bold" color="#000" style={styles.modalTitle}>
-                Comments
-              </ResponsiveText>
-              <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
-                <Ionicons name="close" size={iconSizes.lg} color="#333" />
-              </TouchableOpacity>
-            </ResponsiveView>
+        <SafeAreaView style={styles.modalSafeArea}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalOverlay}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ResponsiveView style={styles.commentModal}>
+              <ResponsiveView style={styles.modalHeader}>
+                <ResponsiveText size="xl" weight="bold" color="#000" style={styles.modalTitle}>
+                  Comments
+                </ResponsiveText>
+                <TouchableOpacity 
+                  onPress={() => setCommentModalVisible(false)}
+                  style={styles.closeButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={iconSizes.lg} color="#333" />
+                </TouchableOpacity>
+              </ResponsiveView>
             
             <FlatList
               data={selectedPost?.comments || []}
@@ -533,25 +997,28 @@ const FeedScreen = () => {
                       <ResponsiveView style={styles.commentMenuContainer}>
                         <TouchableOpacity
                           onPress={() => setShowDropdown(showDropdown === item.id ? null : item.id)}
-                          style={styles.menuButton}
+                          style={[styles.menuButton, { minWidth: minTouchTarget, minHeight: minTouchTarget }]}
+                          activeOpacity={0.7}
                         >
                           <Ionicons name="ellipsis-horizontal" size={iconSizes.sm} color="#888" />
                         </TouchableOpacity>
                         {showDropdown === item.id && (
                           <ResponsiveView style={styles.dropdown}>
                             <TouchableOpacity
-                              style={styles.dropdownItem}
+                              style={[styles.dropdownItem, { minHeight: minTouchTarget }]}
                               onPress={() => startEditComment(item)}
+                              activeOpacity={0.7}
                             >
                               <Ionicons name="create-outline" size={iconSizes.sm} color="#667eea" />
                               <ResponsiveText size="sm" color="#667eea" style={styles.dropdownText}>Edit</ResponsiveText>
                             </TouchableOpacity>
                             <TouchableOpacity
-                              style={styles.dropdownItem}
+                              style={[styles.dropdownItem, { minHeight: minTouchTarget }]}
                               onPress={() => handleDeleteComment(item.id)}
+                              activeOpacity={0.7}
                             >
                               <Ionicons name="trash-outline" size={iconSizes.sm} color="#e91e63" />
-                              <ResponsiveText size="sm" color="#e91e63" style={[styles.dropdownText, { color: '#e91e63' }]}>Delete</ResponsiveText>
+                              <ResponsiveText size="sm" color="#e91e63" style={styles.dropdownText}>Delete</ResponsiveText>
                             </TouchableOpacity>
                           </ResponsiveView>
                         )}
@@ -570,17 +1037,19 @@ const FeedScreen = () => {
                       />
                       <ResponsiveView style={styles.editCommentActions}>
                         <TouchableOpacity
-                          style={styles.editCancelButton}
+                          style={[styles.editCancelButton, { minHeight: minTouchTarget }]}
                           onPress={() => {
                             setEditingCommentId(null);
                             setEditCommentText('');
                           }}
+                          activeOpacity={0.7}
                         >
                           <ResponsiveText size="sm" color="#666" style={styles.editCancelText}>Cancel</ResponsiveText>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={styles.editSaveButton}
+                          style={[styles.editSaveButton, { minHeight: minTouchTarget }]}
                           onPress={() => handleEditComment(item.id)}
+                          activeOpacity={0.7}
                         >
                           <ResponsiveText size="sm" color="#fff" style={styles.editSaveText}>Save</ResponsiveText>
                         </TouchableOpacity>
@@ -612,9 +1081,10 @@ const FeedScreen = () => {
                 multiline
               />
               <TouchableOpacity 
-                style={[styles.sendButton, !commentText.trim() && styles.sendButtonDisabled]}
+                style={[styles.sendButton, !commentText.trim() && styles.sendButtonDisabled, { minWidth: minTouchTarget, minHeight: minTouchTarget }]}
                 onPress={handleComment}
                 disabled={submittingComment || !commentText.trim()}
+                activeOpacity={0.7}
               >
                 {submittingComment ? (
                   <ResponsiveView style={styles.loadingSpinner}>
@@ -627,371 +1097,11 @@ const FeedScreen = () => {
             </ResponsiveView>
           </ResponsiveView>
         </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </LinearGradient>
+    </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  headerFixed: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 44 : 44,
-    paddingBottom: 12,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    borderTopWidth: 0,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#000',
-  },
-  searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 16,
-    marginHorizontal: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  searchBar: {
-    flex: 1,
-    fontSize: 15,
-    color: '#222',
-    padding: 8,
-    backgroundColor: 'transparent',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 12 
-  },
-  avatarContainer: {
-    marginRight: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerText: {
-    flex: 1,
-  },
-  userName: { 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    color: '#333' 
-  },
-  time: { 
-    fontSize: 12, 
-    color: '#888', 
-    marginTop: 2 
-  },
-  postText: { 
-    fontSize: 15, 
-    color: '#333', 
-    lineHeight: 22,
-    marginBottom: 12
-  },
-  imageWrapper: {
-    marginBottom: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#f8f9fa',
-  },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-  },
-  invalidImageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  invalidImageText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-  },
-  actions: { 
-    flexDirection: 'row', 
-    alignItems: 'center',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  actionCount: { 
-    fontSize: 14, 
-    color: '#888', 
-    marginLeft: 6 
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#000',
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyText: {
-    color: '#000',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    color: '#666',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  commentModal: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    width: '100%',
-    maxHeight: '80%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  commentsList: {
-    maxHeight: 300,
-    paddingHorizontal: 16,
-  },
-  commentItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  ownCommentItem: {
-    backgroundColor: '#f8f9ff',
-    borderLeftWidth: 3,
-    borderLeftColor: '#667eea',
-    paddingLeft: 16,
-  },
-  authorCommentItem: {
-    backgroundColor: '#fff8f0',
-    borderLeftWidth: 3,
-    borderLeftColor: '#ff9800',
-    paddingLeft: 16,
-  },
-  commentUser: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  ownCommentUser: {
-    color: '#667eea',
-    fontWeight: '700',
-  },
-  authorCommentUser: {
-    color: '#ff9800',
-    fontWeight: '700',
-  },
-  commentText: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  ownCommentText: {
-    color: '#444',
-    fontWeight: '500',
-  },
-  authorCommentText: {
-    color: '#444',
-    fontWeight: '500',
-  },
-  commentTime: {
-    fontSize: 12,
-    color: '#888',
-  },
-  noCommentsText: {
-    textAlign: 'center',
-    color: '#888',
-    fontStyle: 'italic',
-    paddingVertical: 20,
-  },
-  commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  commentInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    maxHeight: 80,
-    marginRight: 12,
-  },
-  sendButton: {
-    padding: 10,
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  commentUserInfo: {
-    flex: 1,
-  },
-  editedText: {
-    fontSize: 11,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-  commentMenuContainer: {
-    position: 'relative',
-  },
-  menuButton: {
-    padding: 4,
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 25,
-    right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    minWidth: 100,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 8,
-  },
-  editCommentContainer: {
-    marginTop: 8,
-  },
-  editCommentInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    maxHeight: 80,
-  },
-  editCommentActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  editCancelButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-  },
-  editCancelText: {
-    fontSize: 14,
-    color: '#888',
-  },
-  editSaveButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  editSaveText: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '500',
-  },
-  loadingSpinner: {
-    transform: [{ rotate: '360deg' }],
-  },
-});
 
 export default FeedScreen;

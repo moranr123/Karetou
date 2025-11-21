@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -28,39 +28,14 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ResponsiveText, ResponsiveView } from '../../components';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+// Removed fixed dimensions - using responsive hook instead
 
-// Ultimate image cache with base64 storage for instant display
-const base64ImageCache = new Map<string, string>();
+// Optimized image cache - use prefetch only (no base64 to save memory)
 const imageStatusCache = new Map<string, { status: 'loading' | 'loaded' | 'error', promise?: Promise<void> }>();
+const MAX_CACHE_SIZE = 50; // Limit cache size to prevent memory issues
 
-// Convert image to base64 for ultimate caching
-const convertToBase64 = async (uri: string): Promise<string | null> => {
-  try {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        resolve(base64);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.log('Failed to convert image to base64:', error);
-    return null;
-  }
-};
-
-// Ultimate preloading function that stores base64 data
+// Optimized preloading function - uses Image.prefetch only (more memory efficient)
 const preloadImage = (uri: string): Promise<void> => {
-  if (base64ImageCache.has(uri)) {
-    return Promise.resolve();
-  }
-  
   if (imageStatusCache.has(uri)) {
     const cached = imageStatusCache.get(uri)!;
     if (cached.status === 'loaded') {
@@ -70,62 +45,149 @@ const preloadImage = (uri: string): Promise<void> => {
     }
   }
   
+  // Limit cache size - remove oldest entries if cache is too large
+  if (imageStatusCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = imageStatusCache.keys().next().value;
+    if (firstKey) {
+      imageStatusCache.delete(firstKey);
+    }
+  }
+  
   const promise = new Promise<void>((resolve) => {
     imageStatusCache.set(uri, { status: 'loading', promise });
     
-    // Try both prefetch and base64 conversion
-    Promise.all([
-      Image.prefetch(uri),
-      convertToBase64(uri)
-    ]).then(([_, base64]) => {
-      if (base64) {
-        base64ImageCache.set(uri, base64);
-        console.log('💾 Cached image as base64:', uri.substring(uri.lastIndexOf('/') + 1));
-      }
-      imageStatusCache.set(uri, { status: 'loaded' });
-      resolve();
-    }).catch(() => {
-      imageStatusCache.set(uri, { status: 'error' });
-      resolve();
-    });
+    // Use Image.prefetch only (more memory efficient than base64)
+    Image.prefetch(uri)
+      .then(() => {
+        imageStatusCache.set(uri, { status: 'loaded' });
+        resolve();
+      })
+      .catch(() => {
+        imageStatusCache.set(uri, { status: 'error' });
+        resolve();
+      });
   });
   
   return promise;
 };
 
-// Ultimate Cached Image Component that uses base64 for instant display
+// Memoized Business Marker Component for performance
+const BusinessMarker = React.memo<{
+  place: Place;
+  isNavigating: boolean;
+  isSelected: boolean;
+  onPress: (place: Place) => void;
+  markerStyles: any;
+  markerSize: number;
+}>(({ place, isNavigating, isSelected, onPress, markerStyles, markerSize }) => {
+  const businessImage = place.image || (place.allImages && place.allImages.length > 0 ? place.allImages[0] : null);
+  const hasImage = !!businessImage;
+  
+  // Calculate border width based on selection state
+  const borderWidth = isNavigating && isSelected ? 4 : 2;
+  const imageSize = markerSize - (borderWidth * 2);
+  
+  return (
+    <Marker
+      key={place.id}
+      coordinate={{
+        latitude: place.businessLocation.latitude,
+        longitude: place.businessLocation.longitude
+      }}
+      title={place.name}
+      description={place.businessType}
+      onPress={() => onPress(place)}
+      anchor={{ x: 0.5, y: 1 }}
+    >
+      <View style={markerStyles.pinMarkerContainer}>
+        {/* Pin head (circular part with image) */}
+        <View style={[
+          markerStyles.pinMarkerHead,
+          {
+            width: markerSize,
+            height: markerSize,
+            borderRadius: markerSize / 2,
+            borderWidth: borderWidth,
+            borderColor: isNavigating && isSelected ? '#FF3B30' : '#fff',
+            opacity: isNavigating && !isSelected ? 0.6 : 1,
+            elevation: isNavigating && isSelected ? 8 : (isNavigating ? 1 : 3),
+            shadowOpacity: isNavigating && isSelected ? 0.4 : (isNavigating ? 0.1 : 0.25),
+            zIndex: 2,
+          }
+        ]}>
+          {hasImage ? (
+            <Image
+              source={{ uri: businessImage }}
+              style={[
+                markerStyles.businessMarkerImage,
+                {
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: imageSize / 2,
+                }
+              ]}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[
+              markerStyles.businessMarkerFallback,
+              {
+                width: imageSize,
+                height: imageSize,
+                borderRadius: imageSize / 2,
+                backgroundColor: isNavigating && isSelected ? '#FF3B30' : '#4B50E6',
+              }
+            ]}>
+              <Ionicons 
+                name={isNavigating && isSelected ? "location" : "business"}
+                size={Math.max(16, Math.min(markerSize * 0.5, 24))} 
+                color="#fff" 
+              />
+            </View>
+          )}
+        </View>
+        {/* Pin point (triangular bottom) - positioned below the circle */}
+        <View style={[
+          markerStyles.pinMarkerPoint,
+          {
+            borderLeftWidth: Math.max(4, Math.min(markerSize * 0.15, 8)),
+            borderRightWidth: Math.max(4, Math.min(markerSize * 0.15, 8)),
+            borderTopWidth: Math.max(10, Math.min(markerSize * 0.3, 18)),
+            borderTopColor: isNavigating && isSelected ? '#FF3B30' : '#fff',
+            opacity: isNavigating && !isSelected ? 0.6 : 1,
+            marginTop: -1,
+            alignSelf: 'center',
+            zIndex: 1,
+          }
+        ]} />
+      </View>
+    </Marker>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.place.id === nextProps.place.id &&
+    prevProps.isNavigating === nextProps.isNavigating &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.markerSize === nextProps.markerSize
+  );
+});
+
+// Optimized Cached Image Component - uses prefetch cache (memory efficient)
 const CachedImage: React.FC<{
   source: { uri: string };
   style: any;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
-}> = ({ source, style, resizeMode = 'cover' }) => {
-  // Initialize with smart image source - start with cached version if available
-  const [imageSource, setImageSource] = useState(() => {
-    const base64Data = base64ImageCache.get(source.uri);
-    return base64Data ? { uri: base64Data } : source;
-  });
-  
-  // Track if we need to show loading indicator for uncached images
+}> = React.memo(({ source, style, resizeMode = 'cover' }) => {
   const [isLoading, setIsLoading] = useState(() => {
-    const base64Data = base64ImageCache.get(source.uri);
     const cached = imageStatusCache.get(source.uri);
-    return !base64Data && cached?.status !== 'loaded';
+    return cached?.status !== 'loaded';
   });
   
   useEffect(() => {
-    // Check if we have base64 cached version
-    const base64Data = base64ImageCache.get(source.uri);
-    if (base64Data) {
-      console.log('🎯 Using cached base64 image for instant display');
-      setImageSource({ uri: base64Data });
-      setIsLoading(false);
-      return;
-    }
-    
-    // Check regular cache status
+    // Check cache status
     const cached = imageStatusCache.get(source.uri);
     if (cached?.status === 'loaded') {
-      setImageSource(source);
       setIsLoading(false);
       return;
     }
@@ -135,15 +197,8 @@ const CachedImage: React.FC<{
     
     // Preload if not cached
     preloadImage(source.uri).then(() => {
-      const newBase64Data = base64ImageCache.get(source.uri);
-      if (newBase64Data) {
-        setImageSource({ uri: newBase64Data });
-      } else {
-        setImageSource(source);
-      }
       setIsLoading(false);
     }).catch(() => {
-      setImageSource(source);
       setIsLoading(false);
     });
   }, [source.uri]);
@@ -151,7 +206,7 @@ const CachedImage: React.FC<{
   return (
     <View style={style}>
       <Image
-        source={imageSource}
+        source={source}
         style={style}
         resizeMode={resizeMode}
         fadeDuration={0} // Disable fade animation for instant display
@@ -165,7 +220,7 @@ const CachedImage: React.FC<{
       )}
     </View>
   );
-};
+});
 
 interface Place {
   id: string;
@@ -276,13 +331,18 @@ type NavigateRouteProp = RouteProp<{ Navigate: NavigateRouteParams }, 'Navigate'
 const Navigate = () => {
   const route = useRoute<NavigateRouteProp>();
   const { theme } = useAuth();
-  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, getResponsiveWidth, getResponsiveHeight, dimensions, responsiveHeight, responsiveWidth, responsiveFontSize } = useResponsive();
   const mapRef = useRef<MapView>(null);
   
-  // Device size detection
-  const isSmallDevice = screenWidth < 375 || screenHeight < 667;
-  const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
-  const isLargeDevice = screenWidth > 414 || screenHeight > 844;
+  // Device size detection - use responsive dimensions
+  const isSmallDevice = dimensions.isSmallDevice;
+  const isMediumDevice = dimensions.width >= 375 && dimensions.width <= 414;
+  const isLargeDevice = dimensions.isLargeDevice;
+  const isSmallScreen = dimensions.width < 360;
+  const minTouchTarget = 44;
+  
+  // Calculate responsive marker size for business markers
+  const markerSize = Math.max(32, Math.min(dimensions.width * 0.1, 48));
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -314,6 +374,960 @@ const Navigate = () => {
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    map: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      paddingTop: spacing.sm,
+    },
+    headerSpacer: {
+      width: iconSizes.xl,
+    },
+    searchBarContainer: {
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      paddingVertical: spacing.sm,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.22,
+      shadowRadius: 2.22,
+      minHeight: minTouchTarget,
+    },
+    searchBarInput: {
+      flex: 1,
+      marginLeft: spacing.sm,
+      fontSize: fontSizes.md,
+      minHeight: 36,
+    },
+    searchResultsContainer: {
+      position: 'absolute',
+      top: responsiveHeight(12),
+      left: isSmallScreen ? spacing.md : spacing.lg,
+      right: isSmallScreen ? spacing.md : spacing.lg,
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.md,
+      maxHeight: responsiveHeight(25),
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    searchResult: {
+      padding: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+      minHeight: minTouchTarget,
+    },
+    searchResultName: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+      color: '#333',
+    },
+    searchResultDesc: {
+      fontSize: fontSizes.sm,
+      color: '#666',
+      marginTop: spacing.xs / 2,
+    },
+    permissionContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    permissionTitle: {
+      fontSize: fontSizes.xxl,
+      fontWeight: 'bold',
+      marginTop: responsiveHeight(3),
+      textAlign: 'center',
+    },
+    permissionText: {
+      fontSize: fontSizes.md,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+      color: '#333',
+    },
+    permissionButton: {
+      backgroundColor: '#667eea',
+      paddingHorizontal: responsiveWidth(8),
+      paddingVertical: responsiveHeight(2),
+      borderRadius: borderRadiusValues.lg,
+      marginTop: responsiveHeight(4),
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.22,
+      shadowRadius: 2.22,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    permissionButtonText: {
+      color: '#FFF',
+      fontSize: fontSizes.lg,
+      fontWeight: '600',
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: [{ translateX: -responsiveWidth(20) }, { translateY: -responsiveHeight(5) }],
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderRadius: borderRadiusValues.md,
+      padding: spacing.lg,
+      alignItems: 'center',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      zIndex: 1000,
+    },
+    loadingText: {
+      marginTop: spacing.sm,
+      fontSize: fontSizes.md,
+      color: '#333',
+      fontWeight: '500',
+    },
+    detailsOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: isSmallScreen ? spacing.md : spacing.lg,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 999,
+    },
+    detailsContainer: {
+      width: '100%',
+      maxWidth: 400,
+      maxHeight: dimensions.height * 0.90,
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.lg,
+      overflow: 'hidden',
+      elevation: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 5 },
+      shadowOpacity: 0.34,
+      shadowRadius: 6.27,
+      zIndex: 1000,
+    },
+    contentContainer: {
+      padding: isSmallDevice ? spacing.sm : spacing.md,
+      backgroundColor: '#fff',
+      minHeight: 180,
+    },
+    businessInfo: {
+      marginBottom: isSmallDevice ? spacing.sm : spacing.md,
+      alignItems: 'center',
+    },
+    businessName: {
+      fontSize: isSmallDevice ? fontSizes.sm : fontSizes.md,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: spacing.xs,
+      textAlign: 'center',
+    },
+    businessType: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
+      textAlign: 'center',
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: isSmallDevice ? spacing.xs : spacing.xs,
+      alignSelf: 'stretch',
+    },
+    locationText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginLeft: spacing.sm,
+      flex: 1,
+      flexWrap: 'wrap',
+    },
+    timeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: isSmallDevice ? spacing.xs : spacing.xs,
+      alignSelf: 'stretch',
+    },
+    timeText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginLeft: spacing.sm,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
+      alignSelf: 'stretch',
+    },
+    infoText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginLeft: spacing.sm,
+      flex: 1,
+    },
+    travelModesContainer: {
+      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
+      backgroundColor: '#f5f5f5',
+      borderRadius: borderRadiusValues.md,
+      padding: isSmallDevice ? spacing.xs : spacing.xs,
+    },
+    travelModeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+    },
+    travelModeButton: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: isSmallDevice ? spacing.xs : spacing.sm,
+      marginHorizontal: spacing.xs,
+      borderRadius: borderRadiusValues.sm,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    selectedMode: {
+      backgroundColor: '#fff',
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.41,
+    },
+    travelModeText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginTop: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+    },
+    selectedModeText: {
+      color: '#007AFF',
+      fontWeight: '500',
+    },
+    routeInfo: {
+      backgroundColor: '#f5f5f5',
+      borderRadius: borderRadiusValues.md,
+      padding: isSmallDevice ? spacing.sm : spacing.sm,
+      marginBottom: isSmallDevice ? spacing.sm : spacing.md,
+      minHeight: isSmallDevice ? 50 : 70,
+      justifyContent: 'center',
+    },
+    routeInfoCentered: {
+      alignItems: 'center',
+    },
+    routeInfoContainer: {
+      flex: 1,
+    },
+    routeInfoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: spacing.md,
+    },
+    routeInfoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    routeInfoText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginLeft: spacing.sm,
+    },
+    trafficContainer: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.sm,
+      padding: isSmallDevice ? spacing.xs : spacing.sm,
+      marginTop: isSmallDevice ? spacing.xs : spacing.xs,
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+    },
+    trafficHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: isSmallDevice ? spacing.xs : spacing.xs,
+    },
+    trafficHeaderText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      fontWeight: '600',
+      marginLeft: spacing.xs,
+      textTransform: 'uppercase',
+    },
+    trafficContentContainer: {
+      paddingLeft: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+    },
+    trafficRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+    },
+    trafficText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      fontWeight: '600',
+      marginLeft: spacing.xs,
+    },
+    trafficDetailText: {
+      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
+      color: '#666',
+      marginLeft: spacing.xs,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: spacing.md,
+    },
+    actionButton: {
+      flex: 1,
+      backgroundColor: '#667eea',
+      paddingVertical: spacing.md,
+      borderRadius: borderRadiusValues.md,
+      alignItems: 'center',
+      marginHorizontal: spacing.xs,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    actionButtonText: {
+      color: '#fff',
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+    },
+    cancelButton: {
+      backgroundColor: '#f0f0f0',
+    },
+    cancelButtonText: {
+      color: '#666',
+    },
+    imageContainer: {
+      width: '100%',
+      height: responsiveHeight(25),
+      backgroundColor: '#f0f0f0',
+    },
+    carouselImage: {
+      width: dimensions.width,
+      height: responsiveHeight(25),
+    },
+    imageIndicators: {
+      position: 'absolute',
+      bottom: spacing.md,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    indicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginHorizontal: 4,
+    },
+    activeIndicator: {
+      backgroundColor: '#fff',
+      width: 24,
+    },
+    inactiveIndicator: {
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    noImageContainer: {
+      width: '100%',
+      height: responsiveHeight(25),
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#f0f0f0',
+    },
+    noImageText: {
+      marginTop: spacing.sm,
+      fontSize: fontSizes.sm,
+      color: '#999',
+    },
+    pinMarkerContainer: {
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      flexDirection: 'column',
+      width: 'auto',
+      height: 'auto',
+    },
+    pinMarkerHead: {
+      backgroundColor: '#fff',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderColor: '#667eea',
+      overflow: 'hidden',
+      // Width, height, and borderRadius are set dynamically via markerSize prop
+    },
+    pinMarkerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    pinMarkerTail: {
+      width: 0,
+      height: 0,
+      borderLeftWidth: isSmallScreen ? 6 : 8,
+      borderRightWidth: isSmallScreen ? 6 : 8,
+      borderTopWidth: isSmallScreen ? 10 : 12,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderTopColor: '#667eea',
+      marginTop: -1,
+    },
+    radiusControlContainer: {
+      position: 'absolute',
+      bottom: responsiveHeight(8),
+      right: isSmallScreen ? spacing.sm : spacing.md,
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.lg,
+      padding: spacing.sm,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    radiusControlButton: {
+      padding: spacing.sm,
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    nearbyButton: {
+      position: 'absolute',
+      bottom: responsiveHeight(8),
+      left: isSmallScreen ? spacing.sm : spacing.md,
+      backgroundColor: '#667eea',
+      borderRadius: borderRadiusValues.lg,
+      padding: spacing.md,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    nearbyButtonText: {
+      color: '#fff',
+      fontSize: fontSizes.sm,
+      fontWeight: '600',
+    },
+    navigateButton: {
+      backgroundColor: '#4B50E6',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: isSmallDevice ? spacing.md : spacing.md,
+      borderRadius: borderRadiusValues.md,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      marginTop: isSmallDevice ? spacing.sm : spacing.md,
+      shadowRadius: 1.41,
+      minHeight: minTouchTarget,
+    },
+    navigateButtonText: {
+      color: '#fff',
+      fontSize: isSmallDevice ? fontSizes.sm : fontSizes.md,
+      fontWeight: '600',
+      marginLeft: spacing.sm,
+    },
+    navigateButtonDisabled: {
+      opacity: 0.7,
+    },
+    closedStatusContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#ffebee',
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: borderRadiusValues.sm,
+      marginTop: spacing.md,
+      borderWidth: 1,
+      borderColor: '#ef5350',
+    },
+    closedStatusText: {
+      color: '#d32f2f',
+      fontSize: fontSizes.sm,
+      fontWeight: '600',
+      marginLeft: spacing.sm,
+    },
+    mapContainer: {
+      flex: 1,
+      marginHorizontal: responsiveWidth(5),
+      marginBottom: responsiveHeight(2),
+      borderRadius: borderRadiusValues.lg,
+      overflow: 'hidden',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    mapLocationButton: {
+      position: 'absolute',
+      bottom: responsiveHeight(3),
+      right: responsiveWidth(4),
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      padding: responsiveWidth(2.5),
+      borderRadius: borderRadiusValues.md,
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.22,
+      shadowRadius: 2.22,
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radiusControlPanel: {
+      position: 'absolute',
+      bottom: responsiveHeight(3),
+      right: responsiveWidth(4),
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      padding: responsiveWidth(2),
+      borderRadius: borderRadiusValues.lg,
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.22,
+      shadowRadius: 2.22,
+      minWidth: responsiveWidth(25),
+      alignItems: 'center',
+      height: responsiveHeight(8),
+    },
+    radiusButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: responsiveHeight(1),
+      top: responsiveHeight(1),
+    },
+    radiusValue: {
+      fontSize: fontSizes.xs,
+      color: '#3B2FEA',
+    },
+    radiusButtonSmall: {
+      backgroundColor: 'rgba(59, 47, 234, 0.1)',
+      padding: responsiveWidth(2.5),
+      borderRadius: borderRadiusValues.sm,
+      marginHorizontal: responsiveWidth(2),
+      borderWidth: 1,
+      borderColor: 'rgba(59, 47, 234, 0.3)',
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radiusButtonDisabled: {
+      backgroundColor: 'rgba(204, 204, 204, 0.1)',
+      borderColor: 'rgba(59, 47, 234, 0.3)',
+      borderWidth: 1,
+    },
+    bottomPanel: {
+      paddingHorizontal: responsiveWidth(5),
+      paddingBottom: responsiveHeight(2),
+    },
+    routeDetails: {
+      flexDirection: 'column',
+      gap: spacing.sm,
+    },
+    routeTitle: {
+      fontSize: fontSizes.lg,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    loadingContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    userMarker: {
+      width: iconSizes.md,
+      height: iconSizes.md,
+      borderRadius: iconSizes.md / 2,
+      backgroundColor: 'rgba(75, 80, 230, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    userMarkerDot: {
+      width: iconSizes.xs,
+      height: iconSizes.xs,
+      borderRadius: iconSizes.xs / 2,
+      backgroundColor: '#4B50E6',
+    },
+    userMarkerNavigation: {
+      width: iconSizes.lg,
+      height: iconSizes.lg,
+      borderRadius: iconSizes.lg / 2,
+      backgroundColor: 'rgba(75, 80, 230, 0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: '#fff',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    },
+    userMarkerDotNavigation: {
+      width: iconSizes.sm,
+      height: iconSizes.sm,
+      borderRadius: iconSizes.sm / 2,
+      backgroundColor: '#4B50E6',
+    },
+    destinationMarker: {
+      backgroundColor: '#FF3B30',
+      borderRadius: 35,
+      padding: spacing.md,
+      borderWidth: 5,
+      borderColor: '#fff',
+      elevation: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.5,
+      shadowRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 70,
+      height: 70,
+    },
+    businessMarkerImage: {
+      // Width, height, and borderRadius are set dynamically in component for Android compatibility
+    },
+    businessMarkerFallback: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      // Width, height, and borderRadius are set dynamically in component
+    },
+    pinMarkerPoint: {
+      width: 0,
+      height: 0,
+      backgroundColor: 'transparent',
+      borderStyle: 'solid',
+      borderLeftWidth: Math.max(4, Math.min(dimensions.width * 0.015, 8)),
+      borderRightWidth: Math.max(4, Math.min(dimensions.width * 0.015, 8)),
+      borderTopWidth: Math.max(10, Math.min(dimensions.width * 0.03, 18)),
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderTopColor: '#fff',
+      marginTop: -1,
+      alignSelf: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 2,
+      // Ensure it's visible above the map
+      position: 'relative',
+    },
+    navigationControls: {
+      position: 'absolute',
+      bottom: responsiveHeight(5),
+      right: isSmallScreen ? spacing.md : spacing.lg,
+      alignItems: 'center',
+    },
+    stopNavigationButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FF3B30',
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: 30,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    stopNavigationText: {
+      color: '#fff',
+      fontSize: fontSizes.sm,
+      fontWeight: '600',
+      marginLeft: spacing.xs,
+    },
+    businessImage: {
+      width: '100%',
+      height: responsiveHeight(25),
+      backgroundColor: '#f5f5f5',
+    },
+    closeButtonModal: {
+      position: 'absolute',
+      top: spacing.sm,
+      right: spacing.sm,
+      zIndex: 2,
+      width: minTouchTarget,
+      height: minTouchTarget,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      borderRadius: minTouchTarget / 2,
+    },
+    closeButtonText: {
+      fontSize: fontSizes.xl,
+      color: '#333',
+      fontWeight: '600',
+    },
+    description: {
+      fontSize: fontSizes.sm,
+      color: '#666',
+      marginBottom: spacing.lg,
+      lineHeight: fontSizes.sm * 1.5,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    ratingText: {
+      fontSize: fontSizes.sm,
+      color: '#666',
+      marginLeft: spacing.sm,
+      fontWeight: '600',
+    },
+    imageCarouselContainer: {
+      height: responsiveHeight(18),
+      backgroundColor: '#f0f0f0',
+      alignItems: 'center',
+    },
+    imageScrollView: {
+      flex: 1,
+    },
+    businessLoadingOverlay: {
+      position: 'absolute',
+      top: responsiveHeight(12),
+      right: isSmallScreen ? spacing.md : spacing.lg,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: borderRadiusValues.xl,
+      padding: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.22,
+      shadowRadius: 2.22,
+      zIndex: 1000,
+    },
+    navigationLoadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1500,
+    },
+    navigationLoadingContent: {
+      backgroundColor: 'white',
+      borderRadius: borderRadiusValues.xl,
+      padding: spacing.xxxl,
+      alignItems: 'center',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    navigationLoadingText: {
+      fontSize: fontSizes.xl,
+      fontWeight: '600',
+      color: '#333',
+      marginTop: spacing.md,
+      textAlign: 'center',
+    },
+    navigationLoadingSubtext: {
+      fontSize: fontSizes.md,
+      color: '#666',
+      marginTop: spacing.xs,
+      textAlign: 'center',
+    },
+    navigationTopBar: {
+      position: 'absolute',
+      top: responsiveHeight(7),
+      left: isSmallScreen ? spacing.md : spacing.lg,
+      right: isSmallScreen ? spacing.md : spacing.lg,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: borderRadiusValues.lg,
+      padding: spacing.lg,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      zIndex: 1000,
+    },
+    navigationInfo: {
+      alignItems: 'center',
+    },
+    navigationDestination: {
+      fontSize: fontSizes.xl,
+      fontWeight: '700',
+      color: '#333',
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    navigationDetails: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    navigationTime: {
+      fontSize: fontSizes.md,
+      fontWeight: '600',
+      color: '#4B50E6',
+    },
+    navigationDivider: {
+      fontSize: fontSizes.md,
+      color: '#999',
+      marginHorizontal: spacing.sm,
+    },
+    navigationDistance: {
+      fontSize: fontSizes.md,
+      fontWeight: '500',
+      color: '#666',
+    },
+    nearbyOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.18)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    nearbyModal: {
+      backgroundColor: '#fff',
+      borderRadius: borderRadiusValues.xxl,
+      padding: isSmallScreen ? spacing.sm : spacing.md,
+      width: '90%',
+      maxWidth: 400,
+      maxHeight: dimensions.height * 0.65,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOpacity: 0.12,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    nearbyTitle: {
+      fontSize: isSmallScreen ? fontSizes.md : fontSizes.lg,
+      fontWeight: '700',
+      color: '#222',
+      marginBottom: isSmallScreen ? spacing.sm : spacing.md,
+      textAlign: 'center',
+    },
+    nearbyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F8F8F8',
+      borderRadius: borderRadiusValues.md,
+      padding: isSmallScreen ? spacing.xs : spacing.sm,
+      marginBottom: isSmallScreen ? spacing.xs : spacing.sm,
+      width: '100%',
+      shadowColor: '#000',
+      shadowOpacity: 0.04,
+      shadowOffset: { width: 0, height: 1 },
+      shadowRadius: 2,
+      elevation: 2,
+      minHeight: minTouchTarget,
+    },
+    nearbyImage: {
+      width: isSmallScreen ? iconSizes.lg : iconSizes.xl,
+      height: isSmallScreen ? iconSizes.lg : iconSizes.xl,
+      borderRadius: borderRadiusValues.sm,
+      backgroundColor: '#eee',
+    },
+    nearbyName: {
+      fontWeight: '700',
+      fontSize: isSmallScreen ? fontSizes.sm : fontSizes.md,
+      color: '#181848',
+    },
+    nearbyDistance: {
+      fontSize: isSmallScreen ? fontSizes.xs : fontSizes.sm,
+      color: '#1976d2',
+      marginLeft: spacing.xs,
+    },
+    nearbyRating: {
+      fontSize: isSmallScreen ? fontSizes.xs : fontSizes.sm,
+      color: '#888',
+      marginLeft: spacing.xs,
+    },
+    nearbyNavigateBtn: {
+      backgroundColor: '#F6E3D1',
+      borderRadius: borderRadiusValues.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: isSmallScreen ? spacing.xs : spacing.xs,
+      paddingHorizontal: isSmallScreen ? spacing.sm : spacing.sm,
+      marginLeft: isSmallScreen ? spacing.xs : spacing.xs,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    nearbyNavigateText: {
+      color: '#8D5C2C',
+      fontWeight: '600',
+      marginLeft: spacing.xs / 2,
+      fontSize: isSmallScreen ? fontSizes.xs : fontSizes.sm,
+    },
+    nearbyCloseBtn: {
+      width: '100%',
+      marginTop: isSmallScreen ? spacing.xs : spacing.xs,
+      borderRadius: borderRadiusValues.md,
+      overflow: 'hidden',
+    },
+    nearbyCloseSolid: {
+      backgroundColor: '#3B2FEA',
+      paddingVertical: isSmallScreen ? spacing.xs : spacing.sm,
+      borderRadius: borderRadiusValues.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: minTouchTarget,
+    },
+    nearbyCloseText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: isSmallScreen ? fontSizes.sm : fontSizes.md,
+      textAlign: 'center',
+    },
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, responsiveHeight, responsiveWidth, isSmallDevice, isSmallScreen, minTouchTarget]);
 
   // Load businesses from Firestore
   const loadBusinessPlaces = async () => {
@@ -567,18 +1581,38 @@ const Navigate = () => {
     }
   };
 
-  const searchPlaces = (query: string) => {
+  // Debounced search with useCallback for performance
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchPlaces = useCallback((query: string) => {
     setSearchQuery(query);
-    if (query.length > 2) {
-      const filtered = places.filter(place =>
-        place.name.toLowerCase().includes(query.toLowerCase()) ||
-        place.description?.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered);
-    } else {
-      setSearchResults([]);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  };
+    
+    // Debounce search by 300ms
+    searchTimeoutRef.current = setTimeout(() => {
+      if (query.length > 2) {
+        const filtered = places.filter(place =>
+          place.name.toLowerCase().includes(query.toLowerCase()) ||
+          place.description?.toLowerCase().includes(query.toLowerCase())
+        );
+        setSearchResults(filtered);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+  }, [places]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Replace getDirectionsFromGoogle with getRouteFromORS
   const getRouteFromORS = async (
@@ -1072,6 +2106,42 @@ const Navigate = () => {
   };
 
   // Helper function for straight line distance with duration calculation
+  // Helper function to calculate distance in meters between two coordinates
+  const calculateDistanceInMeters = (
+    coord1: { latitude: number; longitude: number },
+    coord2: { latitude: number; longitude: number }
+  ): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (coord2.latitude - coord1.latitude) * Math.PI / 180;
+    const dLon = (coord2.longitude - coord1.longitude) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(coord1.latitude * Math.PI / 180) * Math.cos(coord2.latitude * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Helper function to generate dots along a line segment
+  const generateDotsAlongLine = (
+    start: { latitude: number; longitude: number },
+    end: { latitude: number; longitude: number },
+    dotSpacing: number = 50 // meters between dots
+  ): Array<{ latitude: number; longitude: number }> => {
+    const distance = calculateDistanceInMeters(start, end);
+    const numDots = Math.floor(distance / dotSpacing);
+    if (numDots < 1) return [];
+    
+    const dots: Array<{ latitude: number; longitude: number }> = [];
+    for (let i = 1; i < numDots; i++) {
+      const ratio = i / numDots;
+      dots.push({
+        latitude: start.latitude + (end.latitude - start.latitude) * ratio,
+        longitude: start.longitude + (end.longitude - start.longitude) * ratio,
+      });
+    }
+    return dots;
+  };
+
   const calculateStraightLineDistance = (origin: any, destination: any, travelMode: string = 'walking') => {
     console.log('🔍 calculateStraightLineDistance called with:', {
       origin: { lat: origin.latitude, lon: origin.longitude },
@@ -1275,172 +2345,7 @@ const Navigate = () => {
     }
   };
 
-  const handlePlaceSelect = async (business: Place) => {
-    setSelectedPlace(business);
-    
-    // Check if business is closed
-    checkIfBusinessClosed(business);
-    
-    // Create business details object for the modal
-    const businessDetails = {
-      name: business.name,
-      businessType: business.businessType || business.description || 'Business',
-      location: business.location || business.address || 'Location not available',
-      businessHours: business.businessHours || 'Business hours not available',
-      contactNumber: business.contactNumber || 'Contact not available',
-      image: business.image || '',
-      allImages: business.allImages || [],
-      latitude: business.latitude,
-      longitude: business.longitude,
-      description: business.description,
-      openingTime: business.openingTime,
-      closingTime: business.closingTime,
-    };
-    
-    setSelectedBusinessDetails(businessDetails);
-    
-    setDetailsModalVisible(true);
-    setCurrentImageIndex(0); // Reset image index for new business
-    
-    if (business.businessLocation) {
-      calculateDistance(business);
-    }
-  };
-
-  const centerOnUser = () => {
-    if (location) {
-      adjustMapToRadius(circleRadius);
-    }
-  };
-
-  const increaseRadius = () => {
-    if (circleRadius < 2000) {
-      const newRadius = Math.min(circleRadius + 100, 2000);
-      setCircleRadius(newRadius);
-      adjustMapToRadius(newRadius);
-    }
-  };
-
-  const decreaseRadius = () => {
-    if (circleRadius > 500) {
-      const newRadius = Math.max(circleRadius - 100, 500);
-      setCircleRadius(newRadius);
-      adjustMapToRadius(newRadius);
-    }
-  };
-
-  const adjustMapToRadius = (radius: number) => {
-    if (location && mapRef.current) {
-      // Calculate appropriate zoom level based on radius
-      // Formula: larger radius = larger delta (more zoomed out)
-      const radiusInKm = radius / 1000; // Convert meters to km
-      const latitudeDelta = radiusInKm * 0.018; // Roughly 1 degree ≈ 111km
-      const longitudeDelta = radiusInKm * 0.018;
-      
-      console.log('🗺️ Adjusting map view for radius:', radius, 'meters');
-      console.log('📏 Map deltas:', { latitudeDelta, longitudeDelta });
-      
-      mapRef.current.animateToRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: latitudeDelta,
-        longitudeDelta: longitudeDelta,
-      }, 500); // 500ms animation duration
-    }
-  };
-
-  // Check for nearby businesses when userLocation or places change
-  useEffect(() => {
-    if (!location || !places.length) return;
-    const nearby = places.filter(place => {
-      const dist = haversineDistance(
-        location.coords.latitude,
-        location.coords.longitude,
-        place.businessLocation.latitude,
-        place.businessLocation.longitude
-      );
-      return dist * 1000 <= circleRadius; // Use dynamic circleRadius instead of fixed 500
-    });
-    setNearbyBusinesses(nearby);
-    
-    // Check for newly detected businesses
-    const newBusinesses = nearby.filter(business => !previouslyDetectedBusinessesRef.current.has(business.id));
-    
-    // Only show modal if there are NEW nearby businesses and not navigating
-    if (newBusinesses.length > 0 && !isNavigating) {
-      setShowNearbyModal(true);
-    }
-    
-    // Update the set of previously detected businesses
-    const currentBusinessIds = new Set(nearby.map(business => business.id));
-    previouslyDetectedBusinessesRef.current = currentBusinessIds;
-  }, [location, places, isNavigating, circleRadius]);
-
-  // Reset previously detected businesses when radius changes significantly
-  useEffect(() => {
-    previouslyDetectedBusinessesRef.current = new Set();
-  }, [circleRadius]);
-
-  // Reset modal visibility on mount or refresh
-  useEffect(() => {
-    setShowNearbyModal(false);
-  }, []);
-
-  // Fetch reviews for nearby businesses and preload images
-  useEffect(() => {
-    if (nearbyBusinesses.length > 0) {
-      nearbyBusinesses.forEach(business => {
-        // Fetch reviews
-        const unsubscribe = fetchBusinessReviews(business.id);
-        setReviewUnsubscribes(prev => ({
-          ...prev,
-          [business.id]: unsubscribe
-        }));
-
-        // Preload business images for instant display
-        const imageUri = business.allImages?.[0] || business.image;
-        if (imageUri) {
-          console.log('🖼️ Preloading business image:', business.name);
-          preloadImage(imageUri);
-        }
-      });
-    }
-    
-    // Cleanup function
-    return () => {
-      Object.values(reviewUnsubscribes).forEach(unsubscribe => {
-        if (unsubscribe && typeof unsubscribe === 'function') {
-          unsubscribe();
-        }
-      });
-    };
-  }, [nearbyBusinesses]);
-
-  const handleMarkerPress = async (business: Place) => {
-    // Track business view
-    try {
-      if (business.id) {
-        const businessRef = doc(db, 'businesses', business.id);
-        await updateDoc(businessRef, {
-          viewCount: increment(1),
-          lastViewedAt: new Date().toISOString(),
-        });
-        console.log('✅ View tracked for:', business.name);
-      }
-    } catch (error) {
-      console.log('❌ Error tracking view:', error);
-    }
-    
-    setSelectedPlace(business);
-    setDetailsModalVisible(true);
-    checkIfBusinessClosed(business);
-    if (business.businessLocation) {
-      calculateDistance(business);
-    }
-  };
-
-
-  const calculateDistance = async (destination: Place) => {
+  const calculateDistance = useCallback(async (destination: Place) => {
     if (!location) {
       return;
     }
@@ -1519,9 +2424,177 @@ const Navigate = () => {
         });
       }
     }
-  };
+  }, [location, selectedTravelMode]);
 
-  const stopNavigation = () => {
+  const handlePlaceSelect = useCallback(async (business: Place) => {
+    setSelectedPlace(business);
+    
+    // Check if business is closed
+    checkIfBusinessClosed(business);
+    
+    // Create business details object for the modal
+    const businessDetails = {
+      name: business.name,
+      businessType: business.businessType || business.description || 'Business',
+      location: business.location || business.address || 'Location not available',
+      businessHours: business.businessHours || 'Business hours not available',
+      contactNumber: business.contactNumber || 'Contact not available',
+      image: business.image || '',
+      allImages: business.allImages || [],
+      latitude: business.latitude,
+      longitude: business.longitude,
+      description: business.description,
+      openingTime: business.openingTime,
+      closingTime: business.closingTime,
+    };
+    
+    setSelectedBusinessDetails(businessDetails);
+    
+    setDetailsModalVisible(true);
+    setCurrentImageIndex(0); // Reset image index for new business
+    
+    if (business.businessLocation) {
+      calculateDistance(business);
+    }
+  }, [calculateDistance]);
+
+  const centerOnUser = useCallback(() => {
+    if (location) {
+      adjustMapToRadius(circleRadius);
+    }
+  }, [location, circleRadius]);
+
+  const increaseRadius = useCallback(() => {
+    if (circleRadius < 2000) {
+      const newRadius = Math.min(circleRadius + 100, 2000);
+      setCircleRadius(newRadius);
+      adjustMapToRadius(newRadius);
+    }
+  }, [circleRadius]);
+
+  const decreaseRadius = useCallback(() => {
+    if (circleRadius > 500) {
+      const newRadius = Math.max(circleRadius - 100, 500);
+      setCircleRadius(newRadius);
+      adjustMapToRadius(newRadius);
+    }
+  }, [circleRadius]);
+
+  const adjustMapToRadius = useCallback((radius: number) => {
+    if (location && mapRef.current) {
+      // Calculate appropriate zoom level based on radius
+      // Formula: larger radius = larger delta (more zoomed out)
+      const radiusInKm = radius / 1000; // Convert meters to km
+      const latitudeDelta = radiusInKm * 0.018; // Roughly 1 degree ≈ 111km
+      const longitudeDelta = radiusInKm * 0.018;
+      
+      console.log('🗺️ Adjusting map view for radius:', radius, 'meters');
+      console.log('📏 Map deltas:', { latitudeDelta, longitudeDelta });
+      
+      mapRef.current.animateToRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: latitudeDelta,
+        longitudeDelta: longitudeDelta,
+      }, 500); // 500ms animation duration
+    }
+  }, [location]);
+
+  // Memoize nearby businesses calculation for performance
+  const nearbyBusinessesMemo = useMemo(() => {
+    if (!location || !places.length) return [];
+    return places.filter(place => {
+      const dist = haversineDistance(
+        location.coords.latitude,
+        location.coords.longitude,
+        place.businessLocation.latitude,
+        place.businessLocation.longitude
+      );
+      return dist * 1000 <= circleRadius; // Use dynamic circleRadius instead of fixed 500
+    });
+  }, [location, places, circleRadius]);
+
+  // Update nearby businesses state and check for new ones
+  useEffect(() => {
+    setNearbyBusinesses(nearbyBusinessesMemo);
+    
+    // Check for newly detected businesses
+    const newBusinesses = nearbyBusinessesMemo.filter(business => !previouslyDetectedBusinessesRef.current.has(business.id));
+    
+    // Only show modal if there are NEW nearby businesses and not navigating
+    if (newBusinesses.length > 0 && !isNavigating) {
+      setShowNearbyModal(true);
+    }
+    
+    // Update the set of previously detected businesses
+    const currentBusinessIds = new Set(nearbyBusinessesMemo.map(business => business.id));
+    previouslyDetectedBusinessesRef.current = currentBusinessIds;
+  }, [nearbyBusinessesMemo, isNavigating]);
+
+  // Reset previously detected businesses when radius changes significantly
+  useEffect(() => {
+    previouslyDetectedBusinessesRef.current = new Set();
+  }, [circleRadius]);
+
+  // Reset modal visibility on mount or refresh
+  useEffect(() => {
+    setShowNearbyModal(false);
+  }, []);
+
+  // Fetch reviews for nearby businesses and preload images
+  useEffect(() => {
+    if (nearbyBusinesses.length > 0) {
+      nearbyBusinesses.forEach(business => {
+        // Fetch reviews
+        const unsubscribe = fetchBusinessReviews(business.id);
+        setReviewUnsubscribes(prev => ({
+          ...prev,
+          [business.id]: unsubscribe
+        }));
+
+        // Preload business images for instant display
+        const imageUri = business.allImages?.[0] || business.image;
+        if (imageUri) {
+          console.log('🖼️ Preloading business image:', business.name);
+          preloadImage(imageUri);
+        }
+      });
+    }
+    
+    // Cleanup function
+    return () => {
+      Object.values(reviewUnsubscribes).forEach(unsubscribe => {
+        if (unsubscribe && typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
+    };
+  }, [nearbyBusinesses]);
+
+  const handleMarkerPress = useCallback(async (business: Place) => {
+    // Track business view
+    try {
+      if (business.id) {
+        const businessRef = doc(db, 'businesses', business.id);
+        await updateDoc(businessRef, {
+          viewCount: increment(1),
+          lastViewedAt: new Date().toISOString(),
+        });
+        console.log('✅ View tracked for:', business.name);
+      }
+    } catch (error) {
+      console.log('❌ Error tracking view:', error);
+    }
+    
+    setSelectedPlace(business);
+    setDetailsModalVisible(true);
+    checkIfBusinessClosed(business);
+    if (business.businessLocation) {
+      calculateDistance(business);
+    }
+  }, [calculateDistance]);
+
+  const stopNavigation = useCallback(() => {
     console.log('🛑 Stopping navigation');
     setIsNavigating(false);
     
@@ -1554,7 +2627,7 @@ const Navigate = () => {
         });
       }
     }, 500);
-  };
+  }, [mapReady, places, location, routeDetails]);
 
   // Pre-compute routes for faster navigation
   useEffect(() => {
@@ -1762,10 +2835,16 @@ const Navigate = () => {
    useEffect(() => {
      if (isNavigating && selectedPlace) {
        console.log('🎯 Navigation active for:', selectedPlace.name);
+       console.log('📍 Route details during navigation:', {
+         hasRouteDetails: !!routeDetails,
+         coordinatesCount: routeDetails?.coordinates?.length || 0,
+         distance: routeDetails?.distance || 'N/A',
+         duration: routeDetails?.duration || 'N/A'
+       });
      } else if (!isNavigating) {
        console.log('🛑 Navigation stopped');
      }
-   }, [isNavigating, selectedPlace]);
+   }, [isNavigating, selectedPlace, routeDetails]);
 
    // Monitor radius changes and adjust map view accordingly
    useEffect(() => {
@@ -1886,6 +2965,11 @@ const Navigate = () => {
 
       // If we already have route details, use them immediately
       if (routeDetails && routeDetails.coordinates && routeDetails.coordinates.length > 0) {
+        console.log('✅ Using existing route details for navigation:', {
+          coordinatesCount: routeDetails.coordinates.length,
+          distance: routeDetails.distance,
+          duration: routeDetails.duration
+        });
         // Immediately fit the map to show the route
         setTimeout(() => {
           if (mapRef.current && routeDetails.coordinates && routeDetails.coordinates.length >= 2) {
@@ -1900,6 +2984,8 @@ const Navigate = () => {
         return;
       }
       
+      console.log('⚠️ No existing route details, creating fallback route');
+      
       // Show immediate enhanced route for instant feedback (with waypoints)
       const estimatedCoords = generateEstimatedRoute(origin, destination);
       const fallbackResult = calculateStraightLineDistance(origin, destination, selectedTravelMode);
@@ -1913,6 +2999,11 @@ const Navigate = () => {
       };
       
       setRouteDetails(fallbackRoute);
+      console.log('✅ Set fallback route details:', {
+        coordinatesCount: fallbackRoute.coordinates.length,
+        distance: fallbackRoute.distance,
+        duration: fallbackRoute.duration
+      });
       
       // Force immediate re-render and map update
       setTimeout(() => {
@@ -2036,7 +3127,7 @@ const Navigate = () => {
           <View style={styles.permissionContainer}>
             <Ionicons 
               name="location-outline" 
-              size={screenWidth * 0.15} 
+              size={iconSizes.xxxxl} 
               color={theme === 'dark' ? '#FFF' : '#333'} 
             />
             <Text style={[styles.permissionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
@@ -2068,7 +3159,7 @@ const Navigate = () => {
         {!isNavigating && (
         <View style={styles.searchBarContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={screenWidth * 0.05} color="#666" />
+            <Ionicons name="search" size={iconSizes.md} color="#666" />
             <TextInput
               style={styles.searchBarInput}
               placeholder="Search destination..."
@@ -2118,69 +3209,20 @@ const Navigate = () => {
             >
 
 
-              {/* Business markers - keep visible but dimmed during navigation */}
-              {places.map((place) => {
-                const businessImage = place.image || (place.allImages && place.allImages.length > 0 ? place.allImages[0] : null);
-                const hasImage = !!businessImage;
-                
-                return (
-                  <Marker
+              {/* Business markers - keep visible but dimmed during navigation, exclude destination when navigating */}
+              {places
+                .filter(place => !isNavigating || selectedPlace?.id !== place.id)
+                .map((place) => (
+                  <BusinessMarker
                     key={place.id}
-                    coordinate={{
-                      latitude: place.businessLocation.latitude,
-                      longitude: place.businessLocation.longitude
-                    }}
-                    title={place.name}
-                    description={place.businessType}
-                    onPress={() => {
-                      handlePlaceSelect(place);
-                    }}
-                  >
-                    <View style={styles.pinMarkerContainer}>
-                      {/* Pin head (circular part with image) */}
-                      <View style={[
-                        styles.pinMarkerHead,
-                        {
-                          borderWidth: isNavigating && selectedPlace?.id === place.id ? 4 : 2,
-                          borderColor: isNavigating && selectedPlace?.id === place.id ? '#FF3B30' : '#fff',
-                          opacity: isNavigating && selectedPlace?.id !== place.id ? 0.6 : 1,
-                          elevation: isNavigating && selectedPlace?.id === place.id ? 8 : (isNavigating ? 1 : 3),
-                          shadowOpacity: isNavigating && selectedPlace?.id === place.id ? 0.4 : (isNavigating ? 0.1 : 0.25),
-                        }
-                      ]}>
-                        {hasImage ? (
-                          <Image
-                            source={{ uri: businessImage }}
-                            style={styles.businessMarkerImage}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View style={[
-                            styles.businessMarkerFallback,
-                            {
-                              backgroundColor: isNavigating && selectedPlace?.id === place.id ? '#FF3B30' : '#4B50E6',
-                            }
-                          ]}>
-                            <Ionicons 
-                              name={isNavigating && selectedPlace?.id === place.id ? "location" : "business"}
-                              size={isNavigating && selectedPlace?.id === place.id ? 24 : 20} 
-                              color="#fff" 
-                            />
-                          </View>
-                        )}
-                      </View>
-                      {/* Pin point (triangular bottom) */}
-                      <View style={[
-                        styles.pinMarkerPoint,
-                        {
-                          borderTopColor: isNavigating && selectedPlace?.id === place.id ? '#FF3B30' : '#fff',
-                          opacity: isNavigating && selectedPlace?.id !== place.id ? 0.6 : 1,
-                        }
-                      ]} />
-                    </View>
-                  </Marker>
-                );
-              })}
+                    place={place}
+                    isNavigating={isNavigating}
+                    isSelected={selectedPlace?.id === place.id}
+                    onPress={handlePlaceSelect}
+                    markerStyles={styles}
+                    markerSize={markerSize}
+                  />
+                ))}
 
 
 
@@ -2199,18 +3241,104 @@ const Navigate = () => {
               )}
 
               {/* Route line - solid during navigation, no preview when not navigating */}
-              {routeDetails?.coordinates && routeDetails.coordinates.length >= 2 && (
+              {isNavigating && routeDetails?.coordinates && routeDetails.coordinates.length >= 2 && (
               <Polyline
                   coordinates={routeDetails.coordinates}
-                  strokeColor={isNavigating ? "#4B50E6" : "transparent"}
-                  strokeWidth={isNavigating ? 6 : 0}
-                  lineDashPattern={[0]}
+                  strokeColor="#4B50E6"
+                  strokeWidth={6}
                   zIndex={1000}
                   geodesic={true}
                   lineJoin="round"
                   lineCap="round"
+                  tappable={false}
                 />
               )}
+
+              {/* Connection line from user location to polyline start with dots */}
+              {isNavigating && routeDetails?.coordinates && routeDetails.coordinates.length >= 2 && location && (() => {
+                const userCoord = {
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude
+                };
+                const polylineStart = routeDetails.coordinates[0];
+                const gapDistance = calculateDistanceInMeters(userCoord, polylineStart);
+                const hasGap = gapDistance > 20; // Show connection if gap is more than 20 meters
+                
+                if (hasGap) {
+                  const connectionDots = generateDotsAlongLine(userCoord, polylineStart, 30);
+                  return (
+                    <>
+                      {/* Dotted connection line */}
+                      <Polyline
+                        coordinates={[userCoord, polylineStart]}
+                        strokeColor="#4B50E6"
+                        strokeWidth={4}
+                        lineDashPattern={[8, 4]}
+                        zIndex={999}
+                        geodesic={true}
+                        lineJoin="round"
+                        lineCap="round"
+                      />
+                      {/* Dots along the connection line */}
+                      {connectionDots.map((dot, index) => (
+                        <Circle
+                          key={`start-dot-${index}`}
+                          center={dot}
+                          radius={4}
+                          fillColor="#4B50E6"
+                          strokeColor="#FFFFFF"
+                          strokeWidth={1}
+                          zIndex={998}
+                        />
+                      ))}
+                    </>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Connection line from polyline end to destination with dots */}
+              {isNavigating && routeDetails?.coordinates && routeDetails.coordinates.length >= 2 && selectedPlace?.businessLocation && (() => {
+                const polylineEnd = routeDetails.coordinates[routeDetails.coordinates.length - 1];
+                const destinationCoord = {
+                  latitude: selectedPlace.businessLocation.latitude,
+                  longitude: selectedPlace.businessLocation.longitude
+                };
+                const gapDistance = calculateDistanceInMeters(polylineEnd, destinationCoord);
+                const hasGap = gapDistance > 20; // Show connection if gap is more than 20 meters
+                
+                if (hasGap) {
+                  const connectionDots = generateDotsAlongLine(polylineEnd, destinationCoord, 30);
+                  return (
+                    <>
+                      {/* Dotted connection line */}
+                      <Polyline
+                        coordinates={[polylineEnd, destinationCoord]}
+                        strokeColor="#4B50E6"
+                        strokeWidth={4}
+                        lineDashPattern={[8, 4]}
+                        zIndex={999}
+                        geodesic={true}
+                        lineJoin="round"
+                        lineCap="round"
+                      />
+                      {/* Dots along the connection line */}
+                      {connectionDots.map((dot, index) => (
+                        <Circle
+                          key={`end-dot-${index}`}
+                          center={dot}
+                          radius={4}
+                          fillColor="#4B50E6"
+                          strokeColor="#FFFFFF"
+                          strokeWidth={1}
+                          zIndex={998}
+                        />
+                      ))}
+                    </>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Fallback straight line while calculating detailed route */}
               {isNavigationLoading && location && selectedPlace && (
@@ -2259,7 +3387,7 @@ const Navigate = () => {
                   onPress={decreaseRadius}
                   disabled={circleRadius <= 500}
                 >
-                  <Ionicons name="remove" size={screenWidth * 0.04} color={circleRadius <= 500 ? "#CCC" : "#3B2FEA"} />
+                  <Ionicons name="remove" size={iconSizes.sm} color={circleRadius <= 500 ? "#CCC" : "#3B2FEA"} />
                 </TouchableOpacity>
                 <Text style={styles.radiusValue}>{circleRadius}m</Text>
                 <TouchableOpacity 
@@ -2267,7 +3395,7 @@ const Navigate = () => {
                   onPress={increaseRadius}
                   disabled={circleRadius >= 2000}
                 >
-                  <Ionicons name="add" size={screenWidth * 0.04} color={circleRadius >= 2000 ? "#CCC" : "#3B2FEA"} />
+                  <Ionicons name="add" size={iconSizes.sm} color={circleRadius >= 2000 ? "#CCC" : "#3B2FEA"} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -2425,7 +3553,7 @@ const Navigate = () => {
                         style={styles.imageScrollView}
                         pagingEnabled
                         onMomentumScrollEnd={(event) => {
-                          const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+                          const index = Math.round(event.nativeEvent.contentOffset.x / dimensions.width);
                           setCurrentImageIndex(index);
                         }}
                       >
@@ -2572,7 +3700,7 @@ const Navigate = () => {
                                 <Text style={styles.trafficHeaderText}>Traffic Insights</Text>
                               </View>
                               
-                              <View style={styles.trafficContent}>
+                              <View style={styles.trafficContentContainer}>
                                 <View style={styles.trafficRow}>
                                   <Ionicons 
                                     name={getTrafficStyle(routeDetails.trafficInfo.condition).icon} 
@@ -2650,9 +3778,9 @@ const Navigate = () => {
             <View style={styles.nearbyModal}>
               <Text style={styles.nearbyTitle}>Discover What's Just Steps Away!</Text>
               <ScrollView
-                style={{ width: '100%', maxHeight: screenHeight * 0.35 }}
+                style={{ width: '100%', maxHeight: responsiveHeight(35) }}
                 showsVerticalScrollIndicator={true}
-                contentContainerStyle={{ paddingBottom: 4 }}
+                contentContainerStyle={{ paddingBottom: spacing.xs }}
               >
                 {nearbyBusinesses.map((biz, idx) => {
                   const rating = businessRatings[biz.id];
@@ -2669,16 +3797,16 @@ const Navigate = () => {
                         style={styles.nearbyImage}
                         resizeMode="cover"
                       />
-                      <View style={{ flex: 1, marginLeft: screenWidth < 375 ? 6 : 8 }}>
+                      <View style={{ flex: 1, marginLeft: isSmallScreen ? spacing.xs : spacing.sm }}>
                         <Text style={styles.nearbyName}>{biz.name}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
-                          <Ionicons name="location" size={screenWidth < 375 ? 12 : 14} color="#1976d2" />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs / 2 }}>
+                          <Ionicons name="location" size={isSmallScreen ? iconSizes.xs : iconSizes.sm} color="#1976d2" />
                           <Text style={styles.nearbyDistance}>{
                             `${Math.round(haversineDistance(location?.coords?.latitude || 0, location?.coords?.longitude || 0, biz.businessLocation.latitude, biz.businessLocation.longitude) * 1000)}m`
                           }</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
-                          <Ionicons name="star" size={screenWidth < 375 ? 12 : 14} color="#FFD700" />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs / 2 }}>
+                          <Ionicons name="star" size={isSmallScreen ? iconSizes.xs : iconSizes.sm} color="#FFD700" />
                           <Text style={styles.nearbyRating}>
                             {averageRating} ({reviewCount})
                           </Text>
@@ -2710,870 +3838,5 @@ const Navigate = () => {
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  searchBarContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-  },
-  searchBarInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-  },
-  searchResultsContainer: {
-    position: 'absolute',
-    top: 100,
-    left: 20,
-    right: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    maxHeight: 200,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  searchResult: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  searchResultName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  searchResultDesc: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  permissionTitle: {
-    fontSize: screenWidth * 0.06,
-    fontWeight: 'bold',
-    marginTop: screenHeight * 0.03,
-    textAlign: 'center',
-  },
-  permissionText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
-  },
-  permissionButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: screenWidth * 0.08,
-    paddingVertical: screenHeight * 0.02,
-    borderRadius: screenWidth * 0.05,
-    marginTop: screenHeight * 0.04,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-  },
-  permissionButtonText: {
-    color: '#FFF',
-    fontSize: screenWidth * 0.045,
-    fontWeight: '600',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -75 }, { translateY: -40 }],
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    zIndex: 1000,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  detailsOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999,
-  },
-  detailsContainer: {
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: screenHeight * 0.90,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.34,
-    shadowRadius: 6.27,
-    zIndex: 1000,
-  },
-  contentContainer: {
-    padding: screenHeight < 667 ? 8 : 12,
-    backgroundColor: '#fff',
-    minHeight: 180,
-  },
-  businessInfo: {
-    marginBottom: screenHeight < 667 ? 8 : 12,
-    alignItems: 'center',
-  },
-  businessName: {
-    fontSize: screenHeight < 667 ? 14 : 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  businessType: {
-    fontSize: screenHeight < 667 ? 10 : 12,
-    color: '#666',
-    marginBottom: screenHeight < 667 ? 6 : 8,
-    textAlign: 'center',
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight < 667 ? 3 : 4,
-    alignSelf: 'stretch',
-  },
-  locationText: {
-    fontSize: screenHeight < 667 ? 11 : 12,
-    color: '#666',
-    marginLeft: 8,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight < 667 ? 3 : 4,
-    alignSelf: 'stretch',
-  },
-  timeText: {
-    fontSize: screenHeight < 667 ? 11 : 12,
-    color: '#666',
-    marginLeft: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight < 667 ? 6 : 8,
-    alignSelf: 'stretch',
-  },
-  infoText: {
-    fontSize: screenHeight < 667 ? 11 : 12,
-    color: '#666',
-    marginLeft: 8,
-    flex: 1,
-  },
-  travelModesContainer: {
-    marginBottom: screenHeight < 667 ? 6 : 8,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: screenHeight < 667 ? 4 : 6,
-  },
-  travelModeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: screenHeight < 667 ? 2 : 3,
-  },
-  travelModeButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: screenHeight < 667 ? 6 : 8,
-    marginHorizontal: 4,
-    borderRadius: 8,
-  },
-  selectedMode: {
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  travelModeText: {
-    fontSize: screenHeight < 667 ? 9 : 10,
-    color: '#666',
-    marginTop: screenHeight < 667 ? 2 : 4,
-  },
-  selectedModeText: {
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  routeInfo: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: screenHeight < 667 ? 8 : 10,
-    marginBottom: screenHeight < 667 ? 8 : 12,
-    minHeight: screenHeight < 667 ? 50 : 70,
-    justifyContent: 'center',
-  },
-  routeInfoCentered: {
-    alignItems: 'center',
-  },
-  routeInfoContainer: {
-    flex: 1,
-  },
-  routeInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 12,
-  },
-  routeInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  routeInfoText: {
-    fontSize: screenHeight < 667 ? 11 : 12,
-    color: '#666',
-    marginLeft: 8,
-  },
-  trafficContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: screenHeight < 667 ? 6 : 8,
-    marginTop: screenHeight < 667 ? 4 : 6,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  trafficHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight < 667 ? 4 : 6,
-  },
-  trafficHeaderText: {
-    fontSize: screenHeight < 667 ? 9 : 10,
-    color: '#666',
-    fontWeight: '600',
-    marginLeft: 6,
-    textTransform: 'uppercase',
-  },
-  trafficContent: {
-    paddingLeft: screenHeight < 667 ? 2 : 4,
-  },
-  trafficRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight < 667 ? 2 : 3,
-  },
-  trafficText: {
-    fontSize: screenHeight < 667 ? 10 : 11,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  trafficDetailText: {
-    fontSize: screenHeight < 667 ? 9 : 10,
-    color: '#666',
-    marginLeft: 6,
-  },
-  navigateButton: {
-    backgroundColor: '#4B50E6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: screenHeight < 667 ? 12 : 14,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    marginTop: screenHeight < 667 ? 8 : 12,
-    shadowRadius: 1.41,
-  },
-  closedStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffebee',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#ef5350',
-  },
-  closedStatusText: {
-    color: '#d32f2f',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  navigateButtonText: {
-    color: '#fff',
-    fontSize: screenHeight < 667 ? 12 : 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  mapContainer: {
-    flex: 1,
-    marginHorizontal: screenWidth * 0.05,
-    marginBottom: screenHeight * 0.02,
-    borderRadius: screenWidth * 0.05,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  mapLocationButton: {
-    position: 'absolute',
-    bottom: screenHeight * 0.03,
-    right: screenWidth * 0.04,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: screenWidth * 0.025,
-    borderRadius: screenWidth * 0.025,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-  },
-  radiusControlPanel: {
-    position: 'absolute',
-    bottom: screenHeight * 0.03,
-    right: screenWidth * 0.04,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: screenWidth * 0.02,
-    borderRadius: screenWidth * 0.05,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    minWidth: screenWidth * 0.25,
-    alignItems: 'center',
-    height: screenHeight * 0.08,
-  },
-  radiusButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: screenHeight * 0.01,
-    top: screenHeight * 0.01,
-  },
-  radiusValue: {
-    fontSize: screenWidth * 0.03,
-    color: '#3B2FEA',
-  },
-  radiusButtonSmall: {
-    backgroundColor: 'rgba(59, 47, 234, 0.1)',
-    padding: screenWidth * 0.025,
-    borderRadius: screenWidth * 0.025,
-    marginHorizontal: screenWidth * 0.02,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 47, 234, 0.3)',
-  },
-  radiusButtonDisabled: {
-    backgroundColor: 'rgba(204, 204, 204, 0.1)',
-    borderColor: 'rgba(59, 47, 234, 0.3)',
-    borderWidth: 1,
-  },
-  bottomPanel: {
-    paddingHorizontal: screenWidth * 0.05,
-    paddingBottom: screenHeight * 0.02,
-  },
-  routeDetails: {
-    flexDirection: 'column',
-    gap: 10,
-  },
-  routeTitle: {
-    fontSize: screenWidth * 0.045,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  userMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(75, 80, 230, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  userMarkerDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4B50E6',
-  },
-  userMarkerNavigation: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(75, 80, 230, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  userMarkerDotNavigation: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#4B50E6',
-  },
-  destinationMarker: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 35,
-    padding: 15,
-    borderWidth: 5,
-    borderColor: '#fff',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 70,
-    height: 70,
-  },
-  pinMarkerContainer: {
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  pinMarkerHead: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3.84,
-    backgroundColor: '#fff',
-  },
-  businessMarkerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 25,
-  },
-  businessMarkerFallback: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pinMarkerPoint: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 12,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: '#fff',
-    marginTop: -2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  navigationControls: {
-    position: 'absolute',
-    bottom: 40,
-    right: 20,
-    alignItems: 'center',
-  },
-  stopNavigationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF3B30',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 30,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  stopNavigationText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  businessImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#f5f5f5',
-  },
-  closeButtonModal: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 2,
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 15,
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: '#333',
-    fontWeight: '600',
-  },
-  navigateButtonDisabled: {
-    opacity: 0.7,
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 8,
-    fontWeight: '600',
-  },
-  imageCarouselContainer: {
-    height: screenHeight < 667 ? 120 : 150,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-  },
-  imageScrollView: {
-    flex: 1,
-  },
-  carouselImage: {
-    width: screenWidth * 0.85,
-    height: screenHeight < 667 ? 120 : 150,
-    marginTop: 10,
-    marginLeft: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  imageIndicators: {
-    position: 'absolute',
-    bottom: 10,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
-  },
-  activeIndicator: {
-    backgroundColor: '#4B50E6',
-  },
-  inactiveIndicator: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  businessLoadingOverlay: {
-    position: 'absolute',
-    top: 100,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    zIndex: 1000,
-  },
-  imageContainer: {
-    width: screenWidth * 0.85,
-    height: 200,
-    backgroundColor: '#f5f5f5',
-    marginTop: 10,
-    marginLeft: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  noImageContainer: {
-    width: screenWidth * 0.85,
-    height: 200,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-    marginLeft: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  noImageText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#999',
-    fontWeight: '500',
-  },
-  navigationLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1500,
-  },
-  navigationLoadingContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  navigationLoadingText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 15,
-    textAlign: 'center',
-  },
-  navigationLoadingSubtext: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  navigationTopBar: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    padding: 16,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    zIndex: 1000,
-  },
-  navigationInfo: {
-    alignItems: 'center',
-  },
-  navigationDestination: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  navigationDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navigationTime: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4B50E6',
-  },
-  navigationDivider: {
-    fontSize: 16,
-    color: '#999',
-    marginHorizontal: 8,
-  },
-  navigationDistance: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-  },
-  // Nearby Businesses Modal Styles
-  nearbyOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nearbyModal: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: screenWidth < 375 ? 10 : 14,
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: screenHeight * 0.65,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  nearbyTitle: {
-    fontSize: screenWidth < 375 ? 16 : 18,
-    fontWeight: '700',
-    color: '#222',
-    marginBottom: screenWidth < 375 ? 8 : 12,
-    textAlign: 'center',
-  },
-  nearbyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    borderRadius: 12,
-    padding: screenWidth < 375 ? 6 : 8,
-    marginBottom: screenWidth < 375 ? 6 : 8,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  nearbyImage: {
-    width: screenWidth < 375 ? 40 : 48,
-    height: screenWidth < 375 ? 40 : 48,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-  },
-  nearbyName: {
-    fontWeight: '700',
-    fontSize: screenWidth < 375 ? 14 : 16,
-    color: '#181848',
-  },
-  nearbyDistance: {
-    fontSize: screenWidth < 375 ? 12 : 13,
-    color: '#1976d2',
-    marginLeft: 4,
-  },
-  nearbyRating: {
-    fontSize: screenWidth < 375 ? 12 : 13,
-    color: '#888',
-    marginLeft: 4,
-  },
-  nearbyNavigateBtn: {
-    backgroundColor: '#F6E3D1',
-    borderRadius: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: screenWidth < 375 ? 4 : 5,
-    paddingHorizontal: screenWidth < 375 ? 8 : 10,
-    marginLeft: screenWidth < 375 ? 4 : 6,
-  },
-  nearbyNavigateText: {
-    color: '#8D5C2C',
-    fontWeight: '600',
-    marginLeft: 2,
-    fontSize: screenWidth < 375 ? 12 : 13,
-  },
-  nearbyCloseBtn: {
-    width: '100%',
-    marginTop: screenWidth < 375 ? 4 : 6,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  nearbyCloseSolid: {
-    backgroundColor: '#3B2FEA',
-    paddingVertical: screenWidth < 375 ? 6 : 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nearbyCloseText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: screenWidth < 375 ? 14 : 16,
-    textAlign: 'center',
-  },
-
-
-});
 
 export default Navigate; 

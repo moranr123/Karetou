@@ -15,6 +15,8 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,7 +31,8 @@ import * as Location from 'expo-location';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ResponsiveText, ResponsiveView, ResponsiveCard, ResponsiveButton, ResponsiveImage } from '../../components';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+// Get responsive dimensions dynamically
+const getScreenDimensions = () => Dimensions.get('window');
 
 // Ultimate image cache with base64 storage for instant display
 const base64ImageCache = new Map<string, string>();
@@ -212,7 +215,7 @@ const fallbackSuggestedPlaces = [
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { theme, user, notifications, unreadNotificationCount } = useAuth();
-  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  const { spacing, fontSizes, iconSizes, borderRadius } = useResponsive();
   const [refreshing, setRefreshing] = useState(false);
   const [placesToVisit, setPlacesToVisit] = useState<any[]>([]);
   const [loadingPlaces, setLoadingPlaces] = useState(true);
@@ -243,6 +246,19 @@ const HomeScreen = () => {
   const [allReviews, setAllReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
 
+  // Get responsive values from hook for dynamic styles
+  const { dimensions } = useResponsive();
+  const screenWidth = dimensions.width;
+  const screenHeight = dimensions.height;
+  const isSmallScreen = screenWidth < 360;
+  const isVerySmallScreen = screenWidth < 320;
+  const minTouchTarget = 44;
+  
+  // Calculate status bar height for Android
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  // Add responsive padding top for Android to account for status bar
+  const androidPaddingTop = Platform.OS === 'android' ? statusBarHeight + (spacing?.sm || 8) : 0;
+
   // --- Styles ---
   const styles = StyleSheet.create({
     container: {
@@ -253,9 +269,10 @@ const HomeScreen = () => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      paddingTop: Platform.OS === 'android' ? androidPaddingTop : spacing.lg,
       paddingBottom: spacing.sm,
+      minHeight: 60, // Ensure header doesn't get too small
     },
     locationContainer: {
       flexDirection: 'row',
@@ -288,12 +305,13 @@ const HomeScreen = () => {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: 'rgba(255, 215, 0, 0.15)',
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: isSmallScreen ? spacing.xs : spacing.sm,
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.md,
       marginRight: spacing.sm,
       borderWidth: 1,
       borderColor: 'rgba(255, 215, 0, 0.3)',
+      minHeight: 36, // Ensure touch target is adequate
     },
     pointsText: {
       marginLeft: spacing.xs,
@@ -303,11 +321,19 @@ const HomeScreen = () => {
       position: 'relative',
       padding: spacing.sm,
       marginRight: spacing.sm,
+      minWidth: 44, // Ensure touch target is at least 44px
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     notificationButton: {
       position: 'relative',
       padding: spacing.sm,
       marginRight: spacing.md,
+      minWidth: 44, // Ensure touch target is at least 44px
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     notificationBadge: {
       position: 'absolute',
@@ -330,10 +356,11 @@ const HomeScreen = () => {
       alignItems: 'center',
       backgroundColor: '#FFFFFF',
       borderRadius: borderRadius.lg,
-      marginHorizontal: spacing.lg,
-      paddingHorizontal: spacing.lg,
+      marginHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
       paddingVertical: spacing.md,
       marginTop: spacing.md,
+      minHeight: 44, // Ensure touch target is at least 44px
       elevation: 2,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
@@ -347,29 +374,34 @@ const HomeScreen = () => {
       flex: 1,
     },
     section: {
-      marginTop: spacing.xl,
+      marginTop: isSmallScreen ? spacing.lg : spacing.xl,
     },
     sectionHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
     },
     sectionTitle: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
     },
     seeAllButton: {
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       borderRadius: 15,
+      minHeight: 36, // Ensure button is tall enough
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     seeAllText: {
       fontWeight: '600',
     },
     suggestedCard: {
-      width: getResponsiveWidth(70),
-      height: getResponsiveHeight(22),
+      width: screenWidth * 0.7, // 70% of screen width
+      aspectRatio: 1.2, // Maintain aspect ratio instead of fixed height
+      minWidth: isVerySmallScreen ? 200 : 240,
+      maxWidth: 320, // Prevent cards from getting too large on tablets
       marginLeft: spacing.lg,
       marginTop: spacing.md,
       justifyContent: 'flex-end',
@@ -412,15 +444,20 @@ const HomeScreen = () => {
       backgroundColor: 'rgba(0,0,0,0.3)',
       padding: spacing.xs,
       borderRadius: borderRadius.lg,
+      minWidth: 44, // Ensure touch target is at least 44px
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     placeCard: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: '#fff',
       borderRadius: borderRadius.lg,
-      marginHorizontal: spacing.lg,
+      marginHorizontal: isSmallScreen ? spacing.md : spacing.lg,
       marginTop: spacing.md,
-      padding: spacing.sm,
+      padding: isSmallScreen ? spacing.xs : spacing.sm,
+      minHeight: 100, // Ensure card doesn't get too small
       elevation: 2,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
@@ -428,8 +465,10 @@ const HomeScreen = () => {
       shadowRadius: 2,
     },
     placeImage: {
-      width: getResponsiveWidth(20),
-      height: getResponsiveWidth(20),
+      width: screenWidth * 0.2, // 20% of screen width
+      aspectRatio: 1, // Square images
+      minWidth: isVerySmallScreen ? 60 : 70,
+      maxWidth: 100, // Prevent images from getting too large
       borderRadius: borderRadius.sm,
     },
     placeInfo: {
@@ -455,6 +494,10 @@ const HomeScreen = () => {
     },
     placeCardSaveButton: {
       padding: spacing.xs,
+      minWidth: 44, // Ensure touch target is at least 44px
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     loadingContainer: {
       flexDirection: 'row',
@@ -484,8 +527,10 @@ const HomeScreen = () => {
       marginTop: spacing.xs,
     },
     promoCard: {
-      width: getResponsiveWidth(70),
-      height: getResponsiveHeight(22),
+      width: screenWidth * 0.7, // 70% of screen width
+      aspectRatio: 1.2, // Maintain aspect ratio
+      minWidth: isVerySmallScreen ? 200 : 240,
+      maxWidth: 320, // Prevent cards from getting too large
       marginLeft: spacing.lg,
       marginTop: spacing.md,
       justifyContent: 'flex-end',
@@ -577,22 +622,24 @@ const HomeScreen = () => {
       alignItems: 'center',
     },
     detailsContainer: {
-      width: getResponsiveWidth(85),
-      maxHeight: getResponsiveHeight(80),
+      width: screenWidth * 0.9, // 90% of screen width
+      maxWidth: 500, // Prevent modal from getting too wide on tablets
+      maxHeight: screenHeight * 0.85, // 85% of screen height
       backgroundColor: '#fff',
       borderRadius: borderRadius.xl,
       overflow: 'hidden',
     },
     detailsImage: {
-      width: getResponsiveWidth(75),
-      height: getResponsiveHeight(25),
+      width: '100%',
+      aspectRatio: 16 / 9, // Responsive aspect ratio
+      minHeight: isSmallScreen ? 150 : 200,
       resizeMode: 'cover',
       borderRadius: borderRadius.md,
       borderWidth: 1,
       borderColor: '#000',
     },
     detailsContent: {
-      padding: spacing.lg,
+      padding: isSmallScreen ? spacing.md : spacing.lg,
     },
     detailsTitle: {
       fontWeight: 'bold',
@@ -611,10 +658,20 @@ const HomeScreen = () => {
     },
     closeButtonModal: {
       position: 'absolute',
-      top: 10,
-      right: 10,
-      padding: 5,
+      top: spacing.sm,
+      right: spacing.sm,
       zIndex: 2,
+      width: minTouchTarget,
+      height: minTouchTarget,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      borderRadius: minTouchTarget / 2,
+    },
+    closeButtonText: {
+      fontSize: fontSizes.xl,
+      color: '#333',
+      fontWeight: '600',
     },
     detailsSubtitle: {
       color: '#555',
@@ -647,14 +704,16 @@ const HomeScreen = () => {
     },
     imageContainer: {
       position: 'relative',
-      width: getResponsiveWidth(75),
-      height: getResponsiveHeight(25),
+      width: screenWidth * 0.9, // 90% of screen width
+      aspectRatio: 16 / 9, // Responsive aspect ratio
+      minHeight: isSmallScreen ? 150 : 200,
       marginHorizontal: spacing.lg,
       marginTop: spacing.lg,
     },
     carouselWrapper: {
       width: '100%',
-      height: getResponsiveHeight(29),
+      aspectRatio: 16 / 9, // Responsive aspect ratio
+      minHeight: isSmallScreen ? 180 : 220,
       alignItems: 'center',
     },
     swipeIndicator: {
@@ -682,6 +741,7 @@ const HomeScreen = () => {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.md,
+      minHeight: 44, // Ensure touch target is at least 44px
     },
     viewMapText: {
       color: '#fff',
@@ -698,6 +758,7 @@ const HomeScreen = () => {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
       borderRadius: 12,
+      minHeight: 44, // Ensure touch target is at least 44px
       elevation: 2,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -720,6 +781,7 @@ const HomeScreen = () => {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.md,
+      minHeight: 44, // Ensure touch target is at least 44px
     },
     reviewButtonDetailsDisabled: {
       backgroundColor: '#9E9E9E',
@@ -748,10 +810,11 @@ const HomeScreen = () => {
     },
     loyaltyModalContent: {
       width: screenWidth * 0.9,
-      maxHeight: screenHeight * 0.8,
+      maxWidth: 500, // Prevent modal from getting too wide
+      maxHeight: screenHeight * 0.85,
       backgroundColor: '#fff',
       borderRadius: 20,
-      padding: 20,
+      padding: isSmallScreen ? spacing.md : 20,
     },
     loyaltyModalHeader: {
       flexDirection: 'row',
@@ -772,9 +835,9 @@ const HomeScreen = () => {
     loyaltyTotalContainer: {
       backgroundColor: 'rgba(255, 215, 0, 0.1)',
       borderRadius: 15,
-      padding: 20,
+      padding: isSmallScreen ? spacing.md : 20,
       alignItems: 'center',
-      marginBottom: 20,
+      marginBottom: isSmallScreen ? spacing.md : 20,
       borderWidth: 2,
       borderColor: 'rgba(255, 215, 0, 0.3)',
     },
@@ -803,8 +866,9 @@ const HomeScreen = () => {
       alignItems: 'center',
       backgroundColor: '#f5f5f5',
       borderRadius: 12,
-      padding: 15,
-      marginBottom: 10,
+      padding: isSmallScreen ? spacing.md : 15,
+      marginBottom: isSmallScreen ? spacing.sm : 10,
+      minHeight: 60, // Ensure card doesn't get too small
     },
     loyaltyBusinessInfo: {
       flex: 1,
@@ -844,8 +908,9 @@ const HomeScreen = () => {
       alignItems: 'center',
       backgroundColor: '#667eea',
       borderRadius: 20,
-      paddingHorizontal: 12,
+      paddingHorizontal: isSmallScreen ? spacing.xs : 12,
       paddingVertical: 8,
+      minHeight: 36, // Ensure touch target is adequate
       gap: 5,
     },
     sendPointsButtonText: {
@@ -855,10 +920,11 @@ const HomeScreen = () => {
     },
     transferModalContent: {
       width: screenWidth * 0.9,
-      maxHeight: screenHeight * 0.7,
+      maxWidth: 500, // Prevent modal from getting too wide
+      maxHeight: screenHeight * 0.75,
       backgroundColor: '#fff',
       borderRadius: 20,
-      padding: 20,
+      padding: isSmallScreen ? spacing.md : 20,
       elevation: 10,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
@@ -870,8 +936,8 @@ const HomeScreen = () => {
     transferBusinessInfo: {
       backgroundColor: 'rgba(102, 126, 234, 0.1)',
       borderRadius: 12,
-      padding: 15,
-      marginBottom: 20,
+      padding: isSmallScreen ? spacing.md : 15,
+      marginBottom: isSmallScreen ? spacing.md : 20,
     },
     transferBusinessName: {
       fontSize: 18,
@@ -901,8 +967,8 @@ const HomeScreen = () => {
       borderWidth: 3,
       borderColor: '#667eea',
       borderRadius: 12,
-      padding: 18,
-      fontSize: 24,
+      padding: isSmallScreen ? spacing.md : 18,
+      fontSize: isSmallScreen ? fontSizes.xl : 24,
       fontWeight: 'bold',
       backgroundColor: '#f0f0f0',
       color: '#000',
@@ -916,7 +982,8 @@ const HomeScreen = () => {
       justifyContent: 'center',
       backgroundColor: '#667eea',
       borderRadius: 12,
-      padding: 15,
+      padding: isSmallScreen ? spacing.md : 15,
+      minHeight: 44, // Ensure touch target is at least 44px
       gap: 8,
     },
     transferButtonDisabled: {
@@ -943,16 +1010,37 @@ const HomeScreen = () => {
       color: '#999',
       marginTop: 5,
     },
+    // Additional responsive styles
+    linearGradient: {
+      flex: 1,
+    },
+    reviewModalLoadingContainer: {
+      marginTop: 30,
+    },
+    reviewModalContentContainer: {
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    reviewModalStarContainer: {
+      marginHorizontal: 2,
+    },
+    transferModalEmptyContainer: {
+      padding: isSmallScreen ? spacing.md : 20,
+    },
+    transferModalEmptyText: {
+      color: '#000',
+    },
     transactionHistoryButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: 'rgba(102, 126, 234, 0.1)',
       borderRadius: 12,
-      padding: 15,
+      padding: isSmallScreen ? spacing.md : 15,
       marginBottom: 20,
       borderWidth: 1,
       borderColor: 'rgba(102, 126, 234, 0.3)',
+      minHeight: 44, // Ensure touch target is at least 44px
     },
     transactionHistoryButtonText: {
       flex: 1,
@@ -966,11 +1054,12 @@ const HomeScreen = () => {
       backgroundColor: 'rgba(0,0,0,0.5)',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: spacing.lg,
+      padding: isSmallScreen ? spacing.md : spacing.lg,
     },
     reviewModalCard: {
-      width: '95%',
+      width: screenWidth * 0.95,
       maxWidth: 400,
+      minWidth: isVerySmallScreen ? 280 : 300, // Ensure modal doesn't get too small
       backgroundColor: '#fff',
       borderRadius: borderRadius.xl,
       overflow: 'hidden',
@@ -985,10 +1074,11 @@ const HomeScreen = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: '#667eea',
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
+      paddingVertical: isSmallScreen ? spacing.md : spacing.lg,
       borderTopLeftRadius: borderRadius.xl,
       borderTopRightRadius: borderRadius.xl,
+      minHeight: 56, // Ensure header doesn't get too small
     },
     reviewModalTitle: {
       color: '#fff',
@@ -1015,6 +1105,7 @@ const HomeScreen = () => {
       padding: spacing.sm,
       color: '#222',
       marginBottom: spacing.lg,
+      fontSize: fontSizes.md, // Use responsive font size
     },
     reviewModalButton: {
       backgroundColor: '#667eea',
@@ -1025,6 +1116,8 @@ const HomeScreen = () => {
       marginTop: spacing.sm,
       marginBottom: spacing.sm,
       alignSelf: 'center',
+      minWidth: 120, // Ensure button is wide enough
+      minHeight: 44, // Ensure touch target is at least 44px
     },
     reviewModalButtonText: {
       color: '#fff',
@@ -1034,8 +1127,8 @@ const HomeScreen = () => {
       alignItems: 'center',
       backgroundColor: '#f7f7fa',
       borderRadius: borderRadius.md,
-      margin: spacing.lg,
-      padding: spacing.lg,
+      margin: isSmallScreen ? spacing.md : spacing.lg,
+      padding: isSmallScreen ? spacing.md : spacing.lg,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.08,
@@ -1065,8 +1158,8 @@ const HomeScreen = () => {
     },
     // Reviews section styles
     reviewsSection: {
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.lg,
+      marginTop: isSmallScreen ? spacing.lg : spacing.xl,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
     },
     reviewsSectionHeader: {
       flexDirection: 'row',
@@ -1130,7 +1223,7 @@ const HomeScreen = () => {
     },
     // Discover Silay styles
     discoverSilayCard: {
-      marginHorizontal: spacing.lg,
+      marginHorizontal: isSmallScreen ? spacing.md : spacing.lg,
       marginTop: spacing.md,
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
@@ -1142,7 +1235,8 @@ const HomeScreen = () => {
     },
     discoverSilayImage: {
       width: '100%',
-      height: getResponsiveHeight(25),
+      aspectRatio: 2.5, // Responsive aspect ratio
+      minHeight: isSmallScreen ? 120 : 150,
       justifyContent: 'flex-end',
     },
     discoverSilayOverlay: {
@@ -1310,14 +1404,50 @@ const HomeScreen = () => {
       return places; // No preferences set, return all places
     }
 
+    // Filter places to only show those matching user preferences
+    const filtered = places.filter((place) => {
+      const placeCategories = place.categories || [];
+      const placeBusinessType = place.businessType || '';
+      
+      // Check if any of the place's categories or business type match user preferences
+      const categoryMatch = placeCategories.some((cat: string) => 
+        userPreferences.some((pref: string) => 
+          cat.toLowerCase().includes(pref.toLowerCase()) || 
+          pref.toLowerCase().includes(cat.toLowerCase())
+        )
+      );
+      
+      const typeMatch = userPreferences.some((pref: string) => 
+        placeBusinessType.toLowerCase().includes(pref.toLowerCase()) ||
+        pref.toLowerCase().includes(placeBusinessType.toLowerCase())
+      );
+      
+      return categoryMatch || typeMatch;
+    });
+
+    // If no matches found, return all places (fallback)
+    if (filtered.length === 0) {
+      return places;
+    }
+
     // Sort places: preferred categories first, then others
-    return places.sort((a, b) => {
+    return filtered.sort((a, b) => {
       // Check if any of the business's categories match user preferences
       const aCategories = a.categories || [];
       const bCategories = b.categories || [];
       
-      const aMatches = aCategories.some((cat: string) => userPreferences.includes(cat));
-      const bMatches = bCategories.some((cat: string) => userPreferences.includes(cat));
+      const aMatches = aCategories.some((cat: string) => 
+        userPreferences.some((pref: string) => 
+          cat.toLowerCase().includes(pref.toLowerCase()) || 
+          pref.toLowerCase().includes(cat.toLowerCase())
+        )
+      );
+      const bMatches = bCategories.some((cat: string) => 
+        userPreferences.some((pref: string) => 
+          cat.toLowerCase().includes(pref.toLowerCase()) || 
+          pref.toLowerCase().includes(cat.toLowerCase())
+        )
+      );
       
       if (aMatches && !bMatches) return -1;
       if (!aMatches && bMatches) return 1;
@@ -1329,11 +1459,13 @@ const HomeScreen = () => {
   const loadSuggestedPlaces = async () => {
     try {
       setLoadingSuggested(true);
+      // Load more businesses initially to ensure we have enough after preference filtering
+      const limitCount = userPreferences && userPreferences.length > 0 ? 20 : 6;
       const q = query(
         collection(db, 'businesses'),
         where('status', '==', 'approved'),
         where('displayInUserApp', '==', true),
-        limit(6) // Limit to 6 for horizontal scroll
+        limit(limitCount)
       );
       const querySnapshot = await getDocs(q);
       
@@ -1369,7 +1501,8 @@ const HomeScreen = () => {
         return ratingB - ratingA;
       });
       
-      setSuggestedPlaces(sorted);
+      // Limit to 6 places for horizontal scroll
+      setSuggestedPlaces(sorted.slice(0, 6));
       
       // Preload suggested places images
       const preloadPromises: Promise<void>[] = [];
@@ -1773,11 +1906,14 @@ const HomeScreen = () => {
   }, [businessRatings]);
 
   return (
-    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={{flex: 1}}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.linearGradient}>
       <SafeAreaView style={styles.container}>
-        <ScrollView
+          <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ 
+            paddingBottom: spacing?.xl || 24,
+            paddingHorizontal: 0, // Let individual components handle padding
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1880,7 +2016,7 @@ const HomeScreen = () => {
                       setDetailsModalVisible(true);
                     }}
                   >
-                    <View style={[styles.suggestedCard, { overflow: 'hidden', borderRadius: screenWidth * 0.05 }]}>
+                    <View style={[styles.suggestedCard, { overflow: 'hidden', borderRadius: borderRadius.lg }]}>
                       <CachedImage
                         source={{ uri: item.image }}
                         style={StyleSheet.absoluteFillObject}
@@ -1980,7 +2116,8 @@ const HomeScreen = () => {
                     <ImageBackground
                       source={{ uri: item.image }}
                       style={styles.promoCard}
-                      imageStyle={{ borderRadius: screenWidth * 0.05 }}
+                      imageStyle={{ borderRadius: borderRadius.lg }}
+                      resizeMode="cover"
                     >
                       <View style={styles.promoCardOverlay} />
                       
@@ -2285,7 +2422,7 @@ const HomeScreen = () => {
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.closeButtonModal} onPress={() => setDetailsModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Text style={styles.closeButtonText}>×</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2314,7 +2451,7 @@ const HomeScreen = () => {
               </TouchableOpacity>
             </View>
             {reviewLoading ? (
-              <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 30 }} />
+              <ActivityIndicator size="large" color="#667eea" style={styles.reviewModalLoadingContainer} />
             ) : userReview ? (
               <View style={styles.reviewCardDisplay}>
                 <Text style={styles.reviewCardLabel}>Your Review</Text>
@@ -2333,12 +2470,12 @@ const HomeScreen = () => {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={{ alignItems: 'center', marginTop: 10 }}>
+              <View style={styles.reviewModalContentContainer}>
                 <Text style={styles.reviewModalLabel}>Your Rating</Text>
                 <View style={styles.reviewModalStars}>
                   {[1,2,3,4,5].map(i => (
                     <TouchableOpacity key={i} onPress={() => setReviewRating(i)}>
-                      <Ionicons name={i <= reviewRating ? 'star' : 'star-outline'} size={38} color="#FFD700" style={{ marginHorizontal: 2 }} />
+                      <Ionicons name={i <= reviewRating ? 'star' : 'star-outline'} size={38} color="#FFD700" style={styles.reviewModalStarContainer} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -2613,8 +2750,8 @@ const HomeScreen = () => {
                 </TouchableOpacity>
               </>
             ) : (
-              <View style={{ padding: 20 }}>
-                <Text style={{ color: '#000' }}>No business selected</Text>
+              <View style={styles.transferModalEmptyContainer}>
+                <Text style={styles.transferModalEmptyText}>No business selected</Text>
               </View>
             )}
           </View>

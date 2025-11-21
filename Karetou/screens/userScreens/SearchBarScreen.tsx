@@ -355,9 +355,12 @@ const SearchBarScreen = () => {
         colors={theme === 'light' ? lightGradient : darkGradient}
         style={styles.container}
       >
-        <View style={[styles.headerFixed, { backgroundColor: 'transparent' }]}>
+        <View style={[styles.headerFixed, { 
+          backgroundColor: theme === 'light' ? '#F5F5F5' : '#232526',
+          borderColor: theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
+        }]}>
           <View style={styles.searchRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, {backgroundColor: 'transparent'}]}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={theme === 'light' ? '#222' : '#fff'} />
             </TouchableOpacity>
             <View style={styles.searchBarContainer}>
@@ -391,10 +394,13 @@ const SearchBarScreen = () => {
       style={styles.container}
     >
       {/* Header */}
-      <View style={[styles.headerFixed, { backgroundColor: 'transparent' }]}>
+      <View style={[styles.headerFixed, { 
+        backgroundColor: theme === 'light' ? '#F5F5F5' : '#232526',
+        borderColor: theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
+      }]}>
         {/* Search Bar */}
         <View style={styles.searchRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, {backgroundColor: 'transparent'}]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={theme === 'light' ? '#222' : '#fff'} />
           </TouchableOpacity>
           <View style={styles.searchBarContainer}>
@@ -705,7 +711,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   headerFixed: {
     position: 'absolute',
-    top: 1,
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 10,

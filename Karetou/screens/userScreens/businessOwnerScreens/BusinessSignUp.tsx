@@ -21,7 +21,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { ResponsiveText, ResponsiveView } from '../../../components';
 
-const { width, height } = Dimensions.get('window');
+// Get responsive dimensions dynamically
+const getScreenDimensions = () => Dimensions.get('window');
 
 type RootStackParamList = {
   Login: undefined;
@@ -55,19 +56,20 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { setUserType } = useAuth();
-  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  const { spacing, fontSizes, iconSizes, borderRadius, dimensions } = useResponsive();
   
-  // Device size detection
-  const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height;
+  // Get responsive values from hook
+  const screenWidth = dimensions.width;
+  const screenHeight = dimensions.height;
   const isSmallDevice = screenWidth < 375 || screenHeight < 667;
+  const isVerySmallScreen = screenWidth < 360;
   const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
   const isTablet = screenWidth > 768;
   
-  // Responsive calculations
-  const spacingMultiplier = isSmallDevice ? 0.8 : isMediumDevice ? 1 : isTablet ? 1.5 : 1.1;
-  const logoSizePercent = isSmallDevice ? 16 : isMediumDevice ? 20 : isTablet ? 30 : 22;
-  const inputHeight = isSmallDevice ? 6 : isMediumDevice ? 6.5 : isTablet ? 8 : 7;
+  // Responsive calculations - use percentage-based sizing
+  const spacingMultiplier = isVerySmallScreen ? 0.75 : isSmallDevice ? 0.85 : isMediumDevice ? 1 : isTablet ? 1.3 : 1.1;
+  const logoSize = isVerySmallScreen ? screenWidth * 0.15 : isSmallDevice ? screenWidth * 0.18 : isMediumDevice ? screenWidth * 0.22 : isTablet ? screenWidth * 0.25 : screenWidth * 0.22;
+  const inputHeight = isVerySmallScreen ? 48 : isSmallDevice ? 50 : isMediumDevice ? 52 : isTablet ? 56 : 52;
 
   // --- Styles ---
   const styles = StyleSheet.create({
@@ -82,24 +84,27 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     },
     scrollContainer: {
       flexGrow: 1,
-      paddingHorizontal: spacing.lg * spacingMultiplier,
+      paddingHorizontal: isVerySmallScreen ? spacing.md : spacing.lg * spacingMultiplier,
       paddingTop: spacing.lg * spacingMultiplier,
       paddingBottom: spacing.md * spacingMultiplier,
       justifyContent: 'flex-start',
       width: '100%',
+      minHeight: screenHeight * 0.9, // Ensure content fills screen
     },
     header: {
       alignItems: 'center',
       marginBottom: spacing.lg * spacingMultiplier,
     },
     logoContainer: {
-      width: getResponsiveWidth(logoSizePercent),
-      height: getResponsiveWidth(logoSizePercent),
-      borderRadius: getResponsiveWidth(logoSizePercent / 2),
+      width: logoSize,
+      height: logoSize,
+      borderRadius: logoSize / 2,
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.md * spacingMultiplier,
+      minWidth: isVerySmallScreen ? 60 : 70,
+      maxWidth: 120, // Prevent logo from getting too large on tablets
     },
     logoImage: {
       width: '80%',
@@ -112,19 +117,21 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     },
     subtitle: {
       textAlign: 'center',
-      paddingHorizontal: spacing.md * spacingMultiplier,
+      paddingHorizontal: isVerySmallScreen ? spacing.sm : spacing.md * spacingMultiplier,
       marginBottom: spacing.sm * spacingMultiplier,
     },
     formContainer: {
       width: '100%',
+      maxWidth: 500, // Prevent form from getting too wide on tablets
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderRadius: borderRadius.xl,
-      padding: spacing.lg * spacingMultiplier,
+      padding: isVerySmallScreen ? spacing.md : spacing.lg * spacingMultiplier,
       elevation: 5,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 8,
+      alignSelf: 'center', // Center form on larger screens
     },
     inputContainer: {
       flexDirection: 'row',
@@ -132,8 +139,9 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       backgroundColor: '#fff',
       borderRadius: borderRadius.lg,
       marginBottom: spacing.lg * spacingMultiplier,
-      paddingHorizontal: spacing.lg,
-      height: getResponsiveHeight(inputHeight),
+      paddingHorizontal: isVerySmallScreen ? spacing.md : spacing.lg,
+      height: inputHeight,
+      minHeight: 44, // Ensure touch target is at least 44px
       elevation: 3,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -147,6 +155,7 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       flex: 1,
       fontSize: fontSizes.md,
       color: '#000',
+      minHeight: 20, // Ensure text doesn't get cut off
     },
     inputError: {
       borderColor: '#FF4444',
@@ -154,6 +163,10 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     },
     eyeIcon: {
       padding: spacing.xs,
+      minWidth: 44, // Ensure touch target is at least 44px
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     button: {
       borderRadius: borderRadius.lg,
@@ -162,7 +175,7 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.md * spacingMultiplier,
-      minHeight: getResponsiveHeight(inputHeight),
+      minHeight: 50, // Ensure touch target is adequate
       elevation: 3,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -189,7 +202,7 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     passwordRequirementsContainer: {
       backgroundColor: '#f8f9fa',
       borderRadius: borderRadius.md,
-      padding: spacing.md * spacingMultiplier,
+      padding: isVerySmallScreen ? spacing.sm : spacing.md * spacingMultiplier,
       marginBottom: spacing.md * spacingMultiplier,
       borderWidth: 1,
       borderColor: '#e0e0e0',
@@ -201,10 +214,13 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: spacing.xs * spacingMultiplier,
+      minHeight: 24, // Ensure items don't get too small
     },
     requirementText: {
       marginLeft: spacing.sm,
       lineHeight: fontSizes.sm * 1.4,
+      flex: 1, // Allow text to wrap properly
+      flexWrap: 'wrap',
     },
     requirementMet: {
       fontWeight: '500',
@@ -216,10 +232,16 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
     checkboxContainer: {
       flexDirection: 'row',
       alignItems: 'flex-start',
+      minHeight: 44, // Ensure touch target is at least 44px
+      paddingVertical: spacing.xs,
     },
     termsTextContainer: {
       flex: 1,
       marginLeft: spacing.sm,
+    },
+    termsTextRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
     },
     termsText: {
       lineHeight: fontSizes.sm * 1.4,
@@ -547,7 +569,7 @@ const BusinessSignUpScreen: React.FC<Props> = ({ navigation }) => {
                   color={acceptedTerms ? '#667eea' : '#999'}
                 />
                 <ResponsiveView style={styles.termsTextContainer}>
-                  <ResponsiveView style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  <ResponsiveView style={styles.termsTextRow}>
                     <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "md" : "sm"} color="#666" style={styles.termsText}>
                       I agree to the{' '}
                     </ResponsiveText>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Dimensions,
+  Platform,
+  StatusBar,
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,18 +18,33 @@ import { useNavigation } from '@react-navigation/native';
 import { db } from '../../firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { NotificationData } from '../../services/NotificationService';
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../components';
 
-const { width: screenWidth } = Dimensions.get('window');
- 
 const NotificationScreen = () => {
   const navigation = useNavigation();
-  const { user, userType } = useAuth();
+  const { user, userType, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, dimensions, responsiveHeight, responsiveWidth } = useResponsive();
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
+
+  // Calculate responsive values
+  const isSmallScreen = (dimensions?.width || 360) < 360;
+  const isSmallDevice = dimensions?.isSmallDevice || false;
+  const minTouchTarget = 44;
+  
+  // Calculate header padding
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? (spacing?.md || 12) + (isSmallDevice ? (spacing?.xs || 4) : (spacing?.sm || 8))
+    : statusBarHeight + (spacing?.sm || 8);
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
 
   // Set up real-time notifications listener
   useEffect(() => {
@@ -343,6 +359,251 @@ const NotificationScreen = () => {
     }
   };
 
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingTop: headerPaddingTop,
+      paddingBottom: spacing?.sm || 8,
+      backgroundColor: theme === 'light' ? '#F5F5F5' : '#232526',
+      borderBottomWidth: 1,
+      borderBottomColor: theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+    },
+    backButton: {
+      padding: spacing?.xs || 4,
+      backgroundColor: theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: borderRadiusValues?.lg || 20,
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: fontSizes?.xl || 22,
+      fontWeight: 'bold',
+      color: theme === 'light' ? '#000' : '#fff',
+      flex: 1,
+      textAlign: 'center',
+    },
+    headerActions: {
+      position: 'relative',
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    filterButton: {
+      padding: spacing?.xs || 4,
+      backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: borderRadiusValues?.lg || 20,
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    filterDropdown: {
+      position: 'absolute',
+      top: minTouchTarget + (spacing?.xs || 4),
+      right: 0,
+      backgroundColor: theme === 'light' ? '#fff' : '#333',
+      borderRadius: borderRadiusValues?.md || 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 5,
+      minWidth: responsiveWidth(40) || 150,
+      maxWidth: responsiveWidth(80) || 250,
+      zIndex: 1000,
+    },
+    filterItem: {
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingVertical: spacing?.sm || 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme === 'light' ? '#f0f0f0' : '#444',
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    filterItemActive: {
+      backgroundColor: theme === 'light' ? '#f8f9ff' : '#444',
+    },
+    filterText: {
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#333' : '#fff',
+    },
+    filterTextActive: {
+      color: '#667eea',
+      fontWeight: '600',
+    },
+    filterSeparator: {
+      height: 1,
+      backgroundColor: theme === 'light' ? '#e0e0e0' : '#555',
+      marginVertical: spacing?.xs || 4,
+    },
+    deleteAllItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingVertical: spacing?.sm || 8,
+      backgroundColor: theme === 'light' ? '#fff5f5' : '#4a1f1f',
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    deleteAllText: {
+      fontSize: fontSizes?.sm || 14,
+      color: '#e91e63',
+      fontWeight: '600',
+      marginLeft: spacing?.xs || 4,
+    },
+    listContainer: {
+      flex: 1,
+      backgroundColor: theme === 'light' ? '#f5f5f5' : '#1a1a1a',
+      borderTopLeftRadius: borderRadiusValues?.xl || 25,
+      borderTopRightRadius: borderRadiusValues?.xl || 25,
+      marginTop: spacing?.xs || 4,
+    },
+    listContent: {
+      padding: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingBottom: spacing?.xl || 24,
+      flexGrow: 1,
+    },
+    notificationCard: {
+      backgroundColor: theme === 'light' ? '#fff' : '#2a2a2a',
+      borderRadius: borderRadiusValues?.md || 15,
+      padding: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      marginBottom: spacing?.sm || 8,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    unreadCard: {
+      borderLeftWidth: 4,
+      borderLeftColor: '#667eea',
+    },
+    notificationContent: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    iconContainer: {
+      width: responsiveWidth(12) || 50,
+      height: responsiveWidth(12) || 50,
+      minWidth: 40,
+      minHeight: 40,
+      maxWidth: 60,
+      maxHeight: 60,
+      borderRadius: (responsiveWidth(12) || 50) / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing?.sm || 8,
+    },
+    textContainer: {
+      flex: 1,
+      minWidth: 0, // Prevents flex overflow
+    },
+    notificationTitle: {
+      fontSize: fontSizes?.md || 16,
+      fontWeight: '600',
+      color: theme === 'light' ? '#333' : '#fff',
+      marginBottom: spacing?.xs || 4,
+    },
+    unreadTitle: {
+      fontWeight: 'bold',
+      color: theme === 'light' ? '#000' : '#fff',
+    },
+    notificationBody: {
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#666' : '#ccc',
+      lineHeight: (fontSizes?.sm || 14) * 1.4,
+      marginBottom: spacing?.xs || 4,
+    },
+    notificationTime: {
+      fontSize: fontSizes?.xs || 12,
+      color: theme === 'light' ? '#999' : '#888',
+    },
+    notificationActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: spacing?.xs || 4,
+    },
+    menuContainer: {
+      position: 'relative',
+      marginLeft: spacing?.xs || 4,
+    },
+    menuButton: {
+      padding: spacing?.xs || 4,
+      borderRadius: borderRadiusValues?.lg || 20,
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    dropdown: {
+      position: 'absolute',
+      top: minTouchTarget + (spacing?.xs || 4),
+      right: 0,
+      backgroundColor: theme === 'light' ? '#fff' : '#333',
+      borderRadius: borderRadiusValues?.sm || 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 5,
+      minWidth: responsiveWidth(30) || 120,
+      zIndex: 1000,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingVertical: spacing?.sm || 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme === 'light' ? '#f0f0f0' : '#444',
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+    },
+    dropdownText: {
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#333' : '#fff',
+      marginLeft: spacing?.xs || 4,
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: responsiveHeight(10) || 60,
+      paddingHorizontal: spacing?.md || 12,
+    },
+    emptyTitle: {
+      fontSize: fontSizes?.xl || 24,
+      fontWeight: 'bold',
+      color: theme === 'light' ? '#333' : '#fff',
+      marginTop: spacing?.md || 12,
+      marginBottom: spacing?.sm || 8,
+      textAlign: 'center',
+    },
+    emptySubtitle: {
+      fontSize: fontSizes?.md || 16,
+      color: theme === 'light' ? '#666' : '#ccc',
+      textAlign: 'center',
+      lineHeight: (fontSizes?.md || 16) * 1.5,
+      paddingHorizontal: spacing?.md || 12,
+    },
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, isSmallScreen, isSmallDevice, minTouchTarget, headerPaddingTop, responsiveHeight, responsiveWidth, theme]);
+
   const renderNotification = ({ item }: { item: any }) => {
     const icon = getNotificationIcon(item.type);
     
@@ -353,49 +614,82 @@ const NotificationScreen = () => {
           !item.read && styles.unreadCard
         ]}
         onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}
       >
-        <View style={styles.notificationContent}>
-          <View style={[styles.iconContainer, { backgroundColor: `${icon.color}20` }]}>
-            <Ionicons name={icon.name as any} size={24} color={icon.color} />
-          </View>
+        <ResponsiveView style={styles.notificationContent}>
+          <ResponsiveView style={[styles.iconContainer, { backgroundColor: `${icon.color}20` }]}>
+            <Ionicons 
+              name={icon.name as any} 
+              size={iconSizes?.md || 24} 
+              color={icon.color} 
+            />
+          </ResponsiveView>
           
-          <View style={styles.textContainer}>
-            <Text style={[styles.notificationTitle, !item.read && styles.unreadTitle]}>
+          <ResponsiveView style={styles.textContainer}>
+            <ResponsiveText 
+              size="md" 
+              weight={!item.read ? 'bold' : '600'} 
+              color={theme === 'light' ? (!item.read ? '#000' : '#333') : '#fff'}
+              style={styles.notificationTitle}
+            >
               {item.title}
-            </Text>
-            <Text style={styles.notificationBody} numberOfLines={2}>
+            </ResponsiveText>
+            <ResponsiveText 
+              size="sm" 
+              color={theme === 'light' ? '#666' : '#ccc'}
+              style={styles.notificationBody}
+              numberOfLines={2}
+            >
               {item.body}
-            </Text>
-            <Text style={styles.notificationTime}>
+            </ResponsiveText>
+            <ResponsiveText 
+              size="xs" 
+              color={theme === 'light' ? '#999' : '#888'}
+              style={styles.notificationTime}
+            >
               {formatDate(item.createdAt)}
-            </Text>
-          </View>
+            </ResponsiveText>
+          </ResponsiveView>
           
-          <View style={styles.notificationActions}>
-            {!item.read && <View style={styles.unreadDot} />}
+          <ResponsiveView style={styles.notificationActions}>
+            {!item.read && (
+              <ResponsiveView style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: '#667eea',
+                position: 'absolute',
+                top: 5,
+                right: 5,
+              }} />
+            )}
             
-            <View style={styles.menuContainer}>
+            <ResponsiveView style={styles.menuContainer}>
               <TouchableOpacity
                 style={styles.menuButton}
                 onPress={(e) => {
                   e.stopPropagation();
                   setShowDropdown(showDropdown === item.id ? null : item.id);
                 }}
+                activeOpacity={0.7}
               >
-                <Ionicons name="ellipsis-horizontal" size={20} color="#888" />
+                <Ionicons name="ellipsis-horizontal" size={iconSizes?.sm || 20} color={theme === 'light' ? '#888' : '#aaa'} />
               </TouchableOpacity>
               
               {showDropdown === item.id && (
-                <View style={styles.dropdown}>
+                <ResponsiveView style={styles.dropdown}>
                   <TouchableOpacity
                     style={styles.dropdownItem}
                     onPress={(e) => {
                       e.stopPropagation();
                       deleteNotification(item.id);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Ionicons name="trash-outline" size={16} color="#e91e63" />
-                    <Text style={[styles.dropdownText, { color: '#e91e63' }]}>Delete</Text>
+                    <Ionicons name="trash-outline" size={iconSizes?.xs || 16} color="#e91e63" />
+                    <ResponsiveText size="sm" color="#e91e63" style={styles.dropdownText}>
+                      Delete
+                    </ResponsiveText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.dropdownItem}
@@ -403,52 +697,72 @@ const NotificationScreen = () => {
                       e.stopPropagation();
                       setShowDropdown(null);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Ionicons name="close-outline" size={16} color="#888" />
-                    <Text style={styles.dropdownText}>Cancel</Text>
+                    <Ionicons name="close-outline" size={iconSizes?.xs || 16} color={theme === 'light' ? '#888' : '#aaa'} />
+                    <ResponsiveText size="sm" color={theme === 'light' ? '#333' : '#fff'} style={styles.dropdownText}>
+                      Cancel
+                    </ResponsiveText>
                   </TouchableOpacity>
-                </View>
+                </ResponsiveView>
               )}
-            </View>
-          </View>
-        </View>
+            </ResponsiveView>
+          </ResponsiveView>
+        </ResponsiveView>
       </TouchableOpacity>
     );
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="notifications-outline" size={80} color="#ccc" />
-      <Text style={styles.emptyTitle}>No Notifications</Text>
-      <Text style={styles.emptySubtitle}>
+    <ResponsiveView style={styles.emptyContainer}>
+      <Ionicons 
+        name="notifications-outline" 
+        size={iconSizes?.xxxxl || 80} 
+        color={theme === 'light' ? '#ccc' : '#555'} 
+      />
+      <ResponsiveText size="xl" weight="bold" color={theme === 'light' ? '#333' : '#fff'} style={styles.emptyTitle}>
+        No Notifications
+      </ResponsiveText>
+      <ResponsiveText 
+        size="md" 
+        color={theme === 'light' ? '#666' : '#ccc'}
+        style={styles.emptySubtitle}
+      >
         You'll see notifications about your business status and other updates here
-      </Text>
-    </View>
+      </ResponsiveText>
+    </ResponsiveView>
   );
 
   return (
-    <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
+    <LinearGradient 
+      colors={theme === 'light' ? lightGradient : darkGradient} 
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
-        <View style={styles.header}>
+        <ResponsiveView style={styles.header}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
             style={styles.backButton}
+            activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons name="arrow-back" size={iconSizes?.md || 24} color={theme === 'light' ? '#000' : '#fff'} />
           </TouchableOpacity>
-          <Text style={styles.title}>Notifications</Text>
+          <ResponsiveText size="xl" weight="bold" color={theme === 'light' ? '#000' : '#fff'} style={styles.title}>
+            Notifications
+          </ResponsiveText>
           
-          <View style={styles.headerActions}>
+          <ResponsiveView style={styles.headerActions}>
             <TouchableOpacity
               style={styles.filterButton}
               onPress={() => setShowFilterMenu(!showFilterMenu)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="filter" size={24} color="#000" />
+              <Ionicons name="filter" size={iconSizes?.md || 24} color={theme === 'light' ? '#000' : '#fff'} />
             </TouchableOpacity>
             
             {showFilterMenu && (
-              <View style={styles.filterDropdown}>
+              <ResponsiveView style={styles.filterDropdown}>
                 {getFilterOptions().map((option) => (
                   <TouchableOpacity
                     key={option.value}
@@ -460,36 +774,40 @@ const NotificationScreen = () => {
                       setFilterType(option.value);
                       setShowFilterMenu(false);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[
-                      styles.filterText,
-                      filterType === option.value && styles.filterTextActive
-                    ]}>
+                    <ResponsiveText 
+                      size="sm" 
+                      weight={filterType === option.value ? '600' : 'normal'}
+                      color={filterType === option.value ? '#667eea' : (theme === 'light' ? '#333' : '#fff')}
+                      style={styles.filterText}
+                    >
                       {option.label}
-                    </Text>
+                    </ResponsiveText>
                   </TouchableOpacity>
                 ))}
                 
                 {/* Separator */}
-                <View style={styles.filterSeparator} />
+                <ResponsiveView style={styles.filterSeparator} />
                 
                 {/* Delete All Option */}
                 <TouchableOpacity
                   style={styles.deleteAllItem}
                   onPress={deleteAllNotifications}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="trash-outline" size={16} color="#e91e63" />
-                  <Text style={styles.deleteAllText}>
+                  <Ionicons name="trash-outline" size={iconSizes?.xs || 16} color="#e91e63" />
+                  <ResponsiveText size="sm" weight="600" color="#e91e63" style={styles.deleteAllText}>
                     Delete All {filterType !== 'all' ? `(${filteredNotifications.length})` : `(${notifications.length})`}
-                  </Text>
+                  </ResponsiveText>
                 </TouchableOpacity>
-              </View>
+              </ResponsiveView>
             )}
-          </View>
-        </View>
+          </ResponsiveView>
+        </ResponsiveView>
 
         {/* Notifications List */}
-        <View style={styles.listContainer}>
+        <ResponsiveView style={styles.listContainer}>
           <FlatList
             data={filteredNotifications}
             renderItem={renderNotification}
@@ -499,237 +817,17 @@ const NotificationScreen = () => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#667eea"
+                tintColor={theme === 'light' ? '#667eea' : '#fff'}
                 colors={['#667eea']}
               />
             }
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           />
-        </View>
+        </ResponsiveView>
       </SafeAreaView>
     </LinearGradient>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  backButton: {
-    padding: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000',
-    flex: 1,
-    textAlign: 'center',
-  },
-  placeholder: {
-    width: 40,
-  },
-  listContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    marginTop: 10,
-  },
-  listContent: {
-    padding: 20,
-    flexGrow: 1,
-  },
-  notificationCard: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  unreadCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#667eea',
-  },
-  notificationContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  notificationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  unreadTitle: {
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  notificationBody: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  notificationTime: {
-    fontSize: 12,
-    color: '#999',
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#667eea',
-    position: 'absolute',
-    top: 5,
-    right: 5,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 40,
-  },
-  headerActions: {
-    position: 'relative',
-  },
-  filterButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-  },
-  filterDropdown: {
-    position: 'absolute',
-    top: 45,
-    right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    minWidth: 150,
-    zIndex: 1000,
-  },
-  filterItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  filterItemActive: {
-    backgroundColor: '#f8f9ff',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  filterTextActive: {
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  notificationActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuContainer: {
-    position: 'relative',
-    marginLeft: 8,
-  },
-  menuButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 35,
-    right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    minWidth: 120,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 8,
-  },
-  filterSeparator: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 4,
-  },
-  deleteAllItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff5f5',
-  },
-  deleteAllText: {
-    fontSize: 14,
-    color: '#e91e63',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-});
-
-export default NotificationScreen; 
+export default NotificationScreen;

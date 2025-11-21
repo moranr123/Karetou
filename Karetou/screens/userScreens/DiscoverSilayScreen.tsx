@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,9 +8,10 @@ import {
   TouchableOpacity,
   Image,
   ImageBackground,
-  Dimensions,
   FlatList,
   Modal,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,8 +20,6 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ResponsiveText, ResponsiveView, ResponsiveCard, ResponsiveButton, ResponsiveImage } from '../../components';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 type RootStackParamList = {
   Home: undefined;
@@ -173,11 +172,16 @@ const stayData = [
 const DiscoverSilayScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { theme } = useAuth();
-  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, getResponsiveWidth, getResponsiveHeight, dimensions, responsiveHeight, responsiveWidth } = useResponsive();
   const [welcomeModalVisible, setWelcomeModalVisible] = React.useState(true);
   const [detailModalVisible, setDetailModalVisible] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  
+  // Device size detection
+  const isSmallScreen = dimensions.width < 360;
+  const isSmallDevice = dimensions.isSmallDevice;
+  const minTouchTarget = 44;
   
   // Video player setup
   const player = useVideoPlayer(require('../../assets/SilayCity.mp4'), (player) => {
@@ -186,7 +190,14 @@ const DiscoverSilayScreen = () => {
     player.play();
   });
 
-  const styles = StyleSheet.create({
+  // Calculate header padding
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? spacing.md + (isSmallDevice ? spacing.xs : spacing.sm)
+    : statusBarHeight + spacing.sm;
+
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: 'transparent',
@@ -194,16 +205,16 @@ const DiscoverSilayScreen = () => {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingHorizontal: isSmallScreen ? spacing.sm : spacing.md,
+      paddingTop: headerPaddingTop,
       paddingBottom: spacing.sm,
-      minHeight: 60, // Ensure consistent header height
+      minHeight: Math.max(50, minTouchTarget + spacing.sm),
     },
     backButton: {
       padding: spacing.sm,
       marginRight: spacing.sm,
-      minWidth: 44, // Ensure touch target is large enough
-      minHeight: 44,
+      minWidth: minTouchTarget,
+      minHeight: minTouchTarget,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -212,7 +223,7 @@ const DiscoverSilayScreen = () => {
     },
     content: {
       flex: 1,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: isSmallScreen ? spacing.sm : spacing.md,
     },
     heroSection: {
       alignItems: 'center',
@@ -220,14 +231,14 @@ const DiscoverSilayScreen = () => {
     },
     heroImage: {
       width: getResponsiveWidth(90),
-      height: getResponsiveHeight(25),
-      borderRadius: borderRadius.lg,
+      height: responsiveHeight(25),
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.lg,
     },
     heroOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0,0,0,0.3)',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
     },
     heroContent: {
       position: 'absolute',
@@ -248,12 +259,12 @@ const DiscoverSilayScreen = () => {
     },
     heroVideoSection: {
       marginBottom: spacing.xl,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: isSmallScreen ? spacing.sm : spacing.md,
     },
     videoContainer: {
       width: '100%',
-      height: getResponsiveHeight(30),
-      borderRadius: borderRadius.xl,
+      height: responsiveHeight(30),
+      borderRadius: borderRadiusValues.xl,
       overflow: 'hidden',
       elevation: 8,
       shadowColor: '#000',
@@ -297,9 +308,11 @@ const DiscoverSilayScreen = () => {
       backgroundColor: 'rgba(102, 126, 234, 0.9)',
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      borderRadius: borderRadius.full,
+      borderRadius: borderRadiusValues.full,
       borderWidth: 2,
       borderColor: '#FFD700',
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
     },
     highlightText: {
       marginLeft: spacing.xs,
@@ -312,9 +325,9 @@ const DiscoverSilayScreen = () => {
       top: spacing.md,
       right: spacing.md,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      borderRadius: borderRadius.full,
-      width: 44,
-      height: 44,
+      borderRadius: borderRadiusValues.full,
+      width: minTouchTarget,
+      height: minTouchTarget,
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 2,
@@ -322,7 +335,7 @@ const DiscoverSilayScreen = () => {
     },
     section: {
       marginBottom: spacing.xl,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: isSmallScreen ? spacing.sm : spacing.md,
     },
     sectionHeader: {
       marginBottom: spacing.lg,
@@ -330,9 +343,9 @@ const DiscoverSilayScreen = () => {
     sectionTitleGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isSmallScreen ? spacing.md : spacing.lg,
       paddingVertical: spacing.md,
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadiusValues.xl,
       elevation: 4,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -354,7 +367,7 @@ const DiscoverSilayScreen = () => {
     },
     activityCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.md,
       overflow: 'hidden',
       elevation: 2,
@@ -365,7 +378,7 @@ const DiscoverSilayScreen = () => {
     },
     activityImage: {
       width: '100%',
-      height: getResponsiveHeight(20),
+      height: responsiveHeight(20),
     },
     activityContent: {
       padding: spacing.lg,
@@ -380,7 +393,7 @@ const DiscoverSilayScreen = () => {
     },
     museumCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.md,
       padding: spacing.lg,
       elevation: 2,
@@ -400,7 +413,7 @@ const DiscoverSilayScreen = () => {
     },
     cathedralCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.md,
       overflow: 'hidden',
       elevation: 2,
@@ -411,7 +424,7 @@ const DiscoverSilayScreen = () => {
     },
     cathedralImage: {
       width: '100%',
-      height: getResponsiveHeight(25),
+      height: responsiveHeight(25),
     },
     cathedralContent: {
       padding: spacing.lg,
@@ -427,7 +440,7 @@ const DiscoverSilayScreen = () => {
     },
     patagCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.md,
       overflow: 'hidden',
       elevation: 2,
@@ -438,7 +451,7 @@ const DiscoverSilayScreen = () => {
     },
     patagImage: {
       width: '100%',
-      height: getResponsiveHeight(20),
+      height: responsiveHeight(20),
     },
     patagContent: {
       padding: spacing.lg,
@@ -454,7 +467,7 @@ const DiscoverSilayScreen = () => {
     },
     magiklandCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.xl,
       overflow: 'hidden',
       elevation: 2,
@@ -465,7 +478,7 @@ const DiscoverSilayScreen = () => {
     },
     magiklandImage: {
       width: '100%',
-      height: getResponsiveHeight(20),
+      height: responsiveHeight(20),
     },
     magiklandContent: {
       padding: spacing.lg,
@@ -481,10 +494,10 @@ const DiscoverSilayScreen = () => {
     },
     // Horizontal card styles for Top Things to Do
     horizontalCard: {
-      width: getResponsiveWidth(screenWidth < 400 ? 75 : 70),
+      width: getResponsiveWidth(isSmallScreen ? 75 : 70),
       marginRight: spacing.md,
       backgroundColor: '#fff',
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadiusValues.xl,
       overflow: 'hidden',
       elevation: 6,
       shadowColor: '#000',
@@ -496,7 +509,7 @@ const DiscoverSilayScreen = () => {
     },
     horizontalCardImage: {
       width: '100%',
-      height: getResponsiveHeight(screenHeight < 700 ? 20 : 24),
+      height: responsiveHeight(dimensions.height < 700 ? 20 : 24),
     },
     horizontalCardContent: {
       padding: spacing.md,
@@ -521,7 +534,7 @@ const DiscoverSilayScreen = () => {
     },
     foodCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.md,
       overflow: 'hidden',
       elevation: 2,
@@ -532,7 +545,7 @@ const DiscoverSilayScreen = () => {
     },
     foodImage: {
       width: '100%',
-      height: getResponsiveHeight(20),
+      height: responsiveHeight(20),
     },
     foodContent: {
       padding: spacing.lg,
@@ -549,7 +562,7 @@ const DiscoverSilayScreen = () => {
     // Stay section styles
     stayCard: {
       backgroundColor: '#fff',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadiusValues.lg,
       marginBottom: spacing.md,
       overflow: 'hidden',
       elevation: 2,
@@ -560,7 +573,7 @@ const DiscoverSilayScreen = () => {
     },
     stayImage: {
       width: '100%',
-      height: getResponsiveHeight(20),
+      height: responsiveHeight(20),
     },
     stayContent: {
       padding: spacing.lg,
@@ -578,11 +591,11 @@ const DiscoverSilayScreen = () => {
       padding: spacing.md,
     },
     welcomeModalCard: {
-      width: screenWidth < 400 ? '98%' : '95%', // Almost full width on very small screens
-      maxWidth: screenWidth < 400 ? screenWidth - 20 : 400,
-      maxHeight: screenHeight * 0.85, // Prevent modal from being too tall
+      width: isSmallScreen ? '98%' : '95%',
+      maxWidth: isSmallScreen ? dimensions.width - 20 : 400,
+      maxHeight: dimensions.height * 0.85,
       backgroundColor: '#fff',
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadiusValues.xl,
       overflow: 'hidden',
       elevation: 6,
       shadowColor: '#000',
@@ -604,7 +617,7 @@ const DiscoverSilayScreen = () => {
     },
     welcomeModalContent: {
       padding: spacing.md,
-      maxHeight: screenHeight * 0.6, // Limit content height
+      maxHeight: dimensions.height * 0.6,
     },
     welcomeModalText: {
       color: '#333',
@@ -614,12 +627,12 @@ const DiscoverSilayScreen = () => {
     },
     welcomeModalButton: {
       backgroundColor: '#667eea',
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadiusValues.md,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.lg,
       alignItems: 'center',
       marginTop: spacing.sm,
-      minHeight: 44, // Ensure touch target is large enough
+      minHeight: minTouchTarget,
     },
     welcomeModalButtonText: {
       color: '#fff',
@@ -635,9 +648,9 @@ const DiscoverSilayScreen = () => {
     },
     detailModalCard: {
       width: getResponsiveWidth(85),
-      maxHeight: getResponsiveHeight(80),
+      maxHeight: responsiveHeight(80),
       backgroundColor: '#fff',
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadiusValues.xl,
       overflow: 'hidden',
     },
     detailModalContent: {
@@ -652,7 +665,7 @@ const DiscoverSilayScreen = () => {
     detailModalImageContainer: {
       position: 'relative',
       width: getResponsiveWidth(75),
-      height: getResponsiveHeight(25),
+      height: responsiveHeight(25),
       marginHorizontal: spacing.lg,
       marginTop: spacing.lg,
     },
@@ -660,7 +673,7 @@ const DiscoverSilayScreen = () => {
       width: '100%',
       height: '100%',
       resizeMode: 'cover',
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadiusValues.md,
       borderWidth: 1,
       borderColor: '#000',
     },
@@ -671,12 +684,13 @@ const DiscoverSilayScreen = () => {
     },
      detailModalCloseButton: {
        backgroundColor: '#667eea',
-       borderRadius: borderRadius.md,
+       borderRadius: borderRadiusValues.md,
        paddingVertical: spacing.sm,
        paddingHorizontal: spacing.lg,
        alignItems: 'center',
        marginTop: spacing.sm,
        width: '100%',
+       minHeight: minTouchTarget,
      },
     detailModalCloseButtonText: {
       color: '#fff',
@@ -685,12 +699,12 @@ const DiscoverSilayScreen = () => {
     },
     detailModalImageCarousel: {
       width: '100%',
-      height: getResponsiveHeight(29),
+      height: responsiveHeight(29),
       alignItems: 'center',
     },
      detailModalImageItem: {
        width: getResponsiveWidth(75),
-       height: getResponsiveHeight(25),
+       height: responsiveHeight(25),
        marginHorizontal: spacing.lg,
        marginTop: spacing.lg,
        position: 'relative',
@@ -703,8 +717,8 @@ const DiscoverSilayScreen = () => {
        backgroundColor: 'rgba(0,0,0,0.7)',
        paddingVertical: spacing.sm,
        paddingHorizontal: spacing.md,
-       borderBottomLeftRadius: borderRadius.md,
-       borderBottomRightRadius: borderRadius.md,
+       borderBottomLeftRadius: borderRadiusValues.md,
+       borderBottomRightRadius: borderRadiusValues.md,
      },
      detailModalImageName: {
        color: '#fff',
@@ -717,7 +731,7 @@ const DiscoverSilayScreen = () => {
        top: spacing.sm,
        right: spacing.sm,
        backgroundColor: 'rgba(0,0,0,0.6)',
-       borderRadius: borderRadius.sm,
+       borderRadius: borderRadiusValues.sm,
        paddingHorizontal: spacing.sm,
        paddingVertical: spacing.xs,
        flexDirection: 'row',
@@ -728,7 +742,7 @@ const DiscoverSilayScreen = () => {
        fontSize: fontSizes.xs,
        marginLeft: spacing.xs,
      },
-  });
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, isSmallScreen, isSmallDevice, minTouchTarget, headerPaddingTop, getResponsiveWidth, getResponsiveHeight, responsiveHeight]);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -753,7 +767,7 @@ const DiscoverSilayScreen = () => {
           style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ 
-            paddingBottom: screenHeight < 700 ? 100 : 120,
+            paddingBottom: dimensions.height < 700 ? responsiveHeight(12) : responsiveHeight(15),
             paddingTop: spacing.sm
           }}
         >
@@ -779,7 +793,7 @@ const DiscoverSilayScreen = () => {
                   Heritage • Culture • Beauty
                 </ResponsiveText>
                 <View style={styles.highlightBadge}>
-                  <Ionicons name="star" size={20} color="#FFD700" />
+                  <Ionicons name="star" size={iconSizes.md} color="#FFD700" />
                   <ResponsiveText size="md" weight="bold" color="#fff" style={styles.highlightText}>
                     The Paris of Negros
                   </ResponsiveText>
@@ -797,7 +811,7 @@ const DiscoverSilayScreen = () => {
               >
                 <Ionicons 
                   name={player.playing ? "pause" : "play"} 
-                  size={24} 
+                  size={iconSizes.md} 
                   color="#fff" 
                 />
               </TouchableOpacity>
@@ -851,7 +865,7 @@ const DiscoverSilayScreen = () => {
                              <ImageBackground
                                source={imageItem.image}
                                style={styles.horizontalCardImage}
-                               imageStyle={{ borderRadius: borderRadius.lg }}
+                               imageStyle={{ borderRadius: borderRadiusValues.lg }}
                              >
                                <View style={styles.heroOverlay} />
                                <View style={styles.heroContent}>
@@ -868,7 +882,7 @@ const DiscoverSilayScreen = () => {
                      <ImageBackground
                        source={item.image}
                        style={styles.horizontalCardImage}
-                       imageStyle={{ borderRadius: borderRadius.lg }}
+                       imageStyle={{ borderRadius: borderRadiusValues.lg }}
                      >
                        <View style={styles.heroOverlay} />
                        <View style={styles.heroContent}>
@@ -930,7 +944,7 @@ const DiscoverSilayScreen = () => {
                            <ImageBackground
                              source={imageItem.image || imageItem}
                              style={styles.horizontalCardImage}
-                             imageStyle={{ borderRadius: borderRadius.lg }}
+                             imageStyle={{ borderRadius: borderRadiusValues.lg }}
                            >
                              <View style={styles.heroOverlay} />
                              <View style={styles.heroContent}>
@@ -947,7 +961,7 @@ const DiscoverSilayScreen = () => {
                     <ImageBackground
                       source={item.image}
                       style={styles.horizontalCardImage}
-                      imageStyle={{ borderRadius: borderRadius.lg }}
+                      imageStyle={{ borderRadius: borderRadiusValues.lg }}
                     >
                       <View style={styles.heroOverlay} />
                       <View style={styles.heroContent}>
@@ -999,7 +1013,7 @@ const DiscoverSilayScreen = () => {
                    <ImageBackground
                      source={item.image}
                      style={styles.horizontalCardImage}
-                     imageStyle={{ borderRadius: borderRadius.lg }}
+                     imageStyle={{ borderRadius: borderRadiusValues.lg }}
                    >
                     <View style={styles.heroOverlay} />
                     <View style={styles.heroContent}>

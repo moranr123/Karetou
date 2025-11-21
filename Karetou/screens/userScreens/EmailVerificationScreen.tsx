@@ -1,27 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Dimensions,
-  Image,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { auth } from '../../firebase';
-import { sendEmailVerification, reload, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { sendEmailVerification, reload, signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import UserPreferencesModal from '../../components/UserPreferencesModal';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ResponsiveText, ResponsiveView } from '../../components';
-
-const { width, height } = Dimensions.get('window');
 
 type RootStackParamList = {
   Login: undefined;
@@ -55,20 +53,22 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const { email, password, userType } = route.params;
-  const { setUserType } = useAuth();
-  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight } = useResponsive();
+  const { setUserType, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, dimensions, responsiveHeight, responsiveWidth, getResponsiveWidth, getResponsiveHeight } = useResponsive();
   
-  // Device size detection
-  const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height;
-  const isSmallDevice = screenWidth < 375 || screenHeight < 667;
-  const isMediumDevice = screenWidth >= 375 && screenWidth <= 414;
-  const isTablet = screenWidth > 768;
+  // Calculate responsive values
+  const isSmallScreen = (dimensions?.width || 360) < 360;
+  const isSmallDevice = dimensions?.isSmallDevice || false;
+  const minTouchTarget = 44;
   
-  // Responsive calculations
-  const spacingMultiplier = isSmallDevice ? 0.8 : isMediumDevice ? 1 : isTablet ? 1.5 : 1.1;
-  const logoSizePercent = isSmallDevice ? 16 : isMediumDevice ? 20 : isTablet ? 30 : 22;
-  const inputHeight = isSmallDevice ? 6 : isMediumDevice ? 6.5 : isTablet ? 8 : 7;
+  // Calculate header padding
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? (spacing?.md || 12) + (isSmallDevice ? (spacing?.xs || 4) : (spacing?.sm || 8))
+    : statusBarHeight + (spacing?.sm || 8);
+
+  const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
+  const darkGradient = ['#232526', '#414345'] as const;
 
   // Set initial cooldown after registration
   useEffect(() => {
@@ -419,8 +419,8 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  // --- Styles ---
-  const styles = StyleSheet.create({
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
     },
@@ -432,51 +432,40 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
     },
     scrollContainer: {
       flexGrow: 1,
-      paddingHorizontal: spacing.lg * spacingMultiplier,
-      paddingTop: spacing.lg * spacingMultiplier,
-      paddingBottom: spacing.md * spacingMultiplier,
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingTop: headerPaddingTop,
+      paddingBottom: spacing?.xl || 24,
       justifyContent: 'flex-start',
-      width: '100%',
     },
     header: {
       alignItems: 'center',
-      marginBottom: spacing.lg * spacingMultiplier,
-    },
-    logoContainer: {
-      width: getResponsiveWidth(logoSizePercent),
-      height: getResponsiveWidth(logoSizePercent),
-      borderRadius: getResponsiveWidth(logoSizePercent / 2),
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.md * spacingMultiplier,
-      position: 'relative',
-    },
-    logoImage: {
-      width: '80%',
-      height: '80%',
-      resizeMode: 'contain',
+      marginBottom: spacing?.lg || 16,
     },
     iconWrapper: {
       position: 'relative',
-      marginBottom: spacing.md * spacingMultiplier,
-    },
-    iconCircle: {
-      width: getResponsiveWidth(logoSizePercent),
-      height: getResponsiveWidth(logoSizePercent),
-      borderRadius: getResponsiveWidth(logoSizePercent / 2),
-      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+      marginBottom: spacing?.md || 12,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: spacing.md * spacingMultiplier,
+    },
+    iconCircle: {
+      width: responsiveWidth(20) || 80,
+      height: responsiveWidth(20) || 80,
+      minWidth: 60,
+      minHeight: 60,
+      maxWidth: 120,
+      maxHeight: 120,
+      borderRadius: (responsiveWidth(20) || 80) / 2,
+      backgroundColor: theme === 'light' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     checkmarkBadge: {
       position: 'absolute',
-      bottom: 0,
-      right: 0,
-      backgroundColor: '#fff',
-      borderRadius: borderRadius.md,
-      padding: spacing.xs,
+      bottom: -5,
+      right: responsiveWidth(20) ? responsiveWidth(20) / 2 - 20 : 20,
+      backgroundColor: theme === 'light' ? '#fff' : '#2a2a2a',
+      borderRadius: borderRadiusValues?.md || 12,
+      padding: spacing?.xs || 4,
       elevation: 3,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -484,133 +473,147 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
       shadowRadius: 3,
     },
     title: {
-      marginBottom: spacing.sm * spacingMultiplier,
+      marginBottom: spacing?.sm || 8,
       textAlign: 'center',
+      paddingHorizontal: spacing?.md || 12,
     },
     subtitle: {
       textAlign: 'center',
-      paddingHorizontal: spacing.md * spacingMultiplier,
-      marginBottom: spacing.sm * spacingMultiplier,
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      marginBottom: spacing?.sm || 8,
     },
     emailBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#fff',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.lg,
-      marginTop: spacing.sm * spacingMultiplier,
+      backgroundColor: theme === 'light' ? '#fff' : '#2a2a2a',
+      paddingHorizontal: spacing?.md || 12,
+      paddingVertical: spacing?.sm || 8,
+      borderRadius: borderRadiusValues?.lg || 16,
+      marginTop: spacing?.sm || 8,
       elevation: 3,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 3,
+      maxWidth: '100%',
     },
     email: {
-      marginLeft: spacing.sm,
+      marginLeft: spacing?.xs || 4,
+      flex: 1,
+      minWidth: 0,
     },
     formContainer: {
       width: '100%',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderRadius: borderRadius.xl,
-      padding: spacing.lg * spacingMultiplier,
+      backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(42, 42, 42, 0.95)',
+      borderRadius: borderRadiusValues?.xl || 20,
+      padding: isSmallScreen ? (spacing?.md || 12) : (spacing?.lg || 16),
       elevation: 5,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 8,
+      marginBottom: spacing?.md || 12,
     },
     instructionsCard: {
-      marginBottom: spacing.md * spacingMultiplier,
+      marginBottom: spacing?.md || 12,
     },
     instructionItem: {
       flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.md * spacingMultiplier,
+      alignItems: 'flex-start',
+      marginBottom: spacing?.md || 12,
     },
     stepBadge: {
-      width: getResponsiveWidth(8),
-      height: getResponsiveWidth(8),
-      borderRadius: getResponsiveWidth(4),
+      width: responsiveWidth(8) || 32,
+      height: responsiveWidth(8) || 32,
+      minWidth: 28,
+      minHeight: 28,
+      maxWidth: 40,
+      maxHeight: 40,
+      borderRadius: (responsiveWidth(8) || 32) / 2,
       backgroundColor: '#667eea',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing.md,
+      marginRight: spacing?.sm || 8,
+      flexShrink: 0,
     },
     stepNumber: {
       color: '#fff',
-      fontSize: fontSizes.sm,
+      fontSize: fontSizes?.sm || 14,
       fontWeight: 'bold',
     },
     instructionText: {
       flex: 1,
-      fontSize: fontSizes.md,
-      color: '#333',
-      lineHeight: fontSizes.md * 1.4,
+      fontSize: fontSizes?.md || 16,
+      color: theme === 'light' ? '#333' : '#fff',
+      lineHeight: (fontSizes?.md || 16) * 1.4,
+      minWidth: 0,
     },
     noteCard: {
       flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#FFF3E0',
-      padding: spacing.md * spacingMultiplier,
-      borderRadius: borderRadius.md,
-      marginBottom: spacing.md * spacingMultiplier,
+      alignItems: 'flex-start',
+      backgroundColor: theme === 'light' ? '#FFF3E0' : '#4a3a1a',
+      padding: spacing?.md || 12,
+      borderRadius: borderRadiusValues?.md || 12,
+      marginBottom: spacing?.md || 12,
       borderLeftWidth: 4,
       borderLeftColor: '#FF9800',
     },
     noteText: {
       flex: 1,
-      fontSize: fontSizes.sm,
-      color: '#E65100',
-      marginLeft: spacing.sm,
-      lineHeight: fontSizes.sm * 1.4,
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#E65100' : '#FFB74D',
+      marginLeft: spacing?.sm || 8,
+      lineHeight: (fontSizes?.sm || 14) * 1.4,
+      minWidth: 0,
     },
     cooldownCard: {
       flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#E3F2FD',
-      padding: spacing.md * spacingMultiplier,
-      borderRadius: borderRadius.md,
-      marginBottom: spacing.md * spacingMultiplier,
+      alignItems: 'flex-start',
+      backgroundColor: theme === 'light' ? '#E3F2FD' : '#1a3a4a',
+      padding: spacing?.md || 12,
+      borderRadius: borderRadiusValues?.md || 12,
+      marginBottom: spacing?.md || 12,
       borderLeftWidth: 4,
       borderLeftColor: '#2196F3',
     },
     cooldownText: {
       flex: 1,
-      fontSize: fontSizes.sm,
-      color: '#1565C0',
-      marginLeft: spacing.sm,
-      lineHeight: fontSizes.sm * 1.4,
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#1565C0' : '#64B5F6',
+      marginLeft: spacing?.sm || 8,
+      lineHeight: (fontSizes?.sm || 14) * 1.4,
+      minWidth: 0,
     },
     warningCard: {
       flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#FFEBEE',
-      padding: spacing.md * spacingMultiplier,
-      borderRadius: borderRadius.md,
-      marginBottom: spacing.md * spacingMultiplier,
+      alignItems: 'flex-start',
+      backgroundColor: theme === 'light' ? '#FFEBEE' : '#4a1f1f',
+      padding: spacing?.md || 12,
+      borderRadius: borderRadiusValues?.md || 12,
+      marginBottom: spacing?.md || 12,
       borderLeftWidth: 4,
       borderLeftColor: '#F44336',
     },
     warningText: {
       flex: 1,
-      fontSize: fontSizes.sm,
-      color: '#C62828',
-      marginLeft: spacing.sm,
-      lineHeight: fontSizes.sm * 1.4,
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#C62828' : '#EF5350',
+      marginLeft: spacing?.sm || 8,
+      lineHeight: (fontSizes?.sm || 14) * 1.4,
+      minWidth: 0,
     },
     buttonContainer: {
-      marginTop: spacing.md * spacingMultiplier,
+      marginTop: spacing?.md || 12,
     },
     button: {
       flexDirection: 'row',
-      borderRadius: borderRadius.lg,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
+      borderRadius: borderRadiusValues?.lg || 16,
+      paddingVertical: spacing?.md || 12,
+      paddingHorizontal: spacing?.lg || 16,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: spacing.md * spacingMultiplier,
-      minHeight: getResponsiveHeight(inputHeight),
+      marginBottom: spacing?.sm || 8,
+      minHeight: minTouchTarget,
       elevation: 3,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -621,7 +624,7 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
       backgroundColor: '#4CAF50',
     },
     resendButton: {
-      backgroundColor: '#fff',
+      backgroundColor: theme === 'light' ? '#fff' : '#2a2a2a',
       borderWidth: 2,
       borderColor: '#667eea',
     },
@@ -629,9 +632,9 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
       opacity: 0.6,
     },
     buttonText: {
-      fontSize: fontSizes.md,
+      fontSize: fontSizes?.md || 16,
       fontWeight: '600',
-      marginLeft: spacing.sm,
+      marginLeft: spacing?.xs || 4,
     },
     verifyButtonText: {
       color: '#fff',
@@ -640,31 +643,39 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
       color: '#667eea',
     },
     resendButtonTextDisabled: {
-      color: '#999',
+      color: theme === 'light' ? '#999' : '#666',
     },
     footer: {
       alignItems: 'center',
-      marginTop: spacing.xl * spacingMultiplier,
-      paddingTop: spacing.lg * spacingMultiplier,
+      marginTop: spacing?.lg || 16,
+      paddingTop: spacing?.md || 12,
     },
     backButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.sm * spacingMultiplier,
+      paddingVertical: spacing?.sm || 8,
+      paddingHorizontal: spacing?.md || 12,
+      minHeight: minTouchTarget,
+      minWidth: minTouchTarget,
     },
     backButtonText: {
-      fontSize: fontSizes.md,
+      fontSize: fontSizes?.md || 16,
       fontWeight: '600',
+      marginLeft: spacing?.xs || 4,
     },
-  });
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, isSmallScreen, isSmallDevice, minTouchTarget, headerPaddingTop, responsiveHeight, responsiveWidth, theme]);
 
   return (
-    <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
+    <LinearGradient 
+      colors={theme === 'light' ? lightGradient : darkGradient} 
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           <ScrollView 
             contentContainerStyle={styles.scrollContainer}
@@ -675,21 +686,21 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
             <ResponsiveView style={styles.header}>
               <ResponsiveView style={styles.iconWrapper}>
                 <ResponsiveView style={styles.iconCircle}>
-                  <Ionicons name="mail" size={iconSizes.xxl} color="#667eea" />
+                  <Ionicons name="mail" size={iconSizes?.xxl || 48} color="#667eea" />
                 </ResponsiveView>
                 <ResponsiveView style={styles.checkmarkBadge}>
-                  <Ionicons name="checkmark-circle" size={iconSizes.lg} color="#4CAF50" />
+                  <Ionicons name="checkmark-circle" size={iconSizes?.lg || 24} color="#4CAF50" />
                 </ResponsiveView>
               </ResponsiveView>
-              <ResponsiveText size={isSmallDevice ? "xl" : isTablet ? "xxxl" : "xxl"} weight="bold" color="#000" style={styles.title}>
+              <ResponsiveText size="xxl" weight="bold" color={theme === 'light' ? '#000' : '#fff'} style={styles.title}>
                 Verify Your Email
               </ResponsiveText>
-              <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} color="#666" style={styles.subtitle}>
+              <ResponsiveText size="md" color={theme === 'light' ? '#666' : '#ccc'} style={styles.subtitle}>
                 We've sent a verification link to:
               </ResponsiveText>
               <ResponsiveView style={styles.emailBadge}>
-                <Ionicons name="mail-outline" size={iconSizes.sm} color="#667eea" />
-                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} weight="600" color="#667eea" style={styles.email}>
+                <Ionicons name="mail-outline" size={iconSizes?.sm || 16} color="#667eea" />
+                <ResponsiveText size="sm" weight="600" color="#667eea" style={styles.email} numberOfLines={1}>
                   {email}
                 </ResponsiveText>
               </ResponsiveView>
@@ -697,135 +708,137 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
 
             {/* Form */}
             <ResponsiveView style={styles.formContainer}>
-            {/* Instructions */}
-            <ResponsiveView style={styles.instructionsCard}>
-              <ResponsiveView style={styles.instructionItem}>
-                <ResponsiveView style={styles.stepBadge}>
-                  <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} weight="bold" color="#fff" style={styles.stepNumber}>
-                    1
+              {/* Instructions */}
+              <ResponsiveView style={styles.instructionsCard}>
+                <ResponsiveView style={styles.instructionItem}>
+                  <ResponsiveView style={styles.stepBadge}>
+                    <ResponsiveText size="sm" weight="bold" color="#fff" style={styles.stepNumber}>
+                      1
+                    </ResponsiveText>
+                  </ResponsiveView>
+                  <ResponsiveText size="md" color={theme === 'light' ? '#333' : '#fff'} style={styles.instructionText}>
+                    Check your email inbox
                   </ResponsiveText>
                 </ResponsiveView>
-                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} color="#333" style={styles.instructionText}>
-                  Check your email inbox
-                </ResponsiveText>
-              </ResponsiveView>
-              
-              <ResponsiveView style={styles.instructionItem}>
-                <ResponsiveView style={styles.stepBadge}>
-                  <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} weight="bold" color="#fff" style={styles.stepNumber}>
-                    2
+                
+                <ResponsiveView style={styles.instructionItem}>
+                  <ResponsiveView style={styles.stepBadge}>
+                    <ResponsiveText size="sm" weight="bold" color="#fff" style={styles.stepNumber}>
+                      2
+                    </ResponsiveText>
+                  </ResponsiveView>
+                  <ResponsiveText size="md" color={theme === 'light' ? '#333' : '#fff'} style={styles.instructionText}>
+                    Click the verification link
                   </ResponsiveText>
                 </ResponsiveView>
-                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} color="#333" style={styles.instructionText}>
-                  Click the verification link
-                </ResponsiveText>
-              </ResponsiveView>
-              
-              <ResponsiveView style={styles.instructionItem}>
-                <ResponsiveView style={styles.stepBadge}>
-                  <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "sm"} weight="bold" color="#fff" style={styles.stepNumber}>
-                    3
+                
+                <ResponsiveView style={styles.instructionItem}>
+                  <ResponsiveView style={styles.stepBadge}>
+                    <ResponsiveText size="sm" weight="bold" color="#fff" style={styles.stepNumber}>
+                      3
+                    </ResponsiveText>
+                  </ResponsiveView>
+                  <ResponsiveText size="md" color={theme === 'light' ? '#333' : '#fff'} style={styles.instructionText}>
+                    Return here and click "I've Verified"
                   </ResponsiveText>
                 </ResponsiveView>
-                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} color="#333" style={styles.instructionText}>
-                  Return here and click "I've Verified"
+              </ResponsiveView>
+
+              {/* Important Note */}
+              <ResponsiveView style={styles.noteCard}>
+                <Ionicons name="information-circle" size={iconSizes?.md || 20} color="#FF9800" />
+                <ResponsiveText size="sm" color={theme === 'light' ? '#E65100' : '#FFB74D'} style={styles.noteText}>
+                  Check your spam folder if you don't see the email
                 </ResponsiveText>
               </ResponsiveView>
-            </ResponsiveView>
 
-            {/* Important Note */}
-            <ResponsiveView style={styles.noteCard}>
-              <Ionicons name="information-circle" size={iconSizes.md} color="#FF9800" />
-              <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "sm"} color="#E65100" style={styles.noteText}>
-                Check your spam folder if you don't see the email
-              </ResponsiveText>
-            </ResponsiveView>
+              {/* Cooldown Info */}
+              {resendAttempts === 0 && countdown > 60 && (
+                <ResponsiveView style={styles.cooldownCard}>
+                  <Ionicons name="time-outline" size={iconSizes?.md || 20} color="#2196F3" />
+                  <ResponsiveText size="sm" color={theme === 'light' ? '#1565C0' : '#64B5F6'} style={styles.cooldownText}>
+                    Please wait 2 minutes. This gives the email time to arrive.
+                  </ResponsiveText>
+                </ResponsiveView>
+              )}
 
-            {/* Cooldown Info */}
-            {resendAttempts === 0 && countdown > 60 && (
-              <ResponsiveView style={styles.cooldownCard}>
-                <Ionicons name="time-outline" size={iconSizes.md} color="#2196F3" />
-                <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "sm"} color="#1565C0" style={styles.cooldownText}>
-                  Please wait 2 minutes. This gives the email time to arrive.
-                </ResponsiveText>
+              {resendAttempts > 1 && (
+                <ResponsiveView style={styles.warningCard}>
+                  <Ionicons name="warning-outline" size={iconSizes?.md || 20} color="#F44336" />
+                  <ResponsiveText size="sm" color={theme === 'light' ? '#C62828' : '#EF5350'} style={styles.warningText}>
+                    Multiple resends detected. Longer delays applied to prevent spam.
+                  </ResponsiveText>
+                </ResponsiveView>
+              )}
+
+              {/* Buttons */}
+              <ResponsiveView style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.button, styles.verifyButton, loading && styles.buttonDisabled]}
+                  onPress={checkEmailVerification}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  {loading ? (
+                    <>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <ResponsiveText size="md" weight="600" color="#fff" style={[styles.buttonText, styles.verifyButtonText]}>
+                        Checking...
+                      </ResponsiveText>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={iconSizes?.md || 20} color="#fff" />
+                      <ResponsiveText size="md" weight="600" color="#fff" style={[styles.buttonText, styles.verifyButtonText]}>
+                        I've Verified My Email
+                      </ResponsiveText>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    styles.resendButton,
+                    (resendLoading || countdown > 0 || isRateLimited) && styles.buttonDisabled,
+                  ]}
+                  onPress={resendVerificationEmail}
+                  disabled={resendLoading || countdown > 0 || isRateLimited}
+                  activeOpacity={0.7}
+                >
+                  {resendLoading ? (
+                    <>
+                      <ActivityIndicator size="small" color="#667eea" />
+                      <ResponsiveText size="md" weight="600" color="#667eea" style={[styles.buttonText, styles.resendButtonText]}>
+                        Sending...
+                      </ResponsiveText>
+                    </>
+                  ) : countdown > 0 ? (
+                    <>
+                      <Ionicons 
+                        name={isRateLimited ? "warning-outline" : "time-outline"} 
+                        size={iconSizes?.md || 20} 
+                        color={theme === 'light' ? '#999' : '#666'} 
+                      />
+                      <ResponsiveText size="md" weight="600" color={theme === 'light' ? '#999' : '#666'} style={[styles.buttonText, styles.resendButtonTextDisabled]}>
+                        {resendAttempts === 0 && countdown > 60
+                          ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
+                          : countdown >= 60 
+                          ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
+                          : `Resend in ${countdown}s`
+                        }
+                      </ResponsiveText>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="mail-outline" size={iconSizes?.md || 20} color="#667eea" />
+                      <ResponsiveText size="md" weight="600" color="#667eea" style={[styles.buttonText, styles.resendButtonText]}>
+                        {resendAttempts > 0 ? `Resend Email (${resendAttempts})` : 'Resend Email'}
+                      </ResponsiveText>
+                    </>
+                  )}
+                </TouchableOpacity>
               </ResponsiveView>
-            )}
-
-            {resendAttempts > 1 && (
-              <ResponsiveView style={styles.warningCard}>
-                <Ionicons name="warning-outline" size={iconSizes.md} color="#F44336" />
-                <ResponsiveText size={isSmallDevice ? "xs" : isTablet ? "sm" : "sm"} color="#C62828" style={styles.warningText}>
-                  Multiple resends detected. Longer delays applied to prevent spam.
-                </ResponsiveText>
-              </ResponsiveView>
-            )}
-
-            {/* Buttons */}
-            <ResponsiveView style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.button, styles.verifyButton, loading && styles.buttonDisabled]}
-                onPress={checkEmailVerification}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Ionicons name="sync" size={iconSizes.md} color="#fff" />
-                    <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={[styles.buttonText, styles.verifyButtonText]}>
-                      Checking...
-                    </ResponsiveText>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle-outline" size={iconSizes.md} color="#fff" />
-                    <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#fff" style={[styles.buttonText, styles.verifyButtonText]}>
-                      I've Verified My Email
-                    </ResponsiveText>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.resendButton,
-                  (resendLoading || countdown > 0 || isRateLimited) && styles.buttonDisabled,
-                ]}
-                onPress={resendVerificationEmail}
-                disabled={resendLoading || countdown > 0 || isRateLimited}
-              >
-                {resendLoading ? (
-                  <>
-                    <Ionicons name="sync" size={iconSizes.md} color="#667eea" />
-                    <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#667eea" style={[styles.buttonText, styles.resendButtonText]}>
-                      Sending...
-                    </ResponsiveText>
-                  </>
-                ) : countdown > 0 ? (
-                  <>
-                    <Ionicons 
-                      name={isRateLimited ? "warning-outline" : "time-outline"} 
-                      size={iconSizes.md} 
-                      color="#999" 
-                    />
-                    <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#999" style={[styles.buttonText, styles.resendButtonTextDisabled]}>
-                      {resendAttempts === 0 && countdown > 60
-                        ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
-                        : countdown >= 60 
-                        ? `Wait ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
-                        : `Resend in ${countdown}s`
-                      }
-                    </ResponsiveText>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="mail-outline" size={iconSizes.md} color="#667eea" />
-                    <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "lg" : "md"} weight="600" color="#667eea" style={[styles.buttonText, styles.resendButtonText]}>
-                      {resendAttempts > 0 ? `Resend Email (${resendAttempts})` : 'Resend Email'}
-                    </ResponsiveText>
-                  </>
-                )}
-              </TouchableOpacity>
-            </ResponsiveView>
             </ResponsiveView>
 
             {/* Footer */}
@@ -833,9 +846,10 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => navigation.navigate('Login')}
+                activeOpacity={0.7}
               >
-                <Ionicons name="arrow-back" size={iconSizes.md} color="#667eea" />
-                <ResponsiveText size={isSmallDevice ? "sm" : isTablet ? "md" : "md"} weight="600" color="#667eea" style={styles.backButtonText}>
+                <Ionicons name="arrow-back" size={iconSizes?.md || 20} color="#667eea" />
+                <ResponsiveText size="md" weight="600" color="#667eea" style={styles.backButtonText}>
                   Back to Sign In
                 </ResponsiveText>
               </TouchableOpacity>

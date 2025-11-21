@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Switch,
-  Dimensions,
+  Platform,
+  StatusBar,
   Alert,
   ActivityIndicator,
 } from 'react-native';
@@ -17,9 +18,8 @@ import { auth, db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteUser } from "firebase/auth";
 import { doc, getDoc } from 'firebase/firestore';
-
-const { width, height } = Dimensions.get('window');
-const FONT_SCALE = Math.min(width, height) / 400;
+import { useResponsive } from '../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../components';
 
 interface SectionProps {
   title: string;
@@ -30,14 +30,27 @@ interface SettingRowProps {
   icon: any;
   name: string;
   description?: string;
+  onPress?: () => void;
   children?: React.ReactNode;
 }
 
 const SettingsScreen = () => {
   const { user, theme, toggleTheme, logout } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius: borderRadiusValues, dimensions, responsiveHeight, responsiveWidth } = useResponsive();
   const [userFullName, setUserFullName] = useState<string>('');
   const [loadingUserData, setLoadingUserData] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // Calculate responsive values
+  const isSmallScreen = (dimensions?.width || 360) < 360;
+  const isSmallDevice = dimensions?.isSmallDevice || false;
+  const minTouchTarget = 44;
+  
+  // Calculate header padding
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+  const headerPaddingTop = Platform.OS === 'ios' 
+    ? (spacing?.md || 12) + (isSmallDevice ? (spacing?.xs || 4) : (spacing?.sm || 8))
+    : statusBarHeight + (spacing?.sm || 8);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -118,45 +131,215 @@ const SettingsScreen = () => {
     );
   };
 
+  // Create responsive styles using useMemo
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    scrollContainer: {
+      paddingBottom: spacing?.xl || 24,
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      paddingTop: headerPaddingTop,
+    },
+    // Profile
+    profileSection: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing?.lg || 16,
+    },
+    avatarContainer: {
+      width: responsiveWidth(18) || 72,
+      height: responsiveWidth(18) || 72,
+      minWidth: 60,
+      minHeight: 60,
+      maxWidth: 100,
+      maxHeight: 100,
+      borderRadius: (responsiveWidth(18) || 72) / 2,
+      backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing?.sm || 8,
+    },
+    profileTextContainer: {
+      alignItems: 'center',
+      paddingHorizontal: spacing?.md || 12,
+    },
+    profileName: {
+      fontSize: fontSizes?.xl || 20,
+      fontWeight: 'bold',
+      color: theme === 'light' ? '#000' : '#fff',
+      textAlign: 'center',
+      marginBottom: spacing?.xs || 4,
+    },
+    profileHandle: {
+      fontSize: fontSizes?.sm || 14,
+      color: theme === 'light' ? '#666' : 'rgba(255, 255, 255, 0.7)',
+      textAlign: 'center',
+    },
+    editProfileButton: {
+      backgroundColor: theme === 'light' ? '#fff' : '#2a2a2a',
+      paddingHorizontal: spacing?.md || 12,
+      paddingVertical: spacing?.sm || 8,
+      borderRadius: borderRadiusValues?.lg || 20,
+      marginTop: spacing?.sm || 8,
+      minHeight: minTouchTarget,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    editProfileButtonText: {
+      color: '#5A67D8',
+      fontWeight: 'bold',
+      fontSize: fontSizes?.sm || 14,
+    },
+    // Sections
+    section: {
+      marginTop: spacing?.lg || 16,
+    },
+    sectionTitle: {
+      fontSize: fontSizes?.md || 16,
+      fontWeight: '600',
+      color: theme === 'light' ? '#000' : '#fff',
+      marginBottom: spacing?.sm || 8,
+      paddingHorizontal: spacing?.xs || 4,
+    },
+    sectionCard: {
+      backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(42, 42, 42, 0.95)',
+      borderRadius: borderRadiusValues?.md || 15,
+      paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    // Rows
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing?.md || 12,
+      minHeight: minTouchTarget,
+    },
+    rowIconContainer: {
+      width: responsiveWidth(9) || 36,
+      height: responsiveWidth(9) || 36,
+      minWidth: 32,
+      minHeight: 32,
+      maxWidth: 44,
+      maxHeight: 44,
+      borderRadius: (responsiveWidth(9) || 36) / 2,
+      backgroundColor: theme === 'light' ? '#E9EFFF' : 'rgba(102, 126, 234, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing?.sm || 8,
+      flexShrink: 0,
+    },
+    rowTextContainer: {
+      flex: 1,
+      minWidth: 0,
+    },
+    rowName: {
+      fontSize: fontSizes?.md || 16,
+      fontWeight: '500',
+      color: theme === 'light' ? '#333' : '#fff',
+      marginBottom: spacing?.xs || 2,
+    },
+    rowDescription: {
+      fontSize: fontSizes?.xs || 12,
+      color: theme === 'light' ? '#666' : '#aaa',
+      marginTop: spacing?.xs || 2,
+      lineHeight: (fontSizes?.xs || 12) * 1.4,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme === 'light' ? '#EAEAEA' : '#444',
+      marginLeft: responsiveWidth(10) || 40,
+    },
+    logoutRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flex: 1,
+    },
+    logoutIndicator: {
+      marginRight: spacing?.xs || 4,
+    },
+  }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, isSmallScreen, isSmallDevice, minTouchTarget, headerPaddingTop, responsiveHeight, responsiveWidth, theme]);
+
   const Section = ({ title, children }: SectionProps) => (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>{title}</Text>
-      <View style={styles.sectionCard}>{children}</View>
-    </View>
+    <ResponsiveView style={styles.section}>
+      <ResponsiveText size="md" weight="600" color={theme === 'light' ? '#000' : '#fff'} style={styles.sectionTitle}>
+        {title}
+      </ResponsiveText>
+      <ResponsiveView style={styles.sectionCard}>{children}</ResponsiveView>
+    </ResponsiveView>
   );
 
-  const SettingRow = ({ icon, name, description, children }: SettingRowProps) => (
-    <View style={styles.row}>
-      <View style={styles.rowIconContainer}>
-        <Feather name={icon} size={20 * FONT_SCALE} color="#5A67D8" />
-      </View>
-      <View style={styles.rowTextContainer}>
-        <Text style={styles.rowName}>{name}</Text>
-        {description && <Text style={styles.rowDescription}>{description}</Text>}
-      </View>
-      {children}
-    </View>
-  );
+  const SettingRow = ({ icon, name, description, onPress, children }: SettingRowProps) => {
+    const rowContent = (
+      <ResponsiveView style={styles.row}>
+        <ResponsiveView style={styles.rowIconContainer}>
+          <Feather name={icon} size={iconSizes?.sm || 20} color="#5A67D8" />
+        </ResponsiveView>
+        <ResponsiveView style={styles.rowTextContainer}>
+          <ResponsiveText size="md" weight="500" color={theme === 'light' ? '#333' : '#fff'} style={styles.rowName}>
+            {name}
+          </ResponsiveText>
+          {description && (
+            <ResponsiveText size="xs" color={theme === 'light' ? '#666' : '#aaa'} style={styles.rowDescription}>
+              {description}
+            </ResponsiveText>
+          )}
+        </ResponsiveView>
+        {children}
+      </ResponsiveView>
+    );
+
+    if (onPress) {
+      return (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+          {rowContent}
+        </TouchableOpacity>
+      );
+    }
+
+    return rowContent;
+  };
+
+  const Divider = () => <View style={styles.divider} />;
 
   return (
-    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+    <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Profile Section */}
-          <View style={styles.profileSection}>
-            <View style={styles.profileTextContainer}>
-              <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#000' }]}>
-                {loadingUserData ? 'Loading...' : (userFullName || user?.displayName || 'User')}
-              </Text>
-              <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666' }]}>
-                {user?.email || ''}
-              </Text>
-            </View>
-          </View>
+          <ResponsiveView style={styles.profileSection}>
+            <ResponsiveView style={styles.profileTextContainer}>
+              {loadingUserData ? (
+                <ActivityIndicator size="small" color={theme === 'light' ? '#667eea' : '#fff'} />
+              ) : (
+                <>
+                  <ResponsiveText size="xl" weight="bold" color={theme === 'light' ? '#000' : '#fff'} style={styles.profileName}>
+                    {userFullName || user?.displayName || 'User'}
+                  </ResponsiveText>
+                  <ResponsiveText size="sm" color={theme === 'light' ? '#666' : 'rgba(255, 255, 255, 0.7)'} style={styles.profileHandle}>
+                    {user?.email || ''}
+                  </ResponsiveText>
+                </>
+              )}
+            </ResponsiveView>
+          </ResponsiveView>
 
           {/* Preferences Section */}
           <Section title="Preferences">
-            <SettingRow key="dark" icon="moon" name="Dark Mode" description="Switch to dark theme">
+            <SettingRow icon="moon" name="Dark Mode" description="Switch to dark theme">
               <Switch
                 value={theme === 'dark'}
                 onValueChange={toggleTheme}
@@ -169,40 +352,50 @@ const SettingsScreen = () => {
 
           {/* Support Section */}
           <Section title="Support">
-            <TouchableOpacity>
-              <SettingRow icon="help-circle" name="Help & Support" description="Get help and contact support">
-                <Feather name="chevron-right" size={20 * FONT_SCALE} color="#C0C0C0" />
-              </SettingRow>
-            </TouchableOpacity>
-            <View style={styles.divider} />
-            <TouchableOpacity>
-              <SettingRow icon="info" name="About" description="App version and information">
-                <Feather name="chevron-right" size={20 * FONT_SCALE} color="#C0C0C0" />
-              </SettingRow>
-            </TouchableOpacity>
+            <SettingRow 
+              icon="help-circle" 
+              name="Help & Support" 
+              description="Get help and contact support"
+              onPress={() => console.log('Help & Support pressed')}
+            >
+              <Feather name="chevron-right" size={iconSizes?.sm || 20} color={theme === 'light' ? '#C0C0C0' : '#666'} />
+            </SettingRow>
+            <Divider />
+            <SettingRow 
+              icon="info" 
+              name="About" 
+              description="App version and information"
+              onPress={() => console.log('About pressed')}
+            >
+              <Feather name="chevron-right" size={iconSizes?.sm || 20} color={theme === 'light' ? '#C0C0C0' : '#666'} />
+            </SettingRow>
           </Section>
 
           {/* Account Section */}
           <Section title="Account">
-            <TouchableOpacity onPress={handleLogout} disabled={loggingOut}>
-              <View style={styles.logoutRow}>
+            <TouchableOpacity onPress={handleLogout} disabled={loggingOut} activeOpacity={0.7}>
+              <ResponsiveView style={styles.logoutRow}>
                 <SettingRow icon="log-out" name="Logout" description={loggingOut ? "Signing out..." : "Sign out of your account"} />
                 {loggingOut && (
                   <ActivityIndicator size="small" color="#667eea" style={styles.logoutIndicator} />
                 )}
-              </View>
+              </ResponsiveView>
             </TouchableOpacity>
-            <View style={styles.divider} />
-            <TouchableOpacity onPress={handleDeleteAccount}>
-              <View style={styles.row}>
-                <View style={[styles.rowIconContainer, { backgroundColor: '#FED7D7' }]}>
-                  <Feather name="trash-2" size={20 * FONT_SCALE} color="#C53030" />
-                </View>
-                <View style={styles.rowTextContainer}>
-                  <Text style={[styles.rowName, { color: '#C53030' }]}>Delete Account</Text>
-                  <Text style={styles.rowDescription}>Permanently delete your account</Text>
-                </View>
-              </View>
+            <Divider />
+            <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.7}>
+              <ResponsiveView style={styles.row}>
+                <ResponsiveView style={[styles.rowIconContainer, { backgroundColor: theme === 'light' ? '#FED7D7' : '#4a1f1f' }]}>
+                  <Feather name="trash-2" size={iconSizes?.sm || 20} color="#C53030" />
+                </ResponsiveView>
+                <ResponsiveView style={styles.rowTextContainer}>
+                  <ResponsiveText size="md" weight="500" color="#C53030" style={styles.rowName}>
+                    Delete Account
+                  </ResponsiveText>
+                  <ResponsiveText size="xs" color={theme === 'light' ? '#666' : '#aaa'} style={styles.rowDescription}>
+                    Permanently delete your account
+                  </ResponsiveText>
+                </ResponsiveView>
+              </ResponsiveView>
             </TouchableOpacity>
           </Section>
         </ScrollView>
@@ -211,110 +404,4 @@ const SettingsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    paddingBottom: height * 0.1,
-    paddingHorizontal: width * 0.05,
-  },
-  // Profile
-  profileSection: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: height * 0.03,
-  },
-  avatarContainer: {
-    width: width * 0.18,
-    height: width * 0.18,
-    borderRadius: width * 0.09,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileTextContainer: {
-    alignItems: 'center',
-  },
-  profileName: {
-    fontSize: 20 * FONT_SCALE,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  profileHandle: {
-    fontSize: 14 * FONT_SCALE,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-  },
-  editProfileButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: width * 0.05,
-    paddingVertical: height * 0.015,
-    borderRadius: 20,
-  },
-  editProfileButtonText: {
-    color: '#5A67D8',
-    fontWeight: 'bold',
-    fontSize: 14 * FONT_SCALE,
-  },
-  // Sections
-  section: {
-    marginTop: height * 0.02,
-  },
-  sectionTitle: {
-    fontSize: 16 * FONT_SCALE,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: height * 0.01,
-  },
-  sectionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 15,
-    paddingHorizontal: width * 0.04,
-  },
-  // Rows
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: height * 0.02,
-  },
-  rowIconContainer: {
-    width: 35 * FONT_SCALE,
-    height: 35 * FONT_SCALE,
-    borderRadius: 20,
-    backgroundColor: '#E9EFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: width * 0.04,
-  },
-  rowTextContainer: {
-    flex: 1,
-  },
-  rowName: {
-    fontSize: 16 * FONT_SCALE,
-    fontWeight: '500',
-    color: '#333',
-  },
-  rowDescription: {
-    fontSize: 12 * FONT_SCALE,
-    color: '#666',
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#EAEAEA',
-    marginLeft: width * 0.1,
-  },
-  logoutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logoutIndicator: {
-    marginRight: width * 0.04,
-  },
-});
-
-export default SettingsScreen; 
+export default SettingsScreen;

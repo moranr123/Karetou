@@ -696,6 +696,7 @@ const ReviewsScreen = () => {
           setAllReviewsForBusiness([]);
         }}
       >
+        <StatusBar hidden={Platform.OS === 'android'} />
         <View style={styles.allReviewsContainer}>
           <View style={styles.allReviewsHeader}>
             <TouchableOpacity
@@ -1078,14 +1079,22 @@ const styles = StyleSheet.create({
   allReviewsContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: 0,
+    marginTop: 0,
   },
   allReviewsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#667eea',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 16 : 50 : 16,
+    paddingBottom: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 16 : 16,
+    marginTop: Platform.OS === 'android' ? -(StatusBar.currentHeight || 0) : 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
   },
   allReviewsBackButton: {
     padding: 8,
@@ -1099,6 +1108,7 @@ const styles = StyleSheet.create({
   },
   allReviewsList: {
     padding: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 60 : 60,
     paddingBottom: 100,
   },
   allReviewsItem: {
