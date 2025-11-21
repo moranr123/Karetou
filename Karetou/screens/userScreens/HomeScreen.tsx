@@ -35,6 +35,18 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const base64ImageCache = new Map<string, string>();
 const imageStatusCache = new Map<string, { status: 'loading' | 'loaded' | 'error', promise?: Promise<void> }>();
 
+// Function to clear cache for a specific image URL (useful when images are updated)
+export const clearImageCache = (imageUrl: string) => {
+  base64ImageCache.delete(imageUrl);
+  imageStatusCache.delete(imageUrl);
+};
+
+// Function to clear all image cache (useful for debugging or when many images are updated)
+export const clearAllImageCache = () => {
+  base64ImageCache.clear();
+  imageStatusCache.clear();
+};
+
 // Convert image to base64 for ultimate caching
 const convertToBase64 = async (uri: string): Promise<string | null> => {
   try {

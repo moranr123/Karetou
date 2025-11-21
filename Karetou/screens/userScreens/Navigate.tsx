@@ -614,26 +614,33 @@ const Navigate = () => {
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const timeoutId = setTimeout(() => {
+        console.warn(`⏱️ Request timeout after 15 seconds (attempt ${retryCount + 1})`);
+        controller.abort();
+      }, 15000); // 15 second timeout (increased from 8 seconds)
 
-      const response = await fetch(
-        'https://api.openrouteservice.org/v2/directions/' + orsMode + '/geojson',
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-            'Content-Type': 'application/json; charset=utf-8',
-            'Authorization': ORS_API_KEY
-          },
-          body: JSON.stringify({
-            coordinates: coordinates,
-            units: 'km'
-          }),
-          signal: controller.signal
-        }
-      );
-
-      clearTimeout(timeoutId);
+      let response;
+      try {
+        response = await fetch(
+          'https://api.openrouteservice.org/v2/directions/' + orsMode + '/geojson',
+          {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+              'Content-Type': 'application/json; charset=utf-8',
+              'Authorization': ORS_API_KEY
+            },
+            body: JSON.stringify({
+              coordinates: coordinates,
+              units: 'km'
+            }),
+            signal: controller.signal
+          }
+        );
+      } finally {
+        // Always clear the timeout to prevent memory leaks
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
@@ -783,20 +790,26 @@ const Navigate = () => {
       console.log('✅ Route cached successfully for', mode);
 
       return route;
-    } catch (error) {
-      console.error(`Error fetching directions from OpenRouteService (attempt ${retryCount + 1}):`, error);
+    } catch (error: any) {
+      const isAbortError = error?.name === 'AbortError' || error?.message?.includes('Aborted');
+      const errorType = isAbortError ? 'timeout/abort' : 'network/API';
       
-      // Retry up to 2 times with different parameters
+      console.error(`Error fetching directions from OpenRouteService (attempt ${retryCount + 1}): [${errorType}]`, error?.message || error);
+      
+      // Retry up to 2 times with exponential backoff
       if (retryCount < 2) {
-        console.log(`🔄 Retrying OpenRouteService request (attempt ${retryCount + 2})...`);
+        const retryDelay = isAbortError ? 2000 * (retryCount + 1) : 1000 * (retryCount + 1);
+        console.log(`🔄 Retrying OpenRouteService request (attempt ${retryCount + 2}) after ${retryDelay}ms...`);
         
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        // Wait before retrying (longer delay for abort errors)
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
         
         try {
           return await getRouteFromORS(origin, destination, mode, retryCount + 1);
-        } catch (retryError) {
-          console.error(`Retry ${retryCount + 2} also failed:`, retryError);
+        } catch (retryError: any) {
+          const retryIsAbort = retryError?.name === 'AbortError' || retryError?.message?.includes('Aborted');
+          console.error(`Retry ${retryCount + 2} also failed [${retryIsAbort ? 'timeout/abort' : 'network/API'}]:`, retryError?.message || retryError);
+          // Continue to fallback below
         }
       }
       

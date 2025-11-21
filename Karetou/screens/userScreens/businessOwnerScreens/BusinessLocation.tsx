@@ -217,7 +217,9 @@ const BusinessLocationScreen = () => {
       const response = await fetch(imageUri);
       const blob = await response.blob();
       
-      const imageRef = ref(storage, `business_registrations/${user?.uid}/${imageName}`);
+      // Add timestamp to make filename unique and prevent overwriting
+      const uniqueImageName = `${imageName}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const imageRef = ref(storage, `business_registrations/${user?.uid}/${uniqueImageName}`);
       await uploadBytes(imageRef, blob);
       
       const downloadURL = await getDownloadURL(imageRef);
