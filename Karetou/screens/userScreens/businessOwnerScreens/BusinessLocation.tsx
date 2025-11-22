@@ -338,14 +338,17 @@ const BusinessLocationScreen = () => {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
       paddingBottom: spacing.md,
+      minHeight: 60,
     },
     backButton: {
       marginRight: spacing.md,
+      minWidth: 44,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     title: {
-      fontSize: fontSizes.xl,
-      fontWeight: 'bold',
-      color: '#333',
+      flex: 1,
     },
     progressContainer: {
       backgroundColor: '#fff',
@@ -446,6 +449,7 @@ const BusinessLocationScreen = () => {
       borderRadius: borderRadius.lg,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
+      minHeight: 50,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.1,
@@ -454,17 +458,23 @@ const BusinessLocationScreen = () => {
     },
     searchIcon: {
       marginRight: spacing.sm,
+      flexShrink: 0,
     },
     searchInput: {
       flex: 1,
       fontSize: fontSizes.md,
       color: '#333',
+      minWidth: 0,
     },
     searchButton: {
       backgroundColor: '#667eea',
       borderRadius: borderRadius.sm,
       padding: spacing.sm,
+      minWidth: 44,
+      minHeight: 44,
       marginLeft: spacing.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     searchResultsContainer: {
       backgroundColor: '#fff',
@@ -475,18 +485,21 @@ const BusinessLocationScreen = () => {
       shadowOpacity: 0.1,
       shadowRadius: 2,
       elevation: 2,
+      maxHeight: 200,
     },
     searchResultItem: {
       padding: spacing.md,
+      minHeight: 50,
       borderBottomWidth: 1,
       borderBottomColor: '#f0f0f0',
     },
     searchResultText: {
-      fontSize: fontSizes.md,
-      color: '#333',
+      // Styles handled by ResponsiveText
     },
     mapContainer: {
       height: getResponsiveHeight(40),
+      minHeight: 200,
+      maxHeight: 400,
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
       borderRadius: borderRadius.lg,
@@ -508,14 +521,9 @@ const BusinessLocationScreen = () => {
       elevation: 2,
     },
     locationInfoTitle: {
-      fontSize: fontSizes.lg,
-      fontWeight: 'bold',
-      color: '#333',
       marginBottom: spacing.sm,
     },
     locationInfoText: {
-      fontSize: fontSizes.md,
-      color: '#666',
       lineHeight: fontSizes.md * 1.4,
     },
     nextButton: {
@@ -523,7 +531,9 @@ const BusinessLocationScreen = () => {
       borderRadius: borderRadius.lg,
       paddingVertical: spacing.lg,
       paddingHorizontal: spacing.xl,
+      minHeight: 50,
       alignItems: 'center',
+      justifyContent: 'center',
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
     },
@@ -532,20 +542,18 @@ const BusinessLocationScreen = () => {
     },
     nextButtonText: {
       color: '#fff',
-      fontSize: fontSizes.lg,
-      fontWeight: 'bold',
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+      paddingVertical: 50,
     },
     loadingIndicator: {
       marginBottom: spacing.lg,
     },
     loadingText: {
-      fontSize: fontSizes.lg,
-      color: '#333',
+      // Styles handled by ResponsiveText
     },
   });
 
@@ -642,19 +650,25 @@ const BusinessLocationScreen = () => {
         <SafeAreaView style={styles.safeArea}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#333" />
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()} 
+              style={styles.backButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="arrow-back" size={iconSizes.lg} color="#333" />
             </TouchableOpacity>
-            <Text style={styles.title}>Business Location</Text>
+            <ResponsiveText size="xl" weight="bold" color="#333" style={styles.title}>
+              Business Location
+            </ResponsiveText>
           </View>
 
           {/* Progress Bar */}
           <ProgressBar />
 
           {/* Search Bar */}
-          <View style={styles.searchContainer}>
+          <ResponsiveView style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color="#667eea" style={styles.searchIcon} />
+              <Ionicons name="search" size={iconSizes.md} color="#667eea" style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search for a location..."
@@ -663,8 +677,13 @@ const BusinessLocationScreen = () => {
                 onChangeText={setSearchQuery}
                 onSubmitEditing={handleSearch}
               />
-              <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <TouchableOpacity 
+                onPress={handleSearch} 
+                style={styles.searchButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-forward" size={iconSizes.md} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -676,15 +695,16 @@ const BusinessLocationScreen = () => {
                     key={index}
                     style={styles.searchResultItem}
                     onPress={() => handleSelectSearchResult(result, index)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.searchResultText}>
+                    <ResponsiveText size="md" color="#333" style={styles.searchResultText} numberOfLines={2}>
                       {result.name || `${result.latitude.toFixed(4)}, ${result.longitude.toFixed(4)}`}
-                    </Text>
+                    </ResponsiveText>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
-          </View>
+          </ResponsiveView>
 
           {/* Map */}
           <View style={styles.mapContainer}>
@@ -716,10 +736,14 @@ const BusinessLocationScreen = () => {
 
           {/* Location Info */}
           {selectedLocation && (
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationInfoTitle}>Selected Location</Text>
-              <Text style={styles.locationInfoText}>{locationAddress}</Text>
-            </View>
+            <ResponsiveView style={styles.locationInfo}>
+              <ResponsiveText size="md" weight="bold" color="#333" style={styles.locationInfoTitle}>
+                Selected Location
+              </ResponsiveText>
+              <ResponsiveText size="sm" color="#666" style={styles.locationInfoText} numberOfLines={3}>
+                {locationAddress}
+              </ResponsiveText>
+            </ResponsiveView>
           )}
 
           {/* Next Button */}
@@ -727,11 +751,14 @@ const BusinessLocationScreen = () => {
             style={[styles.nextButton, isSubmitting && styles.nextButtonDisabled]}
             onPress={handleNext}
             disabled={isSubmitting}
+            activeOpacity={0.8}
           >
             {isSubmitting ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.nextButtonText}>Complete Registration</Text>
+              <ResponsiveText size="lg" weight="bold" color="#fff" style={styles.nextButtonText}>
+                Complete Registration
+              </ResponsiveText>
             )}
           </TouchableOpacity>
         </SafeAreaView>

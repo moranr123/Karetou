@@ -379,6 +379,7 @@ const Navigate = () => {
   const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
+      ...(Platform.OS === 'ios' && { paddingBottom: 0 }),
     },
     safeArea: {
       flex: 1,
@@ -516,6 +517,7 @@ const Navigate = () => {
       justifyContent: 'center',
       alignItems: 'center',
       padding: isSmallScreen ? spacing.md : spacing.lg,
+      paddingBottom: Platform.OS === 'ios' ? (isSmallScreen ? spacing.xs : spacing.xs) : (isSmallScreen ? spacing.md : spacing.lg),
       position: 'absolute',
       top: 0,
       left: 0,
@@ -525,8 +527,9 @@ const Navigate = () => {
     },
     detailsContainer: {
       width: '100%',
-      maxWidth: 400,
-      maxHeight: dimensions.height * 0.90,
+      maxWidth: isSmallScreen ? '95%' : 400,
+      maxHeight: isSmallScreen ? dimensions.height * 0.85 : dimensions.height * 0.90,
+      minHeight: dimensions.height * 0.30,
       backgroundColor: '#fff',
       borderRadius: borderRadiusValues.lg,
       overflow: 'hidden',
@@ -536,83 +539,85 @@ const Navigate = () => {
       shadowOpacity: 0.34,
       shadowRadius: 6.27,
       zIndex: 1000,
+      flexDirection: 'column',
     },
     contentContainer: {
-      padding: isSmallDevice ? spacing.sm : spacing.md,
+      padding: isSmallDevice ? spacing.xs : spacing.sm,
+      paddingBottom: 0,
       backgroundColor: '#fff',
       minHeight: 180,
+      flexGrow: 1,
+    },
+    scrollContentContainer: {
+      paddingBottom: Platform.OS === 'ios' 
+        ? (isSmallScreen ? spacing.sm : spacing.xs)
+        : (isSmallScreen ? spacing.md : spacing.sm),
+      flexGrow: 1,
     },
     businessInfo: {
-      marginBottom: isSmallDevice ? spacing.sm : spacing.md,
+      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
       alignItems: 'center',
     },
     businessName: {
-      fontSize: isSmallDevice ? fontSizes.sm : fontSizes.md,
-      fontWeight: '600',
-      color: '#333',
       marginBottom: spacing.xs,
       textAlign: 'center',
+      paddingHorizontal: spacing.xs,
     },
     businessType: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
       textAlign: 'center',
+      paddingHorizontal: spacing.xs,
     },
     locationRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: isSmallDevice ? spacing.xs : spacing.xs,
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
       alignSelf: 'stretch',
     },
     locationText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginLeft: spacing.sm,
       flex: 1,
+      minWidth: 0,
       flexWrap: 'wrap',
     },
     timeRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: isSmallDevice ? spacing.xs : spacing.xs,
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
       alignSelf: 'stretch',
     },
     timeText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginLeft: spacing.sm,
     },
     infoRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
       alignSelf: 'stretch',
     },
     infoText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginLeft: spacing.sm,
       flex: 1,
+      minWidth: 0,
     },
     travelModesContainer: {
-      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
       backgroundColor: '#f5f5f5',
       borderRadius: borderRadiusValues.md,
-      padding: isSmallDevice ? spacing.xs : spacing.xs,
+      padding: isSmallDevice ? spacing.xs / 2 : spacing.xs,
     },
     travelModeRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+      marginBottom: isSmallDevice ? spacing.xs / 4 : spacing.xs / 2,
     },
     travelModeButton: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: isSmallDevice ? spacing.xs : spacing.sm,
-      marginHorizontal: spacing.xs,
+      paddingVertical: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+      marginHorizontal: spacing.xs / 2,
       borderRadius: borderRadiusValues.sm,
-      minHeight: minTouchTarget,
+      minHeight: isSmallScreen ? 40 : minTouchTarget,
       justifyContent: 'center',
     },
     selectedMode: {
@@ -624,20 +629,18 @@ const Navigate = () => {
       shadowRadius: 1.41,
     },
     travelModeText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginTop: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+      textAlign: 'center',
     },
     selectedModeText: {
-      color: '#007AFF',
-      fontWeight: '500',
+      // Styles handled by ResponsiveText
     },
     routeInfo: {
       backgroundColor: '#f5f5f5',
       borderRadius: borderRadiusValues.md,
-      padding: isSmallDevice ? spacing.sm : spacing.sm,
-      marginBottom: isSmallDevice ? spacing.sm : spacing.md,
-      minHeight: isSmallDevice ? 50 : 70,
+      padding: isSmallDevice ? spacing.xs : spacing.sm,
+      marginBottom: isSmallDevice ? spacing.xs : spacing.sm,
+      minHeight: isSmallDevice ? 40 : 60,
       justifyContent: 'center',
     },
     routeInfoCentered: {
@@ -657,27 +660,22 @@ const Navigate = () => {
       marginBottom: spacing.xs,
     },
     routeInfoText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginLeft: spacing.sm,
     },
     trafficContainer: {
       backgroundColor: '#fff',
       borderRadius: borderRadiusValues.sm,
-      padding: isSmallDevice ? spacing.xs : spacing.sm,
-      marginTop: isSmallDevice ? spacing.xs : spacing.xs,
+      padding: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+      marginTop: isSmallDevice ? spacing.xs / 2 : spacing.xs,
       borderWidth: 1,
       borderColor: '#e0e0e0',
     },
     trafficHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: isSmallDevice ? spacing.xs : spacing.xs,
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs / 2,
     },
     trafficHeaderText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
-      fontWeight: '600',
       marginLeft: spacing.xs,
       textTransform: 'uppercase',
     },
@@ -687,16 +685,12 @@ const Navigate = () => {
     trafficRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+      marginBottom: isSmallDevice ? spacing.xs / 4 : spacing.xs / 2,
     },
     trafficText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      fontWeight: '600',
       marginLeft: spacing.xs,
     },
     trafficDetailText: {
-      fontSize: isSmallDevice ? fontSizes.xs : fontSizes.sm,
-      color: '#666',
       marginLeft: spacing.xs,
     },
     actionButtons: {
@@ -732,7 +726,7 @@ const Navigate = () => {
     },
     carouselImage: {
       width: dimensions.width,
-      height: responsiveHeight(25),
+      height: isSmallScreen ? responsiveHeight(12) : responsiveHeight(15),
     },
     imageIndicators: {
       position: 'absolute',
@@ -758,7 +752,7 @@ const Navigate = () => {
     },
     noImageContainer: {
       width: '100%',
-      height: responsiveHeight(25),
+      height: isSmallScreen ? responsiveHeight(12) : responsiveHeight(15),
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: '#f0f0f0',
@@ -844,20 +838,19 @@ const Navigate = () => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: isSmallDevice ? spacing.md : spacing.md,
+      paddingVertical: isSmallDevice ? spacing.sm : spacing.md,
       borderRadius: borderRadiusValues.md,
       elevation: 2,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.2,
-      marginTop: isSmallDevice ? spacing.sm : spacing.md,
+      marginTop: isSmallDevice ? spacing.xs : spacing.sm,
+      marginBottom: spacing.xs,
       shadowRadius: 1.41,
-      minHeight: minTouchTarget,
+      minHeight: isSmallScreen ? 44 : minTouchTarget,
     },
     navigateButtonText: {
       color: '#fff',
-      fontSize: isSmallDevice ? fontSizes.sm : fontSizes.md,
-      fontWeight: '600',
       marginLeft: spacing.sm,
     },
     navigateButtonDisabled: {
@@ -868,17 +861,16 @@ const Navigate = () => {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#ffebee',
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
+      paddingVertical: isSmallDevice ? spacing.xs : spacing.sm,
+      paddingHorizontal: isSmallDevice ? spacing.xs : spacing.sm,
       borderRadius: borderRadiusValues.sm,
-      marginTop: spacing.md,
+      marginTop: isSmallDevice ? spacing.xs / 2 : spacing.xs,
+      marginBottom: isSmallDevice ? spacing.xs / 2 : spacing.xs,
       borderWidth: 1,
       borderColor: '#ef5350',
     },
     closedStatusText: {
       color: '#d32f2f',
-      fontSize: fontSizes.sm,
-      fontWeight: '600',
       marginLeft: spacing.sm,
     },
     mapContainer: {
@@ -1102,9 +1094,7 @@ const Navigate = () => {
       borderRadius: minTouchTarget / 2,
     },
     closeButtonText: {
-      fontSize: fontSizes.xl,
-      color: '#333',
-      fontWeight: '600',
+      // Styles handled by ResponsiveText
     },
     description: {
       fontSize: fontSizes.sm,
@@ -1124,7 +1114,7 @@ const Navigate = () => {
       fontWeight: '600',
     },
     imageCarouselContainer: {
-      height: responsiveHeight(18),
+      height: isSmallScreen ? responsiveHeight(12) : responsiveHeight(15),
       backgroundColor: '#f0f0f0',
       alignItems: 'center',
     },
@@ -1239,6 +1229,7 @@ const Navigate = () => {
       padding: isSmallScreen ? spacing.sm : spacing.md,
       width: '90%',
       maxWidth: 400,
+      minWidth: isSmallScreen ? '85%' : '90%',
       maxHeight: dimensions.height * 0.65,
       alignItems: 'center',
       shadowColor: '#000',
@@ -1248,11 +1239,9 @@ const Navigate = () => {
       elevation: 8,
     },
     nearbyTitle: {
-      fontSize: isSmallScreen ? fontSizes.md : fontSizes.lg,
-      fontWeight: '700',
-      color: '#222',
       marginBottom: isSmallScreen ? spacing.sm : spacing.md,
       textAlign: 'center',
+      paddingHorizontal: spacing.xs,
     },
     nearbyCard: {
       flexDirection: 'row',
@@ -1272,22 +1261,18 @@ const Navigate = () => {
     nearbyImage: {
       width: isSmallScreen ? iconSizes.lg : iconSizes.xl,
       height: isSmallScreen ? iconSizes.lg : iconSizes.xl,
+      minWidth: iconSizes.lg,
+      minHeight: iconSizes.lg,
       borderRadius: borderRadiusValues.sm,
       backgroundColor: '#eee',
     },
     nearbyName: {
-      fontWeight: '700',
-      fontSize: isSmallScreen ? fontSizes.sm : fontSizes.md,
-      color: '#181848',
+      // Styles handled by ResponsiveText
     },
     nearbyDistance: {
-      fontSize: isSmallScreen ? fontSizes.xs : fontSizes.sm,
-      color: '#1976d2',
       marginLeft: spacing.xs,
     },
     nearbyRating: {
-      fontSize: isSmallScreen ? fontSizes.xs : fontSizes.sm,
-      color: '#888',
       marginLeft: spacing.xs,
     },
     nearbyNavigateBtn: {
@@ -1295,17 +1280,16 @@ const Navigate = () => {
       borderRadius: borderRadiusValues.xs,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: isSmallScreen ? spacing.xs : spacing.xs,
+      paddingVertical: spacing.xs,
       paddingHorizontal: isSmallScreen ? spacing.sm : spacing.sm,
       marginLeft: isSmallScreen ? spacing.xs : spacing.xs,
       minHeight: minTouchTarget,
+      minWidth: minTouchTarget,
       justifyContent: 'center',
     },
     nearbyNavigateText: {
       color: '#8D5C2C',
-      fontWeight: '600',
       marginLeft: spacing.xs / 2,
-      fontSize: isSmallScreen ? fontSizes.xs : fontSizes.sm,
     },
     nearbyCloseBtn: {
       width: '100%',
@@ -1316,15 +1300,13 @@ const Navigate = () => {
     nearbyCloseSolid: {
       backgroundColor: '#3B2FEA',
       paddingVertical: isSmallScreen ? spacing.xs : spacing.sm,
+      minHeight: minTouchTarget,
       borderRadius: borderRadiusValues.md,
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: minTouchTarget,
     },
     nearbyCloseText: {
       color: '#fff',
-      fontWeight: '700',
-      fontSize: isSmallScreen ? fontSizes.sm : fontSizes.md,
       textAlign: 'center',
     },
   }), [spacing, fontSizes, iconSizes, borderRadiusValues, dimensions, responsiveHeight, responsiveWidth, isSmallDevice, isSmallScreen, minTouchTarget]);
@@ -3538,8 +3520,9 @@ const Navigate = () => {
                     setRouteDetails(null);
                   }
                 }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.closeButtonText}>×</Text>
+                <ResponsiveText size="xl" weight="bold" color="#333" style={styles.closeButtonText}>×</ResponsiveText>
               </TouchableOpacity>
 
               {/* Image Carousel */}
@@ -3583,10 +3566,10 @@ const Navigate = () => {
                       )}
                     </>
                   ) : (
-                    <View style={styles.noImageContainer}>
-                      <Ionicons name="image-outline" size={60} color="#ccc" />
-                      <Text style={styles.noImageText}>No images available</Text>
-                    </View>
+                    <ResponsiveView style={styles.noImageContainer}>
+                      <Ionicons name="image-outline" size={iconSizes.xxxxl} color="#ccc" />
+                      <ResponsiveText size="sm" color="#999" style={styles.noImageText}>No images available</ResponsiveText>
+                    </ResponsiveView>
                   )}
                 </View>
               )}
@@ -3595,58 +3578,63 @@ const Navigate = () => {
               <View style={styles.contentContainer}>
                 {/* Show loading if details are not loaded */}
                 {!selectedBusinessDetails ? (
-                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <ResponsiveView style={{ alignItems: 'center', paddingVertical: 40 }}>
                     <ActivityIndicator size="large" color="#4B50E6" />
-                    <Text style={{ marginTop: 16, color: '#666', fontSize: 16 }}>Loading business details...</Text>
-                  </View>
+                    <ResponsiveText size="md" color="#666" style={{ marginTop: 16 }}>Loading business details...</ResponsiveText>
+                  </ResponsiveView>
                 ) : (
-                  <ScrollView showsVerticalScrollIndicator={false}>
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContentContainer}
+                  >
                     {/* Business Info */}
-                    <View style={styles.businessInfo}>
-                      <Text style={styles.businessName}>{selectedBusinessDetails?.name}</Text>
-                      <Text style={styles.businessType}>{selectedBusinessDetails?.businessType}</Text>
+                    <ResponsiveView style={styles.businessInfo}>
+                      <ResponsiveText size="lg" weight="600" color="#333" style={styles.businessName}>{selectedBusinessDetails?.name}</ResponsiveText>
+                      <ResponsiveText size="sm" color="#666" style={styles.businessType}>{selectedBusinessDetails?.businessType}</ResponsiveText>
                       
                       <View style={styles.locationRow}>
-                        <Ionicons name="location" size={16} color="#666" />
-                        <Text style={styles.locationText} numberOfLines={2}>
+                        <Ionicons name="location" size={iconSizes.sm} color="#666" />
+                        <ResponsiveText size="sm" color="#666" style={styles.locationText} numberOfLines={2}>
                           {selectedBusinessDetails?.location || 'Location not available'}
-                        </Text>
+                        </ResponsiveText>
                       </View>
                       {selectedBusinessDetails?.businessHours && (
                         <View style={styles.timeRow}>
-                          <Ionicons name="time" size={16} color="#666" />
-                          <Text style={styles.timeText}>{selectedBusinessDetails.businessHours}</Text>
+                          <Ionicons name="time" size={iconSizes.sm} color="#666" />
+                          <ResponsiveText size="sm" color="#666" style={styles.timeText}>{selectedBusinessDetails.businessHours}</ResponsiveText>
                         </View>
                       )}
                       {selectedBusinessDetails?.contactNumber && (
                         <View style={styles.infoRow}>
-                          <Ionicons name="call" size={16} color="#666" />
-                          <Text style={styles.infoText}>{selectedBusinessDetails.contactNumber}</Text>
+                          <Ionicons name="call" size={iconSizes.sm} color="#666" />
+                          <ResponsiveText size="sm" color="#666" style={styles.infoText}>{selectedBusinessDetails.contactNumber}</ResponsiveText>
                         </View>
                       )}
 
-                    </View>
+                    </ResponsiveView>
 
                     {/* Travel Modes */}
-                    <View style={styles.travelModesContainer}>
+                    <ResponsiveView style={styles.travelModesContainer}>
                       <View style={styles.travelModeRow}>
                         <TouchableOpacity 
                           style={[styles.travelModeButton, selectedTravelMode === 'driving' && styles.selectedMode]}
                           onPress={() => {
                             setSelectedTravelMode('driving');
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Ionicons name="car" size={20} color={selectedTravelMode === 'driving' ? '#007AFF' : '#666'} />
-                          <Text style={[styles.travelModeText, selectedTravelMode === 'driving' && styles.selectedModeText]}>Driving</Text>
+                          <Ionicons name="car" size={iconSizes.md} color={selectedTravelMode === 'driving' ? '#007AFF' : '#666'} />
+                          <ResponsiveText size="sm" color={selectedTravelMode === 'driving' ? '#007AFF' : '#666'} weight={selectedTravelMode === 'driving' ? '600' : 'normal'} style={[styles.travelModeText, selectedTravelMode === 'driving' && styles.selectedModeText]}>Driving</ResponsiveText>
                         </TouchableOpacity>
                         <TouchableOpacity 
                           style={[styles.travelModeButton, selectedTravelMode === 'walking' && styles.selectedMode]}
                           onPress={() => {
                             setSelectedTravelMode('walking');
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Ionicons name="walk" size={20} color={selectedTravelMode === 'walking' ? '#007AFF' : '#666'} />
-                          <Text style={[styles.travelModeText, selectedTravelMode === 'walking' && styles.selectedModeText]}>Walking</Text>
+                          <Ionicons name="walk" size={iconSizes.md} color={selectedTravelMode === 'walking' ? '#007AFF' : '#666'} />
+                          <ResponsiveText size="sm" color={selectedTravelMode === 'walking' ? '#007AFF' : '#666'} weight={selectedTravelMode === 'walking' ? '600' : 'normal'} style={[styles.travelModeText, selectedTravelMode === 'walking' && styles.selectedModeText]}>Walking</ResponsiveText>
                         </TouchableOpacity>
                       </View>
                       <View style={styles.travelModeRow}>
@@ -3655,94 +3643,93 @@ const Navigate = () => {
                           onPress={() => {
                             setSelectedTravelMode('bicycling');
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Ionicons name="bicycle" size={20} color={selectedTravelMode === 'bicycling' ? '#007AFF' : '#666'} />
-                          <Text style={[styles.travelModeText, selectedTravelMode === 'bicycling' && styles.selectedModeText]}>Bicycling</Text>
+                          <Ionicons name="bicycle" size={iconSizes.md} color={selectedTravelMode === 'bicycling' ? '#007AFF' : '#666'} />
+                          <ResponsiveText size="sm" color={selectedTravelMode === 'bicycling' ? '#007AFF' : '#666'} weight={selectedTravelMode === 'bicycling' ? '600' : 'normal'} style={[styles.travelModeText, selectedTravelMode === 'bicycling' && styles.selectedModeText]}>Bicycling</ResponsiveText>
                         </TouchableOpacity>
                         <TouchableOpacity 
                           style={[styles.travelModeButton, selectedTravelMode === 'transit' && styles.selectedMode]}
                           onPress={() => {
                             setSelectedTravelMode('transit');
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Ionicons name="bus" size={20} color={selectedTravelMode === 'transit' ? '#007AFF' : '#666'} />
-                          <Text style={[styles.travelModeText, selectedTravelMode === 'transit' && styles.selectedModeText]}>Transit</Text>
+                          <Ionicons name="bus" size={iconSizes.md} color={selectedTravelMode === 'transit' ? '#007AFF' : '#666'} />
+                          <ResponsiveText size="sm" color={selectedTravelMode === 'transit' ? '#007AFF' : '#666'} weight={selectedTravelMode === 'transit' ? '600' : 'normal'} style={[styles.travelModeText, selectedTravelMode === 'transit' && styles.selectedModeText]}>Transit</ResponsiveText>
                         </TouchableOpacity>
                       </View>
-                    </View>
+                    </ResponsiveView>
 
                     {/* Route Info */}
-                    <View style={styles.routeInfo}>
+                    <ResponsiveView style={styles.routeInfo}>
                       {isLoading ? (
                         <ActivityIndicator size="small" color="#4B50E6" />
                       ) : routeDetails ? (
-                        <View style={styles.routeInfoContainer}>
+                        <ResponsiveView style={styles.routeInfoContainer}>
                           <View style={styles.routeInfoRow}>
                             <View style={styles.routeInfoItem}>
-                              <Ionicons name="time" size={16} color="#666" />
-                              <Text style={styles.routeInfoText}>{routeDetails.duration}</Text>
+                              <Ionicons name="time" size={iconSizes.sm} color="#666" />
+                              <ResponsiveText size="sm" color="#666" style={styles.routeInfoText}>{routeDetails.duration}</ResponsiveText>
                             </View>
                             <View style={styles.routeInfoItem}>
-                              <Ionicons name="navigate" size={16} color="#666" />
-                              <Text style={styles.routeInfoText}>{routeDetails.distance}</Text>
+                              <Ionicons name="navigate" size={iconSizes.sm} color="#666" />
+                              <ResponsiveText size="sm" color="#666" style={styles.routeInfoText}>{routeDetails.distance}</ResponsiveText>
                             </View>
                           </View>
                           
                           {/* Traffic Insights */}
                           {routeDetails.trafficInfo && (
-                            <View style={styles.trafficContainer}>
+                            <ResponsiveView style={styles.trafficContainer}>
                               <View style={styles.trafficHeader}>
                                 <Ionicons 
                                   name="car-sport" 
-                                  size={14} 
+                                  size={iconSizes.xs} 
                                   color="#666" 
                                 />
-                                <Text style={styles.trafficHeaderText}>Traffic Insights</Text>
+                                <ResponsiveText size="xs" weight="600" color="#666" style={styles.trafficHeaderText}>Traffic Insights</ResponsiveText>
                               </View>
                               
-                              <View style={styles.trafficContentContainer}>
+                              <ResponsiveView style={styles.trafficContentContainer}>
                                 <View style={styles.trafficRow}>
                                   <Ionicons 
                                     name={getTrafficStyle(routeDetails.trafficInfo.condition).icon} 
-                                    size={16} 
+                                    size={iconSizes.sm} 
                                     color={getTrafficStyle(routeDetails.trafficInfo.condition).color} 
                                   />
-                                  <Text style={[styles.trafficText, { 
-                                    color: getTrafficStyle(routeDetails.trafficInfo.condition).color,
-                                    textTransform: 'capitalize'
-                                  }]}>
+                                  <ResponsiveText size="sm" weight="600" color={getTrafficStyle(routeDetails.trafficInfo.condition).color} style={styles.trafficText}>
                                     {routeDetails.trafficInfo.condition} traffic
-                                  </Text>
+                                  </ResponsiveText>
                                 </View>
                                 
                                 <View style={styles.trafficRow}>
-                                  <Ionicons name="time-outline" size={14} color="#666" />
-                                  <Text style={styles.trafficDetailText}>
+                                  <Ionicons name="time-outline" size={iconSizes.xs} color="#666" />
+                                  <ResponsiveText size="sm" color="#666" style={styles.trafficDetailText}>
                                     {routeDetails.trafficInfo.estimatedDelay}
-                                  </Text>
+                                  </ResponsiveText>
                                 </View>
                                 
                                 <View style={styles.trafficRow}>
-                                  <Ionicons name="git-branch-outline" size={14} color="#666" />
-                                  <Text style={styles.trafficDetailText}>
+                                  <Ionicons name="git-branch-outline" size={iconSizes.xs} color="#666" />
+                                  <ResponsiveText size="sm" color="#666" style={styles.trafficDetailText}>
                                     {routeDetails.trafficInfo.alternativeRoutes} route{routeDetails.trafficInfo.alternativeRoutes > 1 ? 's' : ''} available
-                                  </Text>
+                                  </ResponsiveText>
                                 </View>
-                              </View>
-                            </View>
+                              </ResponsiveView>
+                            </ResponsiveView>
                           )}
-                        </View>
+                        </ResponsiveView>
                       ) : (
-                        <Text style={styles.routeInfoText}>Calculating route...</Text>
+                        <ResponsiveText size="sm" color="#666" style={styles.routeInfoText}>Calculating route...</ResponsiveText>
                       )}
-                    </View>
+                    </ResponsiveView>
 
                     {/* Business Closed Status */}
                     {isBusinessClosed && (
-                      <View style={styles.closedStatusContainer}>
-                        <Ionicons name="time-outline" size={20} color="#d32f2f" />
-                        <Text style={styles.closedStatusText}>This business is currently closed</Text>
-                      </View>
+                      <ResponsiveView style={styles.closedStatusContainer}>
+                        <Ionicons name="time-outline" size={iconSizes.md} color="#d32f2f" />
+                        <ResponsiveText size="sm" weight="600" color="#d32f2f" style={styles.closedStatusText}>This business is currently closed</ResponsiveText>
+                      </ResponsiveView>
                     )}
 
                     {/* Navigate Button */}
@@ -3750,15 +3737,16 @@ const Navigate = () => {
                       style={[styles.navigateButton, (isLoading || isNavigationLoading || isBusinessClosed) && styles.navigateButtonDisabled]} 
                       onPress={handleStartNavigation}
                       disabled={isLoading || isNavigationLoading || isBusinessClosed}
+                      activeOpacity={0.8}
                     >
                       {isNavigationLoading ? (
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
-                        <Ionicons name="navigate" size={20} color="#fff" />
+                        <Ionicons name="navigate" size={iconSizes.md} color="#fff" />
                       )}
-                      <Text style={styles.navigateButtonText}>
+                      <ResponsiveText size="md" weight="600" color="#fff" style={styles.navigateButtonText}>
                         {isBusinessClosed ? 'Business Closed' : isNavigationLoading ? 'Starting Navigation...' : isLoading ? 'Calculating...' : 'Navigate'}
-                      </Text>
+                      </ResponsiveText>
                     </TouchableOpacity>
                   </ScrollView>
                 )}
@@ -3774,9 +3762,9 @@ const Navigate = () => {
           animationType="fade"
           onRequestClose={() => setShowNearbyModal(false)}
         >
-          <View style={styles.nearbyOverlay}>
-            <View style={styles.nearbyModal}>
-              <Text style={styles.nearbyTitle}>Discover What's Just Steps Away!</Text>
+          <ResponsiveView style={styles.nearbyOverlay}>
+            <ResponsiveView style={styles.nearbyModal}>
+              <ResponsiveText size="lg" weight="700" color="#222" style={styles.nearbyTitle}>Discover What's Just Steps Away!</ResponsiveText>
               <ScrollView
                 style={{ width: '100%', maxHeight: responsiveHeight(35) }}
                 showsVerticalScrollIndicator={true}
@@ -3791,48 +3779,49 @@ const Navigate = () => {
                   const businessImageUri = biz.allImages?.[0] || biz.image || 'https://via.placeholder.com/54';
                   
                   return (
-                    <View key={biz.id} style={styles.nearbyCard}>
+                    <ResponsiveView key={biz.id} style={styles.nearbyCard}>
                       <CachedImage
                         source={{ uri: businessImageUri }}
                         style={styles.nearbyImage}
                         resizeMode="cover"
                       />
-                      <View style={{ flex: 1, marginLeft: isSmallScreen ? spacing.xs : spacing.sm }}>
-                        <Text style={styles.nearbyName}>{biz.name}</Text>
+                      <ResponsiveView style={{ flex: 1, marginLeft: isSmallScreen ? spacing.xs : spacing.sm, minWidth: 0 }}>
+                        <ResponsiveText size="md" weight="700" color="#181848" style={styles.nearbyName} numberOfLines={1}>{biz.name}</ResponsiveText>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs / 2 }}>
                           <Ionicons name="location" size={isSmallScreen ? iconSizes.xs : iconSizes.sm} color="#1976d2" />
-                          <Text style={styles.nearbyDistance}>{
+                          <ResponsiveText size="xs" color="#1976d2" style={styles.nearbyDistance}>{
                             `${Math.round(haversineDistance(location?.coords?.latitude || 0, location?.coords?.longitude || 0, biz.businessLocation.latitude, biz.businessLocation.longitude) * 1000)}m`
-                          }</Text>
+                          }</ResponsiveText>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs / 2 }}>
                           <Ionicons name="star" size={isSmallScreen ? iconSizes.xs : iconSizes.sm} color="#FFD700" />
-                          <Text style={styles.nearbyRating}>
+                          <ResponsiveText size="xs" color="#888" style={styles.nearbyRating}>
                             {averageRating} ({reviewCount})
-                          </Text>
+                          </ResponsiveText>
                         </View>
-                      </View>
+                      </ResponsiveView>
                       <TouchableOpacity 
                         style={styles.nearbyNavigateBtn} 
                         onPress={() => { 
                           setShowNearbyModal(false); 
                           handlePlaceSelect(biz);
                         }}
+                        activeOpacity={0.7}
                       >
-                        <Ionicons name="navigate" size={18} color="#8D5C2C" />
-                        <Text style={styles.nearbyNavigateText}>Navigate</Text>
+                        <Ionicons name="navigate" size={iconSizes.sm} color="#8D5C2C" />
+                        <ResponsiveText size="xs" weight="600" color="#8D5C2C" style={styles.nearbyNavigateText}>Navigate</ResponsiveText>
                       </TouchableOpacity>
-                    </View>
+                    </ResponsiveView>
                   );
                 })}
               </ScrollView>
-              <TouchableOpacity style={styles.nearbyCloseBtn} onPress={() => setShowNearbyModal(false)}>
-                <View style={styles.nearbyCloseSolid}>
-                  <Text style={styles.nearbyCloseText}>Close</Text>
-                </View>
+              <TouchableOpacity style={styles.nearbyCloseBtn} onPress={() => setShowNearbyModal(false)} activeOpacity={0.8}>
+                <ResponsiveView style={styles.nearbyCloseSolid}>
+                  <ResponsiveText size="md" weight="700" color="#fff" style={styles.nearbyCloseText}>Close</ResponsiveText>
+                </ResponsiveView>
               </TouchableOpacity>
-            </View>
-          </View>
+            </ResponsiveView>
+          </ResponsiveView>
         </Modal>
       </SafeAreaView>
     </LinearGradient>

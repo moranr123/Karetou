@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Alert, Image, ScrollView, Platform, StatusBar, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Alert, Image, ScrollView, Platform, StatusBar, Modal, FlatList, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,10 @@ import { db, storage } from '../../../firebase';
 import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import NotificationService from '../../../services/NotificationService';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface Business {
   id: string;
@@ -28,9 +32,12 @@ const BusinessCreatePostScreen = () => {
   const [businessDropdownVisible, setBusinessDropdownVisible] = useState(false);
   
   const { user, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+  
+  const isSmallScreen = dimensions.width < 360;
 
   // Fetch user's active businesses
   useEffect(() => {
@@ -219,34 +226,42 @@ const BusinessCreatePostScreen = () => {
 
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Create Post</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.header}>
+          <ResponsiveText size="xl" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.headerTitle}>
+            Create Post
+          </ResponsiveText>
+        </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Main Card Container */}
-        <View style={styles.card}>
+        <ResponsiveView style={styles.card}>
           {/* Business Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Business</Text>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="700" color="#333" style={styles.sectionTitle}>
+              Select Business
+            </ResponsiveText>
             <TouchableOpacity 
               style={styles.businessSelector}
               onPress={() => setBusinessDropdownVisible(true)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.businessSelectorText}>
+              <ResponsiveText size="md" weight="500" color="#495057" style={styles.businessSelectorText} numberOfLines={1}>
                 {businesses.find(b => b.id === selectedBusinessId)?.businessName || 'Select Business'}
-              </Text>
-              <Ionicons name="chevron-down" size={20} color="#667eea" />
+              </ResponsiveText>
+              <Ionicons name="chevron-down" size={iconSizes.md} color="#667eea" />
             </TouchableOpacity>
-          </View>
+          </ResponsiveView>
 
           {/* Divider */}
           <View style={styles.divider} />
 
           {/* Content Input */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>What's happening?</Text>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="700" color="#333" style={styles.sectionTitle}>
+              What's happening?
+            </ResponsiveText>
             <TextInput
               style={styles.contentInput}
               placeholder="Share something with your customers..."
@@ -257,34 +272,51 @@ const BusinessCreatePostScreen = () => {
               numberOfLines={6}
               textAlignVertical="top"
             />
-          </View>
+          </ResponsiveView>
 
           {/* Divider */}
           <View style={styles.divider} />
 
           {/* Image Upload */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Add Photo</Text>
-            <Text style={styles.sectionSubtitle}>Optional - Make your post more engaging</Text>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="700" color="#333" style={styles.sectionTitle}>
+              Add Photo
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#666" style={styles.sectionSubtitle}>
+              Optional - Make your post more engaging
+            </ResponsiveText>
             
             {selectedImage ? (
               <View style={styles.imageContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+                <Image 
+                  source={{ uri: selectedImage }} 
+                  style={styles.selectedImage}
+                  resizeMode="cover"
+                />
                 <TouchableOpacity 
                   style={styles.removeImageButton}
                   onPress={() => setSelectedImage(null)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close-circle" size={28} color="#ff4444" />
+                  <Ionicons name="close-circle" size={iconSizes.xl} color="#ff4444" />
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity style={styles.imagePickerButton} onPress={showImagePicker}>
-                <Ionicons name="camera" size={32} color="#667eea" />
-                <Text style={styles.imagePickerText}>Tap to add photo</Text>
-                <Text style={styles.imagePickerSubtext}>Camera or Gallery</Text>
+              <TouchableOpacity 
+                style={styles.imagePickerButton} 
+                onPress={showImagePicker}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="camera" size={iconSizes.xxl} color="#667eea" />
+                <ResponsiveText size="md" weight="600" color="#667eea" style={styles.imagePickerText}>
+                  Tap to add photo
+                </ResponsiveText>
+                <ResponsiveText size="sm" color="#999" style={styles.imagePickerSubtext}>
+                  Camera or Gallery
+                </ResponsiveText>
               </TouchableOpacity>
             )}
-          </View>
+          </ResponsiveView>
 
           {/* Divider */}
           <View style={styles.divider} />
@@ -294,14 +326,16 @@ const BusinessCreatePostScreen = () => {
             style={[styles.postButton, uploading && styles.postButtonDisabled]}
             onPress={handlePost}
             disabled={uploading}
+            activeOpacity={0.8}
           >
-            <Text style={styles.postButtonText}>
+            <ResponsiveText size="lg" weight="bold" color="#fff" style={styles.postButtonText}>
               {uploading ? 'Publishing...' : 'Publish Post'}
-            </Text>
-            {!uploading && <Ionicons name="send" size={20} color="#fff" style={{ marginLeft: 8 }} />}
+            </ResponsiveText>
+            {!uploading && <Ionicons name="send" size={iconSizes.md} color="#fff" style={{ marginLeft: 8 }} />}
           </TouchableOpacity>
-        </View>
+        </ResponsiveView>
       </ScrollView>
+      </SafeAreaView>
 
       {/* Business Selection Modal */}
       <Modal
@@ -313,9 +347,14 @@ const BusinessCreatePostScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.businessModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Business</Text>
-              <TouchableOpacity onPress={() => setBusinessDropdownVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+              <ResponsiveText size="lg" weight="bold" color="#333" style={styles.modalTitle}>
+                Select Business
+              </ResponsiveText>
+              <TouchableOpacity 
+                onPress={() => setBusinessDropdownVisible(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={iconSizes.lg} color="#333" />
               </TouchableOpacity>
             </View>
             
@@ -332,15 +371,18 @@ const BusinessCreatePostScreen = () => {
                     setSelectedBusinessId(item.id);
                     setBusinessDropdownVisible(false);
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.businessOptionText,
-                    selectedBusinessId === item.id && styles.businessOptionTextSelected
-                  ]}>
+                  <ResponsiveText 
+                    size="md" 
+                    weight={selectedBusinessId === item.id ? "bold" : "normal"}
+                    color={selectedBusinessId === item.id ? "#667eea" : "#333"}
+                    style={styles.businessOptionText}
+                  >
                     {item.businessName}
-                  </Text>
+                  </ResponsiveText>
                   {selectedBusinessId === item.id && (
-                    <Ionicons name="checkmark" size={20} color="#667eea" />
+                    <Ionicons name="checkmark" size={iconSizes.md} color="#667eea" />
                   )}
                 </TouchableOpacity>
               )}
@@ -362,24 +404,25 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 44 : 44,
     paddingBottom: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: '5%',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    minHeight: 60,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
     textAlign: 'center',
   },
   content: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    padding: '5%',
+    flexGrow: 1,
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    padding: 24,
+    padding: '6%',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
@@ -391,14 +434,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
     marginBottom: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 16,
   },
   divider: {
@@ -410,6 +448,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
     padding: 16,
+    minHeight: 50,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -417,9 +456,8 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
   },
   businessSelectorText: {
-    color: '#495057',
-    fontSize: 16,
-    fontWeight: '500',
+    flex: 1,
+    marginRight: 8,
   },
   contentInput: {
     backgroundColor: '#f8f9fa',
@@ -435,10 +473,12 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     alignSelf: 'center',
+    width: '100%',
+    maxWidth: 300,
   },
   selectedImage: {
-    width: 200,
-    height: 150,
+    width: '100%',
+    aspectRatio: 4/3,
     borderRadius: 12,
   },
   removeImageButton: {
@@ -447,11 +487,16 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: '#fff',
     borderRadius: 12,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imagePickerButton: {
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
-    padding: 32,
+    padding: '8%',
+    minHeight: 120,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -459,14 +504,9 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   imagePickerText: {
-    color: '#667eea',
-    fontSize: 16,
-    fontWeight: '600',
     marginTop: 8,
   },
   imagePickerSubtext: {
-    color: '#999',
-    fontSize: 14,
     marginTop: 4,
   },
   postButton: {
@@ -474,6 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     paddingVertical: 18,
     paddingHorizontal: 32,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -489,8 +530,6 @@ const styles = StyleSheet.create({
   },
   postButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
@@ -539,17 +578,17 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    minHeight: 60,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    flex: 1,
   },
   businessOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    minHeight: 56,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -557,12 +596,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f8ff',
   },
   businessOptionText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  businessOptionTextSelected: {
-    color: '#667eea',
-    fontWeight: 'bold',
+    flex: 1,
+    marginRight: 8,
   },
 });
 

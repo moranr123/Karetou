@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,8 @@ import Constants from 'expo-constants';
 import LoadingImage from '../../../components/LoadingImage';
 import { db } from '../../../firebase';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -33,12 +36,16 @@ type RootStackParamList = {
 const BusinessHomeScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, theme, refreshData, unreadNotificationCount, modalVisible, modalStatus, modalBusinessName, closeModal } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
   const [refreshing, setRefreshing] = useState(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+  
+  const isSmallScreen = dimensions.width < 360;
+  const isTablet = dimensions.isTablet;
 
   // Get all businesses owned by the current user
   useEffect(() => {
@@ -176,7 +183,7 @@ const BusinessHomeScreen = () => {
         <Ionicons
           key={i}
           name={i <= rating ? 'star' : 'star-outline'}
-          size={16}
+          size={iconSizes.sm}
           color="#FFD700"
         />
       );
@@ -186,146 +193,175 @@ const BusinessHomeScreen = () => {
 
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={{flex: 1}}>
-      <View style={styles.container}>
-        {/* --- Fixed Header --- */}
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/logo.png')}
-            style={styles.headerLogo}
-          />
-          <View style={styles.headerIcons}>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => (navigation as any).navigate('NotificationScreen')}
-            >
-              <Ionicons name="notifications-outline" size={screenWidth * 0.07} color={theme === 'dark' ? '#FFF' : '#000'} />
-              {unreadNotificationCount > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.badgeText}>
-                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme === 'dark' ? '#FFF' : '#333'}
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          {/* --- Fixed Header --- */}
+          <View style={styles.header}>
+            <Image
+              source={require('../../../assets/logo.png')}
+              style={styles.headerLogo}
+              resizeMode="contain"
             />
-          }
-        >
+            <View style={styles.headerIcons}>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => (navigation as any).navigate('NotificationScreen')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="notifications-outline" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#000'} />
+                {unreadNotificationCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <ResponsiveText size="xs" weight="600" color="#fff" style={styles.badgeText}>
+                      {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                    </ResponsiveText>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme === 'dark' ? '#FFF' : '#333'}
+              />
+            }
+          >
           {/* --- Quick Access --- */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+          <ResponsiveView style={styles.section}>
+            <ResponsiveText size="lg" weight="600" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.sectionTitle}>
               Quick Access
-            </Text>
+            </ResponsiveText>
             <View style={styles.quickAccessContainer}>
               <TouchableOpacity
                 style={styles.quickAccessButton}
                 onPress={() => navigation.navigate('RegisterBusiness')}
+                activeOpacity={0.7}
               >
-                <Ionicons name="briefcase-outline" size={screenWidth * 0.08} color="#fff" />
-                <Text style={styles.quickAccessText}>Register Business</Text>
+                <Ionicons name="briefcase-outline" size={iconSizes.xl} color="#fff" />
+                <ResponsiveText size="sm" weight="600" color="#fff" style={styles.quickAccessText}>
+                  Register Business
+                </ResponsiveText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickAccessButton}
                 onPress={() => navigation.navigate('MyPosts')}
+                activeOpacity={0.7}
               >
-                <Ionicons name="newspaper-outline" size={screenWidth * 0.08} color="#fff" />
-                <Text style={styles.quickAccessText}>My Posts</Text>
+                <Ionicons name="newspaper-outline" size={iconSizes.xl} color="#fff" />
+                <ResponsiveText size="sm" weight="600" color="#fff" style={styles.quickAccessText}>
+                  My Posts
+                </ResponsiveText>
               </TouchableOpacity>
             </View>
             <View style={styles.quickAccessContainer}>
               <TouchableOpacity
                 style={styles.quickAccessButton}
                 onPress={() => navigation.navigate('MyBusiness')}
+                activeOpacity={0.7}
               >
-                <Ionicons name="storefront-outline" size={screenWidth * 0.08} color="#fff" />
-                <Text style={styles.quickAccessText}>My Business</Text>
+                <Ionicons name="storefront-outline" size={iconSizes.xl} color="#fff" />
+                <ResponsiveText size="sm" weight="600" color="#fff" style={styles.quickAccessText}>
+                  My Business
+                </ResponsiveText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickAccessButton}
                 onPress={() => navigation.navigate('Promotions')}
+                activeOpacity={0.7}
               >
-                <Ionicons name="pricetag-outline" size={screenWidth * 0.08} color="#fff" />
-                <Text style={styles.quickAccessText}>Promotions</Text>
+                <Ionicons name="pricetag-outline" size={iconSizes.xl} color="#fff" />
+                <ResponsiveText size="sm" weight="600" color="#fff" style={styles.quickAccessText}>
+                  Promotions
+                </ResponsiveText>
               </TouchableOpacity>
             </View>
-          </View>
+          </ResponsiveView>
 
           {/* --- Transaction History --- */}
-          <View style={styles.section}>
+          <ResponsiveView style={styles.section}>
             <TouchableOpacity
               style={[styles.transactionHistoryCard, { backgroundColor: theme === 'dark' ? '#2a2a2a' : '#fff' }]}
               onPress={() => (navigation as any).navigate('BusinessTransactionHistoryScreen')}
+              activeOpacity={0.7}
             >
               <View style={styles.transactionHistoryIcon}>
-                <Ionicons name="receipt" size={24} color="#667eea" />
+                <Ionicons name="receipt" size={iconSizes.lg} color="#667eea" />
               </View>
               <View style={styles.transactionHistoryInfo}>
-                <Text style={[styles.transactionHistoryTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+                <ResponsiveText size="md" weight="600" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.transactionHistoryTitle}>
                   Transaction History
-                </Text>
-                <Text style={[styles.transactionHistorySubtitle, { color: theme === 'dark' ? '#AAA' : '#666' }]}>
+                </ResponsiveText>
+                <ResponsiveText size="sm" color={theme === 'dark' ? '#AAA' : '#666'} style={styles.transactionHistorySubtitle}>
                   View received points
-                </Text>
+                </ResponsiveText>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#667eea" />
+              <Ionicons name="chevron-forward" size={iconSizes.md} color="#667eea" />
             </TouchableOpacity>
-          </View>
+          </ResponsiveView>
 
           {/* --- Recent Reviews --- */}
-          <View style={styles.section}>
+          <ResponsiveView style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+              <ResponsiveText size="lg" weight="600" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.sectionTitle}>
                 Recent Reviews
-              </Text>
+              </ResponsiveText>
               <TouchableOpacity 
                 style={styles.seeAllButton}
                 onPress={() => (navigation as any).navigate('Reviews')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#667eea" />
+                <ResponsiveText size="sm" weight="600" color="#667eea" style={styles.seeAllText}>
+                  See All
+                </ResponsiveText>
+                <Ionicons name="chevron-forward" size={iconSizes.sm} color="#667eea" />
               </TouchableOpacity>
             </View>
             {recentReviews.length > 0 ? (
               recentReviews.map((review) => (
                 <View key={review.id} style={styles.reviewCard}>
                   {review.userImage ? (
-                    <LoadingImage source={{ uri: review.userImage }} style={styles.userImage} />
+                    <LoadingImage 
+                      source={{ uri: review.userImage }} 
+                      style={styles.userImage}
+                      resizeMode="cover"
+                    />
                   ) : (
                     <View style={styles.userIconContainer}>
-                      <Ionicons name="person-circle" size={screenWidth * 0.12} color="#667eea" />
+                      <Ionicons name="person-circle" size={getResponsiveWidth(12)} color="#667eea" />
                     </View>
                   )}
                   <View style={styles.reviewContent}>
                     <View style={styles.reviewHeader}>
-                      <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                      <ResponsiveText size="md" weight="600" color="#333" style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
                         {review.userName}
-                      </Text>
+                      </ResponsiveText>
                       <View style={styles.starContainer}>{renderStars(review.rating)}</View>
                     </View>
-                    <Text style={styles.reviewComment} numberOfLines={3} ellipsizeMode="tail">
+                    <ResponsiveText size="sm" color="#555" style={styles.reviewComment} numberOfLines={3} ellipsizeMode="tail">
                       {review.comment}
-                    </Text>
-                    <Text style={styles.reviewTime}>{review.time}</Text>
+                    </ResponsiveText>
+                    <ResponsiveText size="xs" color="#999" style={styles.reviewTime}>
+                      {review.time}
+                    </ResponsiveText>
                   </View>
                 </View>
               ))
             ) : (
               <View style={styles.noReviewsContainer}>
-                <Ionicons name="chatbubble-outline" size={40} color="#999" />
-                <Text style={styles.noReviewsText}>No reviews yet</Text>
-                <Text style={styles.noReviewsSubtext}>Reviews from customers will appear here</Text>
+                <Ionicons name="chatbubble-outline" size={iconSizes.xxxxl} color="#999" />
+                <ResponsiveText size="md" weight="600" color="#333" style={styles.noReviewsText}>
+                  No reviews yet
+                </ResponsiveText>
+                <ResponsiveText size="sm" color="#666" style={styles.noReviewsSubtext}>
+                  Reviews from customers will appear here
+                </ResponsiveText>
               </View>
             )}
-          </View>
+          </ResponsiveView>
         </ScrollView>
       </View>
       
@@ -336,12 +372,16 @@ const BusinessHomeScreen = () => {
         status={modalStatus as 'approved' | 'rejected' | 'pending'}
         businessName={modalBusinessName}
       />
+      </SafeAreaView>
     </LinearGradient>
   );
 };
 
 // --- Styles ---
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     paddingTop: Constants.statusBarHeight,
@@ -350,8 +390,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: screenWidth * 0.05,
-    paddingVertical: screenHeight * 0.015,
+    paddingHorizontal: '5%',
+    paddingVertical: '2%',
+    minHeight: 60,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     borderBottomWidth: 1,
@@ -362,8 +403,10 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
   },
   headerLogo: {
-    width: screenWidth * 0.1,
-    height: screenWidth * 0.1,
+    width: '10%',
+    minWidth: 40,
+    maxWidth: 60,
+    aspectRatio: 1,
     resizeMode: 'contain',
   },
   headerIcons: {
@@ -371,42 +414,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
-    marginLeft: screenWidth * 0.04,
+    marginLeft: '4%',
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   profileIcon: {
-    width: screenWidth * 0.1,
-    height: screenWidth * 0.1,
-    borderRadius: (screenWidth * 0.1) / 2,
+    width: '10%',
+    minWidth: 40,
+    maxWidth: 60,
+    aspectRatio: 1,
+    borderRadius: 999,
   },
   logoutButton: {
     padding: 5,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 120,
+    flexGrow: 1,
   },
   section: {
-    paddingHorizontal: screenWidth * 0.05,
-    marginTop: screenHeight * 0.03,
-    marginBottom: screenHeight * 0.03,
+    paddingHorizontal: '5%',
+    marginTop: '3%',
+    marginBottom: '3%',
   },
   sectionTitle: {
-    fontSize: screenWidth * 0.055,
-    fontWeight: 'bold',
+    marginBottom: '2%',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: screenWidth * 0.05,
-    marginBottom: screenHeight * 0.02,
+    paddingHorizontal: '5%',
+    marginBottom: '2%',
+    flexWrap: 'wrap',
   },
   quickAccessContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: screenWidth * 0.03,
+    marginBottom: '3%',
+    gap: '2%',
   },
   quickAccessButton: {
     backgroundColor: '#667eea',
-    borderRadius: screenWidth * 0.04,
-    paddingVertical: screenHeight * 0.03,
-    width: '48.5%',
+    borderRadius: 16,
+    paddingVertical: '4%',
+    minHeight: 80,
+    flex: 1,
+    maxWidth: '48.5%',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
@@ -417,16 +478,15 @@ const styles = StyleSheet.create({
   },
   quickAccessText: {
     color: '#fff',
-    fontSize: screenWidth * 0.04,
-    fontWeight: '600',
-    marginTop: screenHeight * 0.01,
+    marginTop: '2%',
     textAlign: 'center',
+    paddingHorizontal: '2%',
   },
   reviewCard: {
     backgroundColor: '#fff',
-    borderRadius: screenWidth * 0.04,
-    padding: screenWidth * 0.04,
-    marginBottom: screenHeight * 0.015,
+    borderRadius: 16,
+    padding: '4%',
+    marginBottom: '2%',
     flexDirection: 'row',
     alignItems: 'flex-start',
     borderWidth: 1,
@@ -438,40 +498,38 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   userImage: {
-    width: screenWidth * 0.12,
-    height: screenWidth * 0.12,
-    borderRadius: (screenWidth * 0.12) / 2,
-    marginRight: screenWidth * 0.04,
+    width: '12%',
+    minWidth: 40,
+    maxWidth: 60,
+    aspectRatio: 1,
+    borderRadius: 999,
+    marginRight: '4%',
   },
   reviewContent: {
     flex: 1,
-    minWidth: 0, // Allow flex item to shrink below content size
+    minWidth: 0,
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: screenHeight * 0.005,
+    marginBottom: '1%',
+    flexWrap: 'wrap',
   },
   userName: {
-    fontSize: screenWidth * 0.04,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1, // Allow username to take available space
-    marginRight: screenWidth * 0.02, // Add margin to prevent overlap with stars
+    flex: 1,
+    marginRight: '2%',
+    minWidth: 0,
   },
   starContainer: {
     flexDirection: 'row',
+    flexShrink: 0,
   },
   reviewComment: {
-    fontSize: screenWidth * 0.035,
-    color: '#555',
-    lineHeight: screenHeight * 0.025,
-    marginBottom: screenHeight * 0.01,
+    marginBottom: '2%',
+    lineHeight: 20,
   },
   reviewTime: {
-    fontSize: screenWidth * 0.03,
-    color: '#999',
     alignSelf: 'flex-end',
   },
   notificationBadge: {
@@ -480,49 +538,50 @@ const styles = StyleSheet.create({
     right: -5,
     backgroundColor: 'red',
     borderRadius: 10,
-    paddingHorizontal: 2,
-    paddingVertical: 1,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeText: {
     color: 'white',
-    fontSize: screenWidth * 0.03,
     fontWeight: 'bold',
   },
   noReviewsContainer: {
     backgroundColor: '#fff',
-    borderRadius: screenWidth * 0.04,
-    padding: screenWidth * 0.08,
+    borderRadius: 16,
+    padding: '8%',
     alignItems: 'center',
-    marginVertical: screenHeight * 0.02,
+    marginVertical: '2%',
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
   noReviewsText: {
-    color: '#333',
-    fontSize: screenWidth * 0.045,
-    fontWeight: 'bold',
-    marginTop: screenHeight * 0.01,
+    marginTop: '2%',
     textAlign: 'center',
   },
   noReviewsSubtext: {
-    color: '#666',
-    fontSize: screenWidth * 0.035,
     textAlign: 'center',
-    marginTop: screenHeight * 0.005,
+    marginTop: '1%',
+    paddingHorizontal: '4%',
   },
   userIconContainer: {
-    width: screenWidth * 0.12,
-    height: screenWidth * 0.12,
-    borderRadius: (screenWidth * 0.12) / 2,
-    marginRight: screenWidth * 0.04,
+    width: '12%',
+    minWidth: 40,
+    maxWidth: 60,
+    aspectRatio: 1,
+    borderRadius: 999,
+    marginRight: '4%',
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   seeAllButton: {
     backgroundColor: '#fff',
-    paddingHorizontal: screenWidth * 0.04,
-    paddingVertical: screenHeight * 0.01,
+    paddingHorizontal: '4%',
+    paddingVertical: '1.5%',
+    minHeight: 36,
     borderRadius: 15,
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,17 +590,16 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     color: '#667eea',
-    fontSize: screenWidth * 0.035,
-    fontWeight: '600',
-    marginRight: screenWidth * 0.01,
+    marginRight: '2%',
   },
   transactionHistoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: screenWidth * 0.04,
+    padding: '4%',
     borderRadius: 15,
-    marginHorizontal: screenWidth * 0.05,
-    marginBottom: screenHeight * 0.02,
+    marginHorizontal: '5%',
+    marginBottom: '2%',
+    minHeight: 70,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -549,24 +607,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   transactionHistoryIcon: {
-    width: screenWidth * 0.12,
-    height: screenWidth * 0.12,
-    borderRadius: (screenWidth * 0.12) / 2,
+    width: '12%',
+    minWidth: 48,
+    maxWidth: 60,
+    aspectRatio: 1,
+    borderRadius: 999,
     backgroundColor: 'rgba(102, 126, 234, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: screenWidth * 0.04,
+    marginRight: '4%',
   },
   transactionHistoryInfo: {
     flex: 1,
+    minWidth: 0,
   },
   transactionHistoryTitle: {
-    fontSize: screenWidth * 0.045,
-    fontWeight: 'bold',
     marginBottom: 4,
   },
   transactionHistorySubtitle: {
-    fontSize: screenWidth * 0.035,
+    // Styles handled by ResponsiveText
   },
 });
 

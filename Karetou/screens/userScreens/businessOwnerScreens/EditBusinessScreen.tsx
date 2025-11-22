@@ -25,6 +25,8 @@ import { db, storage } from '../../../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import LoadingImage from '../../../components/LoadingImage';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -51,9 +53,12 @@ const EditBusinessScreen = () => {
   const navigation = useNavigation<EditBusinessScreenNavigationProp>();
   const route = useRoute<EditBusinessScreenRouteProp>();
   const { user, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+  
+  const isSmallScreen = dimensions.width < 360;
   
   const businessData = route.params?.business;
   const focusOnHours = route.params?.focusOnHours || false;
@@ -393,70 +398,101 @@ const EditBusinessScreen = () => {
             <View style={styles.formCard}>
               {/* Header */}
               <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                  <Ionicons name="arrow-back" size={24} color="#333" />
+                <TouchableOpacity 
+                  onPress={() => navigation.goBack()} 
+                  style={styles.backButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="arrow-back" size={iconSizes.lg} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.title}>Change Business Hours</Text>
+                <ResponsiveText size="xl" weight="bold" color="#333" style={styles.title}>
+                  Change Business Hours
+                </ResponsiveText>
               </View>
 
               {/* Business Info Display */}
-              <View style={styles.businessInfoCard}>
-                <Text style={styles.businessInfoTitle}>{businessData?.businessName}</Text>
-                <Text style={styles.businessInfoSubtitle}>Update your operating hours</Text>
-              </View>
+              <ResponsiveView style={styles.businessInfoCard}>
+                <ResponsiveText size="lg" weight="bold" color="#333" style={styles.businessInfoTitle}>
+                  {businessData?.businessName}
+                </ResponsiveText>
+                <ResponsiveText size="sm" color="#666" style={styles.businessInfoSubtitle}>
+                  Update your operating hours
+                </ResponsiveText>
+              </ResponsiveView>
 
               {/* Business Hours Section */}
-              <View style={styles.hoursSection}>
-                <Text style={styles.label}>Operating Hours</Text>
-                <Text style={styles.subLabel}>Set your daily opening and closing times</Text>
+              <ResponsiveView style={styles.hoursSection}>
+                <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+                  Operating Hours
+                </ResponsiveText>
+                <ResponsiveText size="sm" color="#666" style={styles.subLabel}>
+                  Set your daily opening and closing times
+                </ResponsiveText>
                 
                 <View style={styles.timeContainer}>
-                  <TouchableOpacity onPress={() => showTimepicker('start')} style={styles.timeButton}>
-                    <Ionicons name="time-outline" size={20} color="#667eea" />
+                  <TouchableOpacity 
+                    onPress={() => showTimepicker('start')} 
+                    style={styles.timeButton}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="time-outline" size={iconSizes.md} color="#667eea" />
                     <View style={styles.timeButtonContent}>
-                      <Text style={styles.timeLabel}>Opening Time</Text>
-                      <Text style={styles.timeButtonText}>
+                      <ResponsiveText size="xs" color="#666" style={styles.timeLabel}>
+                        Opening Time
+                      </ResponsiveText>
+                      <ResponsiveText size="md" weight="500" color="#333" style={styles.timeButtonText}>
                         {formatTime(startTime)}
-                      </Text>
+                      </ResponsiveText>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                    <Ionicons name="chevron-forward" size={iconSizes.md} color="#999" />
                   </TouchableOpacity>
                   
-                  <TouchableOpacity onPress={() => showTimepicker('end')} style={styles.timeButton}>
-                    <Ionicons name="time-outline" size={20} color="#667eea" />
+                  <TouchableOpacity 
+                    onPress={() => showTimepicker('end')} 
+                    style={styles.timeButton}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="time-outline" size={iconSizes.md} color="#667eea" />
                     <View style={styles.timeButtonContent}>
-                      <Text style={styles.timeLabel}>Closing Time</Text>
-                      <Text style={styles.timeButtonText}>
+                      <ResponsiveText size="xs" color="#666" style={styles.timeLabel}>
+                        Closing Time
+                      </ResponsiveText>
+                      <ResponsiveText size="md" weight="500" color="#333" style={styles.timeButtonText}>
                         {formatTime(endTime)}
-                      </Text>
+                      </ResponsiveText>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                    <Ionicons name="chevron-forward" size={iconSizes.md} color="#999" />
                   </TouchableOpacity>
                 </View>
 
                 {/* Current Hours Display */}
                 {startTime && endTime && (
-                  <View style={styles.currentHoursDisplay}>
-                    <Text style={styles.currentHoursLabel}>Current Hours:</Text>
-                    <Text style={styles.currentHoursText}>
+                  <ResponsiveView style={styles.currentHoursDisplay}>
+                    <ResponsiveText size="sm" color="#666" style={styles.currentHoursLabel}>
+                      Current Hours:
+                    </ResponsiveText>
+                    <ResponsiveText size="md" weight="600" color="#333" style={styles.currentHoursText}>
                       {formatTime(startTime)} - {formatTime(endTime)}
-                    </Text>
-                  </View>
+                    </ResponsiveText>
+                  </ResponsiveView>
                 )}
-              </View>
+              </ResponsiveView>
 
               {/* Save Button */}
               <TouchableOpacity 
                 style={[styles.submitButton, (!startTime || !endTime) && styles.submitButtonDisabled]} 
                 onPress={handleSave}
                 disabled={!startTime || !endTime || isSubmitting}
+                activeOpacity={0.8}
               >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={styles.submitButtonText}>Save Business Hours</Text>
+                    <Ionicons name="checkmark-circle" size={iconSizes.md} color="#fff" />
+                    <ResponsiveText size="md" weight="bold" color="#fff" style={styles.submitButtonText}>
+                      Save Business Hours
+                    </ResponsiveText>
                   </>
                 )}
               </TouchableOpacity>
@@ -474,20 +510,34 @@ const EditBusinessScreen = () => {
           <View style={styles.modalOverlay}>
             <View style={styles.timePickerModal}>
               <View style={styles.timePickerHeader}>
-                <TouchableOpacity onPress={cancelTime}>
-                  <Text style={styles.cancelButton}>Cancel</Text>
+                <TouchableOpacity 
+                  onPress={cancelTime}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <ResponsiveText size="md" color="#667eea" style={styles.cancelButton}>
+                    Cancel
+                  </ResponsiveText>
                 </TouchableOpacity>
-                <Text style={styles.timePickerTitle}>
+                <ResponsiveText size="lg" weight="bold" color="#333" style={styles.timePickerTitle}>
                   {timePickerMode === 'start' ? 'Opening Time' : 'Closing Time'}
-                </Text>
-                <TouchableOpacity onPress={confirmTime}>
-                  <Text style={styles.confirmButton}>Done</Text>
+                </ResponsiveText>
+                <TouchableOpacity 
+                  onPress={confirmTime}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <ResponsiveText size="md" weight="600" color="#667eea" style={styles.confirmButton}>
+                    Done
+                  </ResponsiveText>
                 </TouchableOpacity>
               </View>
               
               <View style={styles.timePickerContent}>
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>Hour</Text>
+                  <ResponsiveText size="sm" weight="600" color="#666" style={styles.timeColumnLabel}>
+                    Hour
+                  </ResponsiveText>
                   <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
                     {generateTimeOptions('hour').map((hour) => (
                       <TouchableOpacity
@@ -497,22 +547,28 @@ const EditBusinessScreen = () => {
                           tempHour === hour && styles.selectedTimeOption,
                         ]}
                         onPress={() => setTempHour(hour)}
+                        activeOpacity={0.7}
                       >
-                        <Text
+                        <ResponsiveText
+                          size="lg"
+                          weight={tempHour === hour ? "bold" : "normal"}
+                          color={tempHour === hour ? "#fff" : "#333"}
                           style={[
                             styles.timeOptionText,
                             tempHour === hour && styles.selectedTimeOptionText,
                           ]}
                         >
                           {hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}
-                        </Text>
+                        </ResponsiveText>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
                 
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>Minute</Text>
+                  <ResponsiveText size="sm" weight="600" color="#666" style={styles.timeColumnLabel}>
+                    Minute
+                  </ResponsiveText>
                   <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
                     {generateTimeOptions('minute').map((minute) => (
                       <TouchableOpacity
@@ -522,22 +578,28 @@ const EditBusinessScreen = () => {
                           tempMinute === minute && styles.selectedTimeOption,
                         ]}
                         onPress={() => setTempMinute(minute)}
+                        activeOpacity={0.7}
                       >
-                        <Text
+                        <ResponsiveText
+                          size="lg"
+                          weight={tempMinute === minute ? "bold" : "normal"}
+                          color={tempMinute === minute ? "#fff" : "#333"}
                           style={[
                             styles.timeOptionText,
                             tempMinute === minute && styles.selectedTimeOptionText,
                           ]}
                         >
                           {minute.toString().padStart(2, '0')}
-                        </Text>
+                        </ResponsiveText>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
                 
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>AM/PM</Text>
+                  <ResponsiveText size="sm" weight="600" color="#666" style={styles.timeColumnLabel}>
+                    AM/PM
+                  </ResponsiveText>
                   <View style={styles.ampmContainer}>
                     <TouchableOpacity
                       style={[
@@ -545,15 +607,19 @@ const EditBusinessScreen = () => {
                         tempHour < 12 && styles.selectedAmpmButton,
                       ]}
                       onPress={() => setTempHour(tempHour < 12 ? tempHour : tempHour - 12)}
+                      activeOpacity={0.7}
                     >
-                      <Text
+                      <ResponsiveText
+                        size="md"
+                        weight={tempHour < 12 ? "bold" : "normal"}
+                        color={tempHour < 12 ? "#fff" : "#333"}
                         style={[
                           styles.ampmButtonText,
                           tempHour < 12 && styles.selectedAmpmButtonText,
                         ]}
                       >
                         AM
-                      </Text>
+                      </ResponsiveText>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -561,15 +627,19 @@ const EditBusinessScreen = () => {
                         tempHour >= 12 && styles.selectedAmpmButton,
                       ]}
                       onPress={() => setTempHour(tempHour >= 12 ? tempHour : tempHour + 12)}
+                      activeOpacity={0.7}
                     >
-                      <Text
+                      <ResponsiveText
+                        size="md"
+                        weight={tempHour >= 12 ? "bold" : "normal"}
+                        color={tempHour >= 12 ? "#fff" : "#333"}
                         style={[
                           styles.ampmButtonText,
                           tempHour >= 12 && styles.selectedAmpmButtonText,
                         ]}
                       >
                         PM
-                      </Text>
+                      </ResponsiveText>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -588,14 +658,22 @@ const EditBusinessScreen = () => {
           <View style={styles.formCard}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#333" />
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()} 
+                style={styles.backButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="arrow-back" size={iconSizes.lg} color="#333" />
               </TouchableOpacity>
-              <Text style={styles.title}>Edit Business Profile</Text>
+              <ResponsiveText size="xl" weight="bold" color="#333" style={styles.title}>
+                Edit Business Profile
+              </ResponsiveText>
             </View>
 
             {/* Business Name */}
-            <Text style={styles.label}>Business Name</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Name
+            </ResponsiveText>
             <TextInput
               style={styles.input}
               placeholder="Enter business name"
@@ -605,44 +683,59 @@ const EditBusinessScreen = () => {
             />
 
             {/* Business Location */}
-            <Text style={styles.label}>Business Location</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Location
+            </ResponsiveText>
             <TouchableOpacity 
               style={styles.locationButton}
               onPress={() => setShowLocationModal(true)}
+              activeOpacity={0.7}
             >
               <View style={styles.locationButtonContent}>
-                <Ionicons name="location-outline" size={20} color="#667eea" />
+                <Ionicons name="location-outline" size={iconSizes.md} color="#667eea" />
                 <View style={styles.locationTextContainer}>
-                  <Text style={styles.locationButtonText}>
+                  <ResponsiveText size="md" weight="500" color="#333" style={styles.locationButtonText} numberOfLines={1}>
                     {locationAddress || 'Select business location'}
-                  </Text>
+                  </ResponsiveText>
                   {selectedLocation && (
-                    <Text style={styles.locationCoordinates}>
+                    <ResponsiveText size="xs" color="#666" style={styles.locationCoordinates}>
                       {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
-                    </Text>
+                    </ResponsiveText>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#999" />
+                <Ionicons name="chevron-forward" size={iconSizes.md} color="#999" />
               </View>
             </TouchableOpacity>
 
             {/* Business Hours */}
-            <Text style={styles.label}>Business Hours</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Hours
+            </ResponsiveText>
             <View style={styles.timeContainer}>
-              <TouchableOpacity onPress={() => showTimepicker('start')} style={styles.timeButton}>
-                <Text style={styles.timeButtonText}>
+              <TouchableOpacity 
+                onPress={() => showTimepicker('start')} 
+                style={styles.timeButton}
+                activeOpacity={0.7}
+              >
+                <ResponsiveText size="md" weight="500" color="#333" style={styles.timeButtonText}>
                   Start: {formatTime(startTime)}
-                </Text>
+                </ResponsiveText>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => showTimepicker('end')} style={styles.timeButton}>
-                <Text style={styles.timeButtonText}>
+              <TouchableOpacity 
+                onPress={() => showTimepicker('end')} 
+                style={styles.timeButton}
+                activeOpacity={0.7}
+              >
+                <ResponsiveText size="md" weight="500" color="#333" style={styles.timeButtonText}>
                   End: {formatTime(endTime)}
-                </Text>
+                </ResponsiveText>
               </TouchableOpacity>
             </View>
 
             {/* Contact Number */}
-            <Text style={styles.label}>Contact Number</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Contact Number
+            </ResponsiveText>
             <TextInput
               style={styles.input}
               placeholder="Enter contact number"
@@ -653,7 +746,9 @@ const EditBusinessScreen = () => {
             />
 
             {/* Optional Contact Number */}
-            <Text style={styles.label}>Optional Contact Number</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Optional Contact Number
+            </ResponsiveText>
             <TextInput
               style={styles.input}
               placeholder="Enter optional contact number"
@@ -664,8 +759,12 @@ const EditBusinessScreen = () => {
             />
 
             {/* Business Images */}
-            <Text style={styles.label}>Business Images</Text>
-            <Text style={styles.subLabel}>Update photos of your establishment, products, or services</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Images
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#666" style={styles.subLabel}>
+              Update photos of your establishment, products, or services
+            </ResponsiveText>
             
             <View style={styles.businessImagesContainer}>
               <View style={styles.businessImagesRow}>
@@ -691,8 +790,10 @@ const EditBusinessScreen = () => {
                       </View>
                     ) : (
                       <View style={styles.businessImagePlaceholder}>
-                        <Ionicons name="camera" size={30} color="#999" />
-                        <Text style={styles.businessImageText}>Add Photo</Text>
+                        <Ionicons name="camera" size={iconSizes.xl} color="#999" />
+                        <ResponsiveText size="xs" color="#666" style={styles.businessImageText}>
+                          Add Photo
+                        </ResponsiveText>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -707,19 +808,22 @@ const EditBusinessScreen = () => {
                       key={index}
                       style={styles.businessImageSlot}
                       onPress={() => {}}
+                      activeOpacity={0.7}
                     >
                       {businessImages[index] ? (
                         <View style={styles.businessImageWrapper}>
                           <LoadingImage 
                             source={{ uri: businessImages[index] }} 
                             style={styles.businessImagePreview}
-                            placeholder="camera" 
+                            placeholder="camera"
+                            resizeMode="cover"
                           />
                           <TouchableOpacity
                             style={styles.removeImageButton}
                             onPress={() => removeBusinessImage(index)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                           >
-                            <Ionicons name="close-circle" size={24} color="#FF4444" />
+                            <Ionicons name="close-circle" size={iconSizes.lg} color="#FF4444" />
                           </TouchableOpacity>
                         </View>
                       ) : null}
@@ -730,9 +834,15 @@ const EditBusinessScreen = () => {
               
               {/* Add More Images Button */}
               {businessImages.length >= 3 && businessImages.length < 5 && (
-                <TouchableOpacity onPress={handleChooseBusinessImage} style={styles.addMoreImagesButton}>
-                  <Ionicons name="add-circle" size={20} color="#667eea" />
-                  <Text style={styles.addMoreImagesText}>Add More Images ({businessImages.length}/5)</Text>
+                <TouchableOpacity 
+                  onPress={handleChooseBusinessImage} 
+                  style={styles.addMoreImagesButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add-circle" size={iconSizes.md} color="#667eea" />
+                  <ResponsiveText size="sm" weight="500" color="#333" style={styles.addMoreImagesText}>
+                    Add More Images ({businessImages.length}/5)
+                  </ResponsiveText>
                 </TouchableOpacity>
               )}
             </View>
@@ -742,14 +852,19 @@ const EditBusinessScreen = () => {
               onPress={handleSave} 
               style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
               disabled={isSubmitting}
+              activeOpacity={0.8}
             >
               {isSubmitting ? (
                 <View style={styles.buttonLoadingContainer}>
                   <ActivityIndicator size="small" color="white" style={styles.loadingIndicator} />
-                  <Text style={styles.submitButtonText}>Saving Changes...</Text>
+                  <ResponsiveText size="md" weight="bold" color="#fff" style={styles.submitButtonText}>
+                    Saving Changes...
+                  </ResponsiveText>
                 </View>
               ) : (
-                <Text style={styles.submitButtonText}>Save Changes</Text>
+                <ResponsiveText size="md" weight="bold" color="#fff" style={styles.submitButtonText}>
+                  Save Changes
+                </ResponsiveText>
               )}
             </TouchableOpacity>
           </View>
@@ -766,12 +881,23 @@ const EditBusinessScreen = () => {
             <SafeAreaView style={styles.modalSafeArea}>
               {/* Modal Header */}
               <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                  <Ionicons name="close" size={24} color="#000" />
+                <TouchableOpacity 
+                  onPress={() => setShowLocationModal(false)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={iconSizes.lg} color="#000" />
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Business Location</Text>
-                <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                  <Text style={styles.doneButton}>Done</Text>
+                <ResponsiveText size="lg" weight="bold" color="#000" style={styles.modalTitle}>
+                  Select Business Location
+                </ResponsiveText>
+                <TouchableOpacity 
+                  onPress={() => setShowLocationModal(false)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <ResponsiveText size="md" weight="600" color="#000" style={styles.doneButton}>
+                    Done
+                  </ResponsiveText>
                 </TouchableOpacity>
               </View>
 
@@ -797,10 +923,12 @@ const EditBusinessScreen = () => {
 
               {/* Location Info */}
               {locationAddress && (
-                <View style={styles.selectedLocationInfo}>
-                  <Ionicons name="location" size={20} color="#667eea" />
-                  <Text style={styles.selectedLocationText}>{locationAddress}</Text>
-                </View>
+                <ResponsiveView style={styles.selectedLocationInfo}>
+                  <Ionicons name="location" size={iconSizes.md} color="#667eea" />
+                  <ResponsiveText size="sm" color="#333" style={styles.selectedLocationText} numberOfLines={2}>
+                    {locationAddress}
+                  </ResponsiveText>
+                </ResponsiveView>
               )}
             </SafeAreaView>
           </LinearGradient>
@@ -839,24 +967,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 30,
+    minHeight: 50,
   },
   backButton: {
     marginRight: 15,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    flex: 1,
   },
   label: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
     marginBottom: 15,
   },
   subLabel: {
-    fontSize: 16,
-    color: '#666',
     marginBottom: 15,
     lineHeight: 22,
   },
@@ -865,6 +991,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     fontSize: 16,
+    minHeight: 48,
     marginBottom: 30,
     borderWidth: 1,
     borderColor: '#ddd',
@@ -873,6 +1000,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderRadius: 10,
     padding: 15,
+    minHeight: 48,
     marginBottom: 30,
     borderWidth: 1,
     borderColor: '#ddd',
@@ -884,15 +1012,12 @@ const styles = StyleSheet.create({
   locationTextContainer: {
     flex: 1,
     marginLeft: 10,
+    minWidth: 0,
   },
   locationButtonText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    // Styles handled by ResponsiveText
   },
   locationCoordinates: {
-    fontSize: 12,
-    color: '#666',
     marginTop: 2,
   },
   photoContainer: {
@@ -951,20 +1076,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
+    gap: '2%',
   },
   timeButton: {
     backgroundColor: '#f8f9fa',
     padding: 15,
+    minHeight: 50,
     borderRadius: 10,
     flex: 0.48,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
   },
   timeButtonText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    // Styles handled by ResponsiveText
   },
   businessImagesContainer: {
     marginBottom: 20,
@@ -973,10 +1099,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
+    gap: '2%',
   },
   businessImageSlot: {
-    width: screenWidth * 0.28,
-    height: screenWidth * 0.28,
+    width: '31%',
+    aspectRatio: 1,
+    minWidth: 80,
     backgroundColor: '#f8f9fa',
     borderRadius: 10,
     justifyContent: 'center',
@@ -1001,16 +1129,20 @@ const styles = StyleSheet.create({
     right: -5,
     backgroundColor: '#fff',
     borderRadius: 12,
+    minWidth: 32,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   businessImagePlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 8,
   },
   businessImageText: {
-    fontSize: 12,
-    color: '#666',
     marginTop: 5,
     textAlign: 'center',
+    paddingHorizontal: 4,
   },
   addMoreImagesButton: {
     flexDirection: 'row',
@@ -1019,6 +1151,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     paddingHorizontal: 20,
     paddingVertical: 12,
+    minHeight: 44,
     borderRadius: 25,
     marginTop: 10,
     borderWidth: 1,
@@ -1026,25 +1159,22 @@ const styles = StyleSheet.create({
   },
   addMoreImagesText: {
     color: '#333',
-    fontSize: 16,
     marginLeft: 8,
-    fontWeight: '500',
   },
   submitButton: {
     backgroundColor: '#667eea',
-    height: 50,
+    minHeight: 50,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
+    paddingVertical: 15,
   },
   submitButtonDisabled: {
     backgroundColor: '#ccc',
   },
   submitButtonText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   buttonLoadingContainer: {
     flexDirection: 'row',
@@ -1066,20 +1196,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 20,
+    minHeight: 60,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 10,
   },
   doneButton: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    // Styles handled by ResponsiveText
   },
   mapContainer: {
     flex: 1,
     margin: 20,
+    minHeight: 200,
     borderRadius: 15,
     overflow: 'hidden',
   },
@@ -1093,13 +1223,13 @@ const styles = StyleSheet.create({
     margin: 20,
     marginTop: 0,
     padding: 15,
+    minHeight: 50,
     borderRadius: 10,
   },
   selectedLocationText: {
     flex: 1,
     marginLeft: 10,
-    fontSize: 14,
-    color: '#333',
+    minWidth: 0,
   },
   // Time Picker Modal Styles
   modalOverlay: {
@@ -1120,35 +1250,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
+    minHeight: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   timePickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 10,
   },
   cancelButton: {
-    fontSize: 16,
-    color: '#666',
+    // Styles handled by ResponsiveText
   },
   confirmButton: {
-    fontSize: 16,
-    color: '#667eea',
-    fontWeight: '600',
+    // Styles handled by ResponsiveText
   },
   timePickerContent: {
     flexDirection: 'row',
-    height: 200,
+    minHeight: 200,
+    maxHeight: 300,
   },
   timeColumn: {
     flex: 1,
     alignItems: 'center',
+    minWidth: 0,
   },
   timeColumnLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
     paddingVertical: 10,
   },
   timeScrollView: {
@@ -1157,29 +1284,31 @@ const styles = StyleSheet.create({
   },
   timeOption: {
     paddingVertical: 15,
+    minHeight: 50,
     alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   selectedTimeOption: {
-    backgroundColor: '#f0f4ff',
+    backgroundColor: '#667eea',
   },
   timeOptionText: {
-    fontSize: 18,
-    color: '#333',
+    // Styles handled by ResponsiveText
   },
   selectedTimeOptionText: {
-    color: '#667eea',
-    fontWeight: '600',
+    // Styles handled by ResponsiveText
   },
   ampmContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
   ampmButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
+    minHeight: 44,
     marginVertical: 5,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
@@ -1190,12 +1319,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#667eea',
   },
   ampmButtonText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    // Styles handled by ResponsiveText
   },
   selectedAmpmButtonText: {
-    color: '#fff',
+    // Styles handled by ResponsiveText
   },
   // Focused Business Hours Styles
   businessInfoCard: {
@@ -1207,14 +1334,10 @@ const styles = StyleSheet.create({
     borderLeftColor: '#667eea',
   },
   businessInfoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 5,
   },
   businessInfoSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    // Styles handled by ResponsiveText
   },
   hoursSection: {
     marginBottom: 30,
@@ -1222,10 +1345,9 @@ const styles = StyleSheet.create({
   timeButtonContent: {
     flex: 1,
     marginLeft: 15,
+    minWidth: 0,
   },
   timeLabel: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 2,
   },
   currentHoursDisplay: {
@@ -1237,14 +1359,10 @@ const styles = StyleSheet.create({
     borderColor: '#e0e8ff',
   },
   currentHoursLabel: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 5,
   },
   currentHoursText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    // Styles handled by ResponsiveText
   },
 });
 

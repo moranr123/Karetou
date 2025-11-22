@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, TextInput, Modal, Alert, Platform, StatusBar, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, TextInput, Modal, Alert, Platform, StatusBar, KeyboardAvoidingView, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -8,6 +8,10 @@ import { db } from '../../../firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc, deleteDoc } from 'firebase/firestore';
 import LoadingImage from '../../../components/LoadingImage';
 import NotificationService from '../../../services/NotificationService';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface Post {
   id: string;
@@ -41,6 +45,7 @@ const MyPostsScreen = () => {
   const [updatingPost, setUpdatingPost] = useState(false);
   
   const { user, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -464,21 +469,31 @@ const MyPostsScreen = () => {
             )}
           </View>
           <View style={styles.headerText}>
-            <Text style={styles.businessName}>{item.businessName}</Text>
-            <Text style={styles.time}>{formatTime(item.createdAt)}</Text>
+            <ResponsiveText size="md" weight="bold" color="#333" style={styles.businessName} numberOfLines={1}>
+              {item.businessName}
+            </ResponsiveText>
+            <ResponsiveText size="xs" color="#888" style={styles.time}>
+              {formatTime(item.createdAt)}
+            </ResponsiveText>
           </View>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Ionicons name="heart" size={16} color="#e91e63" />
-              <Text style={styles.statText}>{item.likes.length}</Text>
+              <Ionicons name="heart" size={iconSizes.sm} color="#e91e63" />
+              <ResponsiveText size="xs" color="#666" style={styles.statText}>
+                {item.likes.length}
+              </ResponsiveText>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="chatbubble" size={16} color="#667eea" />
-              <Text style={styles.statText}>{item.comments.length}</Text>
+              <Ionicons name="chatbubble" size={iconSizes.sm} color="#667eea" />
+              <ResponsiveText size="xs" color="#666" style={styles.statText}>
+                {item.comments.length}
+              </ResponsiveText>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="bookmark" size={16} color="#ff9800" />
-              <Text style={styles.statText}>{item.savedBy.length}</Text>
+              <Ionicons name="bookmark" size={iconSizes.sm} color="#ff9800" />
+              <ResponsiveText size="xs" color="#666" style={styles.statText}>
+                {item.savedBy.length}
+              </ResponsiveText>
             </View>
           </View>
           <View style={styles.postMenuContainer}>
@@ -524,7 +539,9 @@ const MyPostsScreen = () => {
           </View>
         </View>
         
-        <Text style={styles.postContent}>{item.content}</Text>
+        <ResponsiveText size="sm" color="#333" style={styles.postContent}>
+          {item.content}
+        </ResponsiveText>
         
         {item.imageUrl && item.imageUrl.trim() !== '' && (
           <View style={styles.imageWrapper}>
@@ -537,23 +554,29 @@ const MyPostsScreen = () => {
               />
             ) : (
               <View style={[styles.postImage, styles.invalidImageContainer]}>
-                <Ionicons name="image-outline" size={40} color="#999" />
-                <Text style={styles.invalidImageText}>Invalid image URL</Text>
+                <Ionicons name="image-outline" size={iconSizes.xxxxl} color="#999" />
+                <ResponsiveText size="sm" color="#999" style={styles.invalidImageText}>
+                  Invalid image URL
+                </ResponsiveText>
               </View>
             )}
           </View>
         )}
         
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+          <TouchableOpacity 
+            style={styles.actionButton} 
+            onPress={() => handleLike(item.id)}
+            activeOpacity={0.7}
+          >
             <Ionicons 
               name={isLiked ? "heart" : "heart-outline"} 
-              size={22} 
+              size={iconSizes.md} 
               color={isLiked ? "#e91e63" : "#888"} 
             />
-            <Text style={[styles.actionText, isLiked && { color: "#e91e63" }]}>
+            <ResponsiveText size="sm" weight="500" color={isLiked ? "#e91e63" : "#666"} style={styles.actionText}>
               Like
-            </Text>
+            </ResponsiveText>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -562,9 +585,12 @@ const MyPostsScreen = () => {
               setSelectedPost(item);
               setCommentModalVisible(true);
             }}
+            activeOpacity={0.7}
           >
-            <Ionicons name="chatbubble-outline" size={22} color="#888" />
-            <Text style={styles.actionText}>Comment</Text>
+            <Ionicons name="chatbubble-outline" size={iconSizes.md} color="#888" />
+            <ResponsiveText size="sm" weight="500" color="#666" style={styles.actionText}>
+              Comment
+            </ResponsiveText>
           </TouchableOpacity>
         </View>
       </View>
@@ -575,31 +601,45 @@ const MyPostsScreen = () => {
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()} 
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#000'} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>My Posts</Text>
-          <Text style={[styles.headerSubtitle, { color: theme === 'dark' ? 'rgba(255,255,255,0.7)' : '#666' }]}>{posts.length} posts</Text>
+          <ResponsiveText size="xl" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.headerTitle}>
+            My Posts
+          </ResponsiveText>
+          <ResponsiveText size="sm" color={theme === 'dark' ? 'rgba(255,255,255,0.7)' : '#666'} style={styles.headerSubtitle}>
+            {posts.length} posts
+          </ResponsiveText>
         </View>
         <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333' }]}>Loading your posts...</Text>
+          <ResponsiveText size="md" color={theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333'} style={styles.loadingText}>
+            Loading your posts...
+          </ResponsiveText>
         </View>
       ) : (
         <FlatList
           data={posts}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}
+          contentContainerStyle={styles.listContent}
           renderItem={renderPost}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="newspaper-outline" size={60} color={theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'} />
-              <Text style={[styles.emptyText, { color: theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333' }]}>No posts yet</Text>
-              <Text style={[styles.emptySubtext, { color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : '#666' }]}>Create your first post to get started!</Text>
+              <Ionicons name="newspaper-outline" size={iconSizes.xxxxl} color={theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'} />
+              <ResponsiveText size="lg" weight="600" color={theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333'} style={styles.emptyText}>
+                No posts yet
+              </ResponsiveText>
+              <ResponsiveText size="sm" color={theme === 'dark' ? 'rgba(255,255,255,0.6)' : '#666'} style={styles.emptySubtext}>
+                Create your first post to get started!
+              </ResponsiveText>
             </View>
           }
         />
@@ -818,13 +858,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 44 : 44,
     paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: '5%',
+    minHeight: 70,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   backButton: {
     width: 40,
+    minWidth: 40,
     height: 40,
+    minHeight: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
@@ -834,27 +877,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     marginHorizontal: 20,
+    minWidth: 0,
   },
   headerSpacer: {
-    width: 40, // Same width as back button to center the content
+    width: 40,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
     marginTop: 4,
+  },
+  listContent: {
+    paddingBottom: 100,
+    paddingTop: 20,
+    paddingHorizontal: '4%',
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: '4%',
     marginBottom: 16,
-    marginHorizontal: 16,
+    marginHorizontal: '4%',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
@@ -866,18 +910,22 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     marginBottom: 12,
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   avatarContainer: {
     marginRight: 12,
+    flexShrink: 0,
   },
   avatar: {
     width: 40,
-    height: 40,
+    minWidth: 40,
+    aspectRatio: 1,
     borderRadius: 20,
   },
   avatarPlaceholder: {
     width: 40,
-    height: 40,
+    minWidth: 40,
+    aspectRatio: 1,
     borderRadius: 20,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
@@ -885,35 +933,31 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   businessName: { 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    color: '#333' 
+    // Styles handled by ResponsiveText
   },
   time: { 
-    fontSize: 12, 
-    color: '#888', 
     marginTop: 2 
   },
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
+    flexWrap: 'wrap',
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 12,
+    minWidth: 40,
   },
   statText: {
-    fontSize: 12,
-    color: '#666',
     marginLeft: 4,
-    fontWeight: '500',
   },
   postContent: { 
-    fontSize: 15, 
-    color: '#333', 
     lineHeight: 22,
     marginBottom: 12
   },
@@ -922,20 +966,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f8f9fa',
+    width: '100%',
   },
   postImage: {
     width: '100%',
-    height: 200,
+    aspectRatio: 16/9,
+    minHeight: 150,
+    maxHeight: 300,
     borderRadius: 12,
   },
   invalidImageContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
+    minHeight: 150,
   },
   invalidImageText: {
-    fontSize: 14,
-    color: '#999',
     marginTop: 8,
   },
   actions: { 
@@ -945,29 +991,28 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     justifyContent: 'space-around',
+    flexWrap: 'wrap',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
+    minHeight: 40,
     borderRadius: 20,
     backgroundColor: '#f8f9fa',
   },
   actionText: { 
-    fontSize: 14, 
-    color: '#666', 
     marginLeft: 6,
-    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 50,
   },
   loadingText: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
   },
   emptyContainer: {
     flex: 1,
@@ -975,19 +1020,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 100,
     paddingHorizontal: 40,
+    paddingBottom: 50,
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 18,
-    fontWeight: 'bold',
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+    paddingHorizontal: 20,
   },
   modalOverlay: {
     flex: 1,

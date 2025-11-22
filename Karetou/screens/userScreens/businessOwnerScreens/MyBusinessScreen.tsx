@@ -24,11 +24,14 @@ import LoadingImage from '../../../components/LoadingImage';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const MyBusinessScreen = () => {
   const { user, theme, refreshData } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
   const navigation = useNavigation();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -386,12 +389,18 @@ const MyBusinessScreen = () => {
 
         {/* Business Info */}
         <View style={styles.cardInfo}>
-          <Text style={styles.businessName} numberOfLines={1}>{business.businessName}</Text>
-          <Text style={styles.businessType} numberOfLines={1}>{business.selectedType}</Text>
+          <ResponsiveText size="md" weight="bold" color="#333" style={styles.businessName} numberOfLines={1}>
+            {business.businessName}
+          </ResponsiveText>
+          <ResponsiveText size="sm" color="#666" style={styles.businessType} numberOfLines={1}>
+            {business.selectedType}
+          </ResponsiveText>
           
           {/* Status Badge */}
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(business.status) }]}>
-            <Text style={styles.statusText}>{getStatusText(business.status)}</Text>
+            <ResponsiveText size="xs" weight="600" color="#fff" style={styles.statusText}>
+              {getStatusText(business.status)}
+            </ResponsiveText>
           </View>
           
         </View>
@@ -463,13 +472,13 @@ const MyBusinessScreen = () => {
           </View>
 
             <View style={styles.noBusinessContainer}>
-              <Ionicons name="business-outline" size={80} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.3)'} />
-              <Text style={styles.noBusinessTitle}>
+              <Ionicons name="business-outline" size={iconSizes.xxxxl} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.3)'} />
+              <ResponsiveText size="xl" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.noBusinessTitle}>
                 {selectedFilter === 'Registered' ? 'No Registered Businesses' : 'No Pending Businesses'}
-              </Text>
-              <Text style={styles.subtitle}>
+              </ResponsiveText>
+              <ResponsiveText size="md" color={theme === 'dark' ? 'rgba(255,255,255,0.7)' : '#666'} style={styles.subtitle}>
                 {selectedFilter === 'Registered' ? 'You don\'t have any registered businesses yet.' : 'You don\'t have any pending businesses.'}
-              </Text>
+              </ResponsiveText>
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -525,8 +534,12 @@ const MyBusinessScreen = () => {
             </ScrollView>
           </View>
 
-          {/* Business Cards */}
-          {filteredBusinesses.map((business) => renderBusinessCard(business))}
+        {/* Business Cards */}
+        {filteredBusinesses.map((business) => (
+          <View key={business.id}>
+            {renderBusinessCard(business)}
+          </View>
+        ))}
         </ScrollView>
 
         {/* Business Details Modal */}
@@ -745,10 +758,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     paddingHorizontal: 0,
+    minHeight: 50,
   },
   backButton: {
     width: 40,
+    minWidth: 40,
     height: 40,
+    minHeight: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
@@ -756,21 +772,20 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
     flex: 1,
+    textAlign: 'center',
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
+    minHeight: 24,
     borderRadius: 12,
     alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
   },
   businessCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -787,26 +802,31 @@ const styles = StyleSheet.create({
     elevation: 3,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 80,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    padding: '4%',
     flex: 1,
+    minWidth: 0,
   },
   imageContainer: {
     marginRight: 15,
+    flexShrink: 0,
   },
   businessCardImage: {
     width: 60,
-    height: 60,
+    minWidth: 50,
+    aspectRatio: 1,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ddd',
   },
   placeholderImage: {
     width: 60,
-    height: 60,
+    minWidth: 50,
+    aspectRatio: 1,
     borderRadius: 10,
     backgroundColor: '#f5f5f5',
     borderWidth: 1,
@@ -817,12 +837,16 @@ const styles = StyleSheet.create({
   cardInfo: {
     flex: 1,
     marginRight: 10,
+    minWidth: 0,
   },
   arrowContainer: {
     padding: 5,
+    flexShrink: 0,
   },
   deleteButton: {
     padding: 15,
+    minWidth: 44,
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
     borderLeftWidth: 1,
@@ -832,20 +856,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    flexWrap: 'wrap',
   },
   businessInfo: {
     marginLeft: 15,
     flex: 1,
+    minWidth: 0,
   },
   businessName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 4,
   },
   businessType: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 8,
   },
   detailsSection: {
@@ -905,10 +926,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     marginTop: 10,
+    paddingHorizontal: '5%',
   },
   businessCount: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -952,10 +972,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   noBusinessTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
     marginBottom: 10,
+    textAlign: 'center',
+    paddingHorizontal: '5%',
   },
   // Modal Styles
   modalContainer: {

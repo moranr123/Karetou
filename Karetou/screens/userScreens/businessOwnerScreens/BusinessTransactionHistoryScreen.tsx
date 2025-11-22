@@ -14,10 +14,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../../contexts/AuthContext';
 import TransactionService, { Transaction } from '../../../services/TransactionService';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText } from '../../../components';
 
 const BusinessTransactionHistoryScreen = () => {
   const navigation = useNavigation();
   const { theme, user } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, dimensions } = useResponsive();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,33 +74,41 @@ const BusinessTransactionHistoryScreen = () => {
         <View style={styles.transactionIconContainer}>
           <Ionicons 
             name="arrow-down-circle" 
-            size={32} 
+            size={iconSizes.xxl} 
             color="#4CAF50" 
           />
         </View>
         <View style={styles.transactionInfo}>
-          <Text style={[
-            styles.senderName,
-            { color: theme === 'dark' ? '#FFF' : '#333' }
-          ]}>
+          <ResponsiveText 
+            size="md" 
+            weight="600" 
+            color={theme === 'dark' ? '#FFF' : '#333'} 
+            style={styles.senderName}
+            numberOfLines={1}
+          >
             {item.userName}
-          </Text>
-          <Text style={[
-            styles.businessName,
-            { color: theme === 'dark' ? '#AAA' : '#666' }
-          ]}>
+          </ResponsiveText>
+          <ResponsiveText 
+            size="sm" 
+            color={theme === 'dark' ? '#AAA' : '#666'} 
+            style={styles.businessName}
+            numberOfLines={1}
+          >
             {item.businessName}
-          </Text>
-          <Text style={[
-            styles.transactionDate,
-            { color: theme === 'dark' ? '#AAA' : '#666' }
-          ]}>
+          </ResponsiveText>
+          <ResponsiveText 
+            size="xs" 
+            color={theme === 'dark' ? '#AAA' : '#666'} 
+            style={styles.transactionDate}
+          >
             {formatDate(item.timestamp)}
-          </Text>
+          </ResponsiveText>
         </View>
         <View style={styles.pointsContainer}>
-          <Text style={styles.pointsText}>+{item.points}</Text>
-          <Ionicons name="star" size={16} color="#FFD700" />
+          <ResponsiveText size="lg" weight="bold" color="#4CAF50" style={styles.pointsText}>
+            +{item.points}
+          </ResponsiveText>
+          <Ionicons name="star" size={iconSizes.sm} color="#FFD700" />
         </View>
       </View>
       <View style={styles.statusContainer}>
@@ -105,9 +116,9 @@ const BusinessTransactionHistoryScreen = () => {
           styles.statusBadge,
           { backgroundColor: item.status === 'completed' ? '#4CAF50' : '#FF9800' }
         ]}>
-          <Text style={styles.statusText}>
+          <ResponsiveText size="xs" weight="600" color="#fff" style={styles.statusText}>
             {item.status === 'completed' ? 'Completed' : item.status}
-          </Text>
+          </ResponsiveText>
         </View>
       </View>
     </View>
@@ -121,31 +132,32 @@ const BusinessTransactionHistoryScreen = () => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#333'} />
+            <Ionicons name="arrow-back" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#333'} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+          <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.headerTitle}>
             Received Points
-          </Text>
+          </ResponsiveText>
           <View style={styles.placeholder} />
         </View>
 
         {loading && transactions.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#667eea" />
-            <Text style={[styles.loadingText, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
+            <ResponsiveText size="md" color={theme === 'dark' ? '#FFF' : '#333'} style={styles.loadingText}>
               Loading transactions...
-            </Text>
+            </ResponsiveText>
           </View>
         ) : transactions.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={64} color="#999" />
-            <Text style={[styles.emptyText, { color: theme === 'dark' ? '#CCC' : '#666' }]}>
+            <Ionicons name="receipt-outline" size={iconSizes.xxxxl} color="#999" />
+            <ResponsiveText size="lg" weight="600" color={theme === 'dark' ? '#CCC' : '#666'} style={styles.emptyText}>
               No points received yet
-            </Text>
-            <Text style={[styles.emptySubtext, { color: theme === 'dark' ? '#AAA' : '#888' }]}>
+            </ResponsiveText>
+            <ResponsiveText size="sm" color={theme === 'dark' ? '#AAA' : '#888'} style={styles.emptySubtext}>
               Points sent by users will appear here
-            </Text>
+            </ResponsiveText>
           </View>
         ) : (
           <FlatList
@@ -178,17 +190,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: '5%',
     paddingVertical: 15,
+    minHeight: 60,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   backButton: {
     padding: 5,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
   },
   placeholder: {
     width: 34,
@@ -197,33 +214,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 50,
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 16,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+    paddingVertical: 50,
   },
   emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
     marginTop: 20,
   },
   emptySubtext: {
-    fontSize: 14,
     marginTop: 10,
     textAlign: 'center',
+    paddingHorizontal: 20,
   },
   listContainer: {
-    padding: 15,
+    padding: '4%',
+    paddingBottom: 30,
   },
   transactionCard: {
     borderRadius: 12,
-    padding: 15,
+    padding: '4%',
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
@@ -234,33 +251,33 @@ const styles = StyleSheet.create({
   transactionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   transactionIconContainer: {
     marginRight: 12,
+    flexShrink: 0,
   },
   transactionInfo: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   senderName: {
-    fontSize: 16,
-    fontWeight: '600',
     marginBottom: 4,
   },
   businessName: {
-    fontSize: 14,
     marginBottom: 4,
   },
   transactionDate: {
-    fontSize: 12,
+    // Styles handled by ResponsiveText
   },
   pointsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    flexShrink: 0,
   },
   pointsText: {
-    fontSize: 18,
-    fontWeight: 'bold',
     color: '#4CAF50',
   },
   statusContainer: {
@@ -271,12 +288,13 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
+    minHeight: 24,
     borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusText: {
     color: '#FFF',
-    fontSize: 12,
-    fontWeight: '600',
   },
 });
 

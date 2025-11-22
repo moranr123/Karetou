@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dimensions } from 'react-native';
 import responsive from '../utils/responsive';
 
-export const useResponsive = () => {
+const useResponsive = () => {
   const [dimensions, setDimensions] = useState({
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
@@ -33,4 +33,5 @@ export const useResponsive = () => {
   };
 };
 
+export { useResponsive };
 export default useResponsive;

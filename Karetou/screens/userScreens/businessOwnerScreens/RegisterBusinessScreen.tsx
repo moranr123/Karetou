@@ -454,23 +454,19 @@ const RegisterBusinessScreen = () => {
       position: 'absolute',
       left: 0,
       zIndex: 1,
+      minWidth: 44,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     title: {
-      fontSize: fontSizes.xl,
-      fontWeight: 'bold',
-      color: '#333',
       textAlign: 'center',
       flex: 1,
     },
     label: {
-      fontSize: fontSizes.md,
-      fontWeight: '600',
-      color: '#333',
       marginBottom: spacing.sm,
     },
     subLabel: {
-      fontSize: fontSizes.sm,
-      color: '#666',
       marginBottom: spacing.sm,
       lineHeight: fontSizes.sm * 1.4,
     },
@@ -479,6 +475,7 @@ const RegisterBusinessScreen = () => {
       borderRadius: borderRadius.md,
       padding: spacing.md,
       fontSize: fontSizes.md,
+      minHeight: 48,
       marginBottom: spacing.xl,
       borderWidth: 1,
       borderColor: '#ddd',
@@ -498,8 +495,6 @@ const RegisterBusinessScreen = () => {
     },
     photoText: {
       marginTop: spacing.sm,
-      fontSize: fontSizes.md,
-      color: '#666',
     },
     photoPreview: {
       height: getResponsiveHeight(25),
@@ -516,24 +511,23 @@ const RegisterBusinessScreen = () => {
       backgroundColor: '#f8f9fa',
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.xs,
+      minHeight: 44,
       borderRadius: borderRadius.xl,
       marginHorizontal: spacing.xs,
       borderWidth: 1,
       borderColor: '#ddd',
       alignItems: 'center',
+      justifyContent: 'center',
     },
     selectedTypeButton: {
       backgroundColor: '#667eea',
       borderColor: '#667eea',
     },
     typeButtonText: {
-      fontSize: fontSizes.sm,
-      color: '#333',
-      fontWeight: '500',
       textAlign: 'center',
     },
     selectedTypeButtonText: {
-      color: '#fff',
+      // Styles handled by ResponsiveText
     },
     categoryListContainer: {
       marginBottom: spacing.xl,
@@ -553,42 +547,40 @@ const RegisterBusinessScreen = () => {
       marginRight: spacing.sm,
     },
     categoryCheckboxLabel: {
-      fontSize: fontSizes.md,
-      fontWeight: '500',
-      color: '#333',
       flex: 1,
+      minWidth: 0,
     },
     timeContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginBottom: spacing.xl,
+      gap: '2%',
     },
     timeButton: {
       backgroundColor: '#f8f9fa',
       padding: spacing.md,
+      minHeight: 50,
       borderRadius: borderRadius.md,
       flex: 0.48,
       alignItems: 'center',
+      justifyContent: 'center',
       borderWidth: 1,
       borderColor: '#ddd',
     },
     timeButtonText: {
-      fontSize: fontSizes.md,
-      color: '#333',
-      fontWeight: '500',
+      // Styles handled by ResponsiveText
     },
     submitButton: {
       backgroundColor: '#667eea',
-      height: getResponsiveHeight(6),
+      minHeight: 50,
       borderRadius: borderRadius.md,
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: spacing.lg,
+      paddingVertical: spacing.md,
     },
     submitButtonText: {
       color: '#fff',
-      fontSize: fontSizes.lg,
-      fontWeight: 'bold',
     },
     businessImagesContainer: {
       marginBottom: spacing.lg,
@@ -599,8 +591,9 @@ const RegisterBusinessScreen = () => {
       marginBottom: spacing.sm,
     },
     businessImageSlot: {
-      width: getResponsiveWidth(28),
-      height: getResponsiveWidth(28),
+      width: '31%',
+      aspectRatio: 1,
+      minWidth: 80,
       backgroundColor: '#f8f9fa',
       borderRadius: borderRadius.md,
       justifyContent: 'center',
@@ -625,16 +618,20 @@ const RegisterBusinessScreen = () => {
       right: -5,
       backgroundColor: '#fff',
       borderRadius: borderRadius.sm,
+      minWidth: 32,
+      minHeight: 32,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     businessImagePlaceholder: {
       alignItems: 'center',
       justifyContent: 'center',
+      padding: 8,
     },
     businessImageText: {
-      fontSize: fontSizes.xs,
-      color: '#666',
       marginTop: spacing.xs,
       textAlign: 'center',
+      paddingHorizontal: 4,
     },
     addMoreImagesButton: {
       flexDirection: 'row',
@@ -643,6 +640,7 @@ const RegisterBusinessScreen = () => {
       backgroundColor: '#f8f9fa',
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
+      minHeight: 44,
       borderRadius: borderRadius.xl,
       marginTop: spacing.sm,
       borderWidth: 1,
@@ -650,26 +648,22 @@ const RegisterBusinessScreen = () => {
     },
     addMoreImagesText: {
       color: '#333',
-      fontSize: fontSizes.md,
       marginLeft: spacing.sm,
-      fontWeight: '500',
     },
     imageCounter: {
       marginTop: spacing.sm,
       alignItems: 'center',
     },
     imageCounterText: {
-      fontSize: fontSizes.sm,
-      fontWeight: '500',
+      // Styles handled by ResponsiveText
     },
     imageCounterSuccess: {
-      color: '#4CAF50',
+      // Styles handled by ResponsiveText
     },
     imageCounterWarning: {
-      color: '#ffc107',
+      // Styles handled by ResponsiveText
     },
     errorText: {
-      fontSize: fontSizes.sm,
       color: '#FF4444',
       marginTop: spacing.xs,
       marginBottom: spacing.sm,
@@ -697,35 +691,32 @@ const RegisterBusinessScreen = () => {
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: spacing.lg,
+      minHeight: 60,
       borderBottomWidth: 1,
       borderBottomColor: '#eee',
     },
     timePickerTitle: {
-      fontSize: fontSizes.lg,
-      fontWeight: '600',
-      color: '#333',
+      flex: 1,
+      textAlign: 'center',
+      marginHorizontal: 10,
     },
     cancelButton: {
-      fontSize: fontSizes.md,
-      color: '#666',
+      // Styles handled by ResponsiveText
     },
     confirmButton: {
-      fontSize: fontSizes.md,
-      color: '#667eea',
-      fontWeight: '600',
+      // Styles handled by ResponsiveText
     },
     timePickerContent: {
       flexDirection: 'row',
-      height: 200,
+      minHeight: 200,
+      maxHeight: 300,
     },
     timeColumn: {
       flex: 1,
       alignItems: 'center',
+      minWidth: 0,
     },
     timeColumnLabel: {
-      fontSize: fontSizes.md,
-      fontWeight: '600',
-      color: '#333',
       paddingVertical: spacing.sm,
     },
     timeScrollView: {
@@ -734,45 +725,46 @@ const RegisterBusinessScreen = () => {
     },
     timeOption: {
       paddingVertical: spacing.md,
+      minHeight: 50,
       alignItems: 'center',
+      justifyContent: 'center',
       borderBottomWidth: 1,
       borderBottomColor: '#f0f0f0',
     },
     selectedTimeOption: {
-      backgroundColor: '#f0f4ff',
+      backgroundColor: '#667eea',
     },
     timeOptionText: {
-      fontSize: fontSizes.lg,
-      color: '#333',
+      // Styles handled by ResponsiveText
     },
     selectedTimeOptionText: {
-      color: '#667eea',
-      fontWeight: '600',
+      // Styles handled by ResponsiveText
     },
     ampmContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+      width: '100%',
     },
     ampmButton: {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.lg,
+      minHeight: 44,
       marginVertical: spacing.xs,
       borderRadius: borderRadius.sm,
       backgroundColor: '#f0f0f0',
       minWidth: 60,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     selectedAmpmButton: {
       backgroundColor: '#667eea',
     },
     ampmButtonText: {
-      fontSize: fontSizes.md,
-      color: '#333',
-      fontWeight: '500',
+      // Styles handled by ResponsiveText
     },
     selectedAmpmButtonText: {
-      color: '#fff',
+      // Styles handled by ResponsiveText
     },
   });
 
@@ -860,31 +852,48 @@ const RegisterBusinessScreen = () => {
           <View style={styles.formCard}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#333" />
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()} 
+                style={styles.backButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="arrow-back" size={iconSizes.lg} color="#333" />
               </TouchableOpacity>
-              <Text style={styles.title}>Register Business</Text>
+              <ResponsiveText size="xl" weight="bold" color="#333" style={styles.title}>
+                Register Business
+              </ResponsiveText>
             </View>
 
             {/* Permit Photo */}
-            <Text style={styles.label}>Business Permit Photo *</Text>
-            <TouchableOpacity onPress={handleChoosePhoto} style={styles.photoContainer}>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Permit Photo *
+            </ResponsiveText>
+            <TouchableOpacity 
+              onPress={handleChoosePhoto} 
+              style={styles.photoContainer}
+              activeOpacity={0.7}
+            >
               {permitPhoto ? (
                 <LoadingImage 
                   source={{ uri: permitPhoto }} 
                   style={styles.photoPreview}
-                  placeholder="business" 
+                  placeholder="business"
+                  resizeMode="cover"
                 />
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Ionicons name="document-outline" size={40} color="#666" />
-                  <Text style={styles.photoText}>Upload Permit Photo</Text>
+                  <Ionicons name="document-outline" size={iconSizes.xxl} color="#666" />
+                  <ResponsiveText size="sm" color="#666" style={styles.photoText}>
+                    Upload Permit Photo
+                  </ResponsiveText>
                 </View>
               )}
             </TouchableOpacity>
 
             {/* Permit Number */}
-            <Text style={styles.label}>Permit Number *</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Permit Number *
+            </ResponsiveText>
             <TextInput
               style={styles.input}
               placeholder="Enter permit number"
@@ -894,7 +903,9 @@ const RegisterBusinessScreen = () => {
             />
 
             {/* Business Name */}
-            <Text style={styles.label}>Business Name *</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Name *
+            </ResponsiveText>
             <TextInput
               style={styles.input}
               placeholder="Enter business name"
@@ -904,7 +915,9 @@ const RegisterBusinessScreen = () => {
             />
 
             {/* Business Owner */}
-            <Text style={styles.label}>Business Owner *</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Owner *
+            </ResponsiveText>
             <TextInput
               style={styles.input}
               placeholder="Enter business owner name"
@@ -914,7 +927,9 @@ const RegisterBusinessScreen = () => {
             />
 
             {/* Business Type */}
-            <Text style={styles.label}>Business Type *</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Type *
+            </ResponsiveText>
             <View style={styles.businessTypeRow}>
               {businessTypes.map((type) => (
                 <TouchableOpacity
@@ -924,21 +939,27 @@ const RegisterBusinessScreen = () => {
                     selectedType === type && styles.selectedTypeButton,
                   ]}
                   onPress={() => setSelectedType(type)}
+                  activeOpacity={0.7}
                 >
-                  <Text
+                  <ResponsiveText
+                    size="sm"
+                    weight={selectedType === type ? "bold" : "normal"}
+                    color={selectedType === type ? "#fff" : "#333"}
                     style={[
                       styles.typeButtonText,
                       selectedType === type && styles.selectedTypeButtonText,
                     ]}
                   >
                     {type}
-                  </Text>
+                  </ResponsiveText>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Business Category */}
-            <Text style={styles.label}>Business Category * (Select all that apply)</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Category * (Select all that apply)
+            </ResponsiveText>
             <View style={styles.categoryListContainer}>
               {businessCategories.map((category) => {
                 const isSelected = selectedCategories.includes(category);
@@ -952,34 +973,50 @@ const RegisterBusinessScreen = () => {
                     <View style={styles.categoryCheckboxContainer}>
                       <Ionicons
                         name={isSelected ? 'checkbox' : 'square-outline'}
-                        size={28}
+                        size={iconSizes.xl}
                         color={isSelected ? '#667eea' : '#999'}
                       />
                     </View>
-                    <Text style={styles.categoryCheckboxLabel}>{category}</Text>
+                    <ResponsiveText size="sm" color="#333" style={styles.categoryCheckboxLabel}>
+                      {category}
+                    </ResponsiveText>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
             {/* Business Hours */}
-            <Text style={styles.label}>Business Hours *</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Hours *
+            </ResponsiveText>
             <View style={styles.timeContainer}>
-              <TouchableOpacity onPress={() => showTimepicker('start')} style={styles.timeButton}>
-                <Text style={styles.timeButtonText}>
+              <TouchableOpacity 
+                onPress={() => showTimepicker('start')} 
+                style={styles.timeButton}
+                activeOpacity={0.7}
+              >
+                <ResponsiveText size="md" weight="500" color="#333" style={styles.timeButtonText}>
                   Start: {formatTime(startTime)}
-                </Text>
+                </ResponsiveText>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => showTimepicker('end')} style={styles.timeButton}>
-                <Text style={styles.timeButtonText}>
+              <TouchableOpacity 
+                onPress={() => showTimepicker('end')} 
+                style={styles.timeButton}
+                activeOpacity={0.7}
+              >
+                <ResponsiveText size="md" weight="500" color="#333" style={styles.timeButtonText}>
                   End: {formatTime(endTime)}
-                </Text>
+                </ResponsiveText>
               </TouchableOpacity>
             </View>
 
             {/* Contact Number */}
-            <Text style={styles.label}>Contact Number *</Text>
-            <Text style={styles.subLabel}>Must start with 09 and be 11 digits (e.g., 09123456789)</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Contact Number *
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#666" style={styles.subLabel}>
+              Must start with 09 and be 11 digits (e.g., 09123456789)
+            </ResponsiveText>
             <TextInput
               style={[styles.input, contactNumberError && styles.inputError]}
               placeholder="09XXXXXXXXX"
@@ -990,12 +1027,18 @@ const RegisterBusinessScreen = () => {
               maxLength={11}
             />
             {contactNumberError ? (
-              <Text style={styles.errorText}>{contactNumberError}</Text>
+              <ResponsiveText size="xs" color="#FF4444" style={styles.errorText}>
+                {contactNumberError}
+              </ResponsiveText>
             ) : null}
 
             {/* Optional Contact Number */}
-            <Text style={styles.label}>Optional Contact Number</Text>
-            <Text style={styles.subLabel}>Must start with 09 and be 11 digits (e.g., 09123456789)</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Optional Contact Number
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#666" style={styles.subLabel}>
+              Must start with 09 and be 11 digits (e.g., 09123456789)
+            </ResponsiveText>
             <TextInput
               style={[styles.input, optionalContactNumberError && styles.inputError]}
               placeholder="09XXXXXXXXX"
@@ -1006,12 +1049,18 @@ const RegisterBusinessScreen = () => {
               maxLength={11}
             />
             {optionalContactNumberError ? (
-              <Text style={styles.errorText}>{optionalContactNumberError}</Text>
+              <ResponsiveText size="xs" color="#FF4444" style={styles.errorText}>
+                {optionalContactNumberError}
+              </ResponsiveText>
             ) : null}
 
             {/* Business Images Section */}
-            <Text style={styles.label}>Business Images (Minimum 3 Required) *</Text>
-            <Text style={styles.subLabel}>Showcase your business with photos of your establishment, products, or services</Text>
+            <ResponsiveText size="md" weight="600" color="#333" style={styles.label}>
+              Business Images (Minimum 3 Required) *
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#666" style={styles.subLabel}>
+              Showcase your business with photos of your establishment, products, or services
+            </ResponsiveText>
             
             <View style={styles.businessImagesContainer}>
               <View style={styles.businessImagesRow}>
@@ -1037,10 +1086,10 @@ const RegisterBusinessScreen = () => {
                       </View>
                     ) : (
                       <View style={styles.businessImagePlaceholder}>
-                        <Ionicons name="camera" size={30} color="#999" />
-                        <Text style={styles.businessImageText}>
+                        <Ionicons name="camera" size={iconSizes.xl} color="#999" />
+                        <ResponsiveText size="xs" color="#666" style={styles.businessImageText}>
                           {index < 3 ? 'Required' : 'Optional'}
-                        </Text>
+                        </ResponsiveText>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -1055,19 +1104,22 @@ const RegisterBusinessScreen = () => {
                       key={index}
                       style={styles.businessImageSlot}
                       onPress={() => {}}
+                      activeOpacity={0.7}
                     >
                       {businessImages[index] ? (
                         <View style={styles.businessImageWrapper}>
                           <LoadingImage 
                             source={{ uri: businessImages[index] }} 
                             style={styles.businessImagePreview}
-                            placeholder="camera" 
+                            placeholder="camera"
+                            resizeMode="cover"
                           />
                           <TouchableOpacity
                             style={styles.removeImageButton}
                             onPress={() => removeBusinessImage(index)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                           >
-                            <Ionicons name="close-circle" size={24} color="#FF4444" />
+                            <Ionicons name="close-circle" size={iconSizes.lg} color="#FF4444" />
                           </TouchableOpacity>
                         </View>
                       ) : null}
@@ -1078,27 +1130,44 @@ const RegisterBusinessScreen = () => {
               
               {/* Add More Images Button */}
               {businessImages.length >= 3 && businessImages.length < 5 && (
-                <TouchableOpacity onPress={handleChooseBusinessImage} style={styles.addMoreImagesButton}>
-                  <Ionicons name="add-circle" size={20} color="#667eea" />
-                  <Text style={styles.addMoreImagesText}>Add More Images ({businessImages.length}/5)</Text>
+                <TouchableOpacity 
+                  onPress={handleChooseBusinessImage} 
+                  style={styles.addMoreImagesButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add-circle" size={iconSizes.md} color="#667eea" />
+                  <ResponsiveText size="sm" weight="500" color="#333" style={styles.addMoreImagesText}>
+                    Add More Images ({businessImages.length}/5)
+                  </ResponsiveText>
                 </TouchableOpacity>
               )}
               
               {/* Image Counter */}
-              <View style={styles.imageCounter}>
-                <Text style={[
-                  styles.imageCounterText,
-                  businessImages.length >= 3 ? styles.imageCounterSuccess : styles.imageCounterWarning
-                ]}>
+              <ResponsiveView style={styles.imageCounter}>
+                <ResponsiveText 
+                  size="sm" 
+                  weight="500"
+                  color={businessImages.length >= 3 ? "#4CAF50" : "#FF9800"}
+                  style={[
+                    styles.imageCounterText,
+                    businessImages.length >= 3 ? styles.imageCounterSuccess : styles.imageCounterWarning
+                  ]}
+                >
                   {businessImages.length}/3 minimum images uploaded
                   {businessImages.length >= 3 && ' ✓'}
-                </Text>
-              </View>
+                </ResponsiveText>
+              </ResponsiveView>
             </View>
 
             {/* Next Button */}
-            <TouchableOpacity onPress={handleNext} style={styles.submitButton}>
-              <Text style={styles.submitButtonText}>Next</Text>
+            <TouchableOpacity 
+              onPress={handleNext} 
+              style={styles.submitButton}
+              activeOpacity={0.8}
+            >
+              <ResponsiveText size="md" weight="bold" color="#fff" style={styles.submitButtonText}>
+                Next
+              </ResponsiveText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -1113,20 +1182,34 @@ const RegisterBusinessScreen = () => {
           <View style={styles.modalOverlay}>
             <View style={styles.timePickerModal}>
               <View style={styles.timePickerHeader}>
-                <TouchableOpacity onPress={cancelTime}>
-                  <Text style={styles.cancelButton}>Cancel</Text>
+                <TouchableOpacity 
+                  onPress={cancelTime}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <ResponsiveText size="md" color="#667eea" style={styles.cancelButton}>
+                    Cancel
+                  </ResponsiveText>
                 </TouchableOpacity>
-                <Text style={styles.timePickerTitle}>
+                <ResponsiveText size="lg" weight="bold" color="#333" style={styles.timePickerTitle}>
                   {timePickerMode === 'start' ? 'Start Time' : 'End Time'}
-                </Text>
-                <TouchableOpacity onPress={confirmTime}>
-                  <Text style={styles.confirmButton}>Done</Text>
+                </ResponsiveText>
+                <TouchableOpacity 
+                  onPress={confirmTime}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <ResponsiveText size="md" weight="600" color="#667eea" style={styles.confirmButton}>
+                    Done
+                  </ResponsiveText>
                 </TouchableOpacity>
               </View>
               
               <View style={styles.timePickerContent}>
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>Hour</Text>
+                  <ResponsiveText size="sm" weight="600" color="#666" style={styles.timeColumnLabel}>
+                    Hour
+                  </ResponsiveText>
                   <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
                     {generateTimeOptions('hour').map((hour) => (
                       <TouchableOpacity
@@ -1136,22 +1219,28 @@ const RegisterBusinessScreen = () => {
                           tempHour === hour && styles.selectedTimeOption,
                         ]}
                         onPress={() => setTempHour(hour)}
+                        activeOpacity={0.7}
                       >
-                        <Text
+                        <ResponsiveText
+                          size="lg"
+                          weight={tempHour === hour ? "bold" : "normal"}
+                          color={tempHour === hour ? "#fff" : "#333"}
                           style={[
                             styles.timeOptionText,
                             tempHour === hour && styles.selectedTimeOptionText,
                           ]}
                         >
                           {hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}
-                        </Text>
+                        </ResponsiveText>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
                 
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>Minute</Text>
+                  <ResponsiveText size="sm" weight="600" color="#666" style={styles.timeColumnLabel}>
+                    Minute
+                  </ResponsiveText>
                   <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
                     {generateTimeOptions('minute').map((minute) => (
                       <TouchableOpacity
@@ -1161,22 +1250,28 @@ const RegisterBusinessScreen = () => {
                           tempMinute === minute && styles.selectedTimeOption,
                         ]}
                         onPress={() => setTempMinute(minute)}
+                        activeOpacity={0.7}
                       >
-                        <Text
+                        <ResponsiveText
+                          size="lg"
+                          weight={tempMinute === minute ? "bold" : "normal"}
+                          color={tempMinute === minute ? "#fff" : "#333"}
                           style={[
                             styles.timeOptionText,
                             tempMinute === minute && styles.selectedTimeOptionText,
                           ]}
                         >
                           {minute.toString().padStart(2, '0')}
-                        </Text>
+                        </ResponsiveText>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
                 
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeColumnLabel}>AM/PM</Text>
+                  <ResponsiveText size="sm" weight="600" color="#666" style={styles.timeColumnLabel}>
+                    AM/PM
+                  </ResponsiveText>
                   <View style={styles.ampmContainer}>
                     <TouchableOpacity
                       style={[
@@ -1184,15 +1279,19 @@ const RegisterBusinessScreen = () => {
                         tempHour < 12 && styles.selectedAmpmButton,
                       ]}
                       onPress={() => setTempHour(tempHour < 12 ? tempHour : tempHour - 12)}
+                      activeOpacity={0.7}
                     >
-                      <Text
+                      <ResponsiveText
+                        size="md"
+                        weight={tempHour < 12 ? "bold" : "normal"}
+                        color={tempHour < 12 ? "#fff" : "#333"}
                         style={[
                           styles.ampmButtonText,
                           tempHour < 12 && styles.selectedAmpmButtonText,
                         ]}
                       >
                         AM
-                      </Text>
+                      </ResponsiveText>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -1200,15 +1299,19 @@ const RegisterBusinessScreen = () => {
                         tempHour >= 12 && styles.selectedAmpmButton,
                       ]}
                       onPress={() => setTempHour(tempHour >= 12 ? tempHour : tempHour + 12)}
+                      activeOpacity={0.7}
                     >
-                      <Text
+                      <ResponsiveText
+                        size="md"
+                        weight={tempHour >= 12 ? "bold" : "normal"}
+                        color={tempHour >= 12 ? "#fff" : "#333"}
                         style={[
                           styles.ampmButtonText,
                           tempHour >= 12 && styles.selectedAmpmButtonText,
                         ]}
                       >
                         PM
-                      </Text>
+                      </ResponsiveText>
                     </TouchableOpacity>
                   </View>
                 </View>

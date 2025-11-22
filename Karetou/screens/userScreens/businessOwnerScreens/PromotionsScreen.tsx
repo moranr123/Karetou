@@ -23,6 +23,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { db } from '../../../firebase';
 import { collection, addDoc, query, where, getDocs, deleteDoc, doc, onSnapshot, orderBy } from 'firebase/firestore';
 import { User } from 'firebase/auth';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 interface AuthContextType {
   user: User | null;
@@ -135,9 +137,12 @@ const getPromoImage = (businessType: string, title: string, description: string)
 const PromotionsScreen = () => {
   const navigation = useNavigation();
   const { user, theme } = useAuth() as AuthContextType;
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
+  
+  const isSmallScreen = dimensions.width < 360;
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -420,21 +425,25 @@ const PromotionsScreen = () => {
             styles.statusBadge,
             { backgroundColor: expired ? '#FF4444' : '#4CAF50' }
           ]}>
-            <Text style={styles.statusText}>
+            <ResponsiveText size="xs" weight="bold" color="#fff" style={styles.statusText}>
               {expired ? 'Expired' : 'Active'}
-            </Text>
+            </ResponsiveText>
           </View>
 
           <View style={[styles.promoContent, expired && { opacity: 0.7 }]}>
-            <Text style={styles.promoTitle}>{item.title}</Text>
-            <Text style={styles.promoDescription} numberOfLines={2}>
+            <ResponsiveText size="md" weight="bold" color="#fff" style={styles.promoTitle} numberOfLines={2}>
+              {item.title}
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#fff" style={styles.promoDescription} numberOfLines={2}>
               {item.description}
-            </Text>
-            <Text style={styles.businessName}>{item.businessName}</Text>
-            <Text style={styles.promoDate}>
+            </ResponsiveText>
+            <ResponsiveText size="sm" weight="600" color="#FFD700" style={styles.businessName} numberOfLines={1}>
+              {item.businessName}
+            </ResponsiveText>
+            <ResponsiveText size="xs" color="#fff" style={styles.promoDate}>
               {expired ? 'Expired on: ' : 'Valid until: '}
               {new Date(item.endDate).toLocaleDateString()}
-            </Text>
+            </ResponsiveText>
           </View>
 
           <View style={styles.actionButtons}>
@@ -442,14 +451,18 @@ const PromotionsScreen = () => {
               style={[styles.editButton, expired && { opacity: 0.5 }]}
               onPress={() => handleEditPromotion(item)}
               disabled={expired}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
             >
-              <Ionicons name="create-outline" size={20} color="#fff" />
+              <Ionicons name="create-outline" size={iconSizes.md} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.deleteButton, expired && styles.deleteButtonExpired]}
               onPress={() => handleDeletePromotion(item.id, item.title)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
             >
-              <Ionicons name="trash-outline" size={20} color="#fff" />
+              <Ionicons name="trash-outline" size={iconSizes.md} color="#fff" />
             </TouchableOpacity>
           </View>
         </ImageBackground>
@@ -461,16 +474,25 @@ const PromotionsScreen = () => {
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()} 
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#000'} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Promotions & Deals</Text>
+          <ResponsiveText size="lg" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.title}>
+            Promotions & Deals
+          </ResponsiveText>
           <TouchableOpacity 
             style={styles.createButton}
             onPress={() => setModalVisible(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="add" size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
-            <Text style={[styles.createButtonText, { color: theme === 'dark' ? '#FFF' : '#000' }]}>Create</Text>
+            <Ionicons name="add" size={iconSizes.lg} color={theme === 'dark' ? '#FFF' : '#000'} />
+            <ResponsiveText size="sm" weight="600" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.createButtonText}>
+              Create
+            </ResponsiveText>
           </TouchableOpacity>
         </View>
         
@@ -480,17 +502,21 @@ const PromotionsScreen = () => {
         >
           {promotions.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="pricetag-outline" size={80} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.3)'} />
-              <Text style={[styles.emptyText, { color: theme === 'dark' ? '#FFF' : '#000' }]}>No promotions yet</Text>
-              <Text style={[styles.emptySubText, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666' }]}>Create your first promotion to attract customers!</Text>
+              <Ionicons name="pricetag-outline" size={iconSizes.xxxxl} color={theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.3)'} />
+              <ResponsiveText size="xl" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.emptyText}>
+                No promotions yet
+              </ResponsiveText>
+              <ResponsiveText size="md" color={theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666'} style={styles.emptySubText}>
+                Create your first promotion to attract customers!
+              </ResponsiveText>
             </View>
           ) : (
             <FlatList
               data={promotions}
               renderItem={renderPromotionCard}
               keyExtractor={(item) => item.id}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
+              numColumns={dimensions.width < 400 ? 1 : 2}
+              columnWrapperStyle={dimensions.width >= 400 ? styles.row : undefined}
               contentContainerStyle={styles.listContent}
               scrollEnabled={false}
             />
@@ -510,29 +536,41 @@ const PromotionsScreen = () => {
           >
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Create New Promotion</Text>
+                <ResponsiveText size="lg" weight="bold" color="#333" style={styles.modalTitle}>
+                  Create New Promotion
+                </ResponsiveText>
                 <TouchableOpacity 
                   onPress={() => setModalVisible(false)}
                   style={styles.closeButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close" size={24} color="#333" />
+                  <Ionicons name="close" size={iconSizes.lg} color="#333" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.formContainer}>
                 {/* Business Selection */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Select Business *</Text>
+                  <ResponsiveText size="md" weight="600" color="#333" style={styles.inputLabel}>
+                    Select Business *
+                  </ResponsiveText>
                   <TouchableOpacity
                     style={[styles.textInput, styles.dropdownButton]}
                     onPress={() => setShowBusinessDropdown(!showBusinessDropdown)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={selectedBusiness ? styles.dropdownText : styles.dropdownPlaceholder}>
+                    <ResponsiveText 
+                      size="md" 
+                      weight={selectedBusiness ? "500" : "normal"}
+                      color={selectedBusiness ? "#333" : "#999"}
+                      style={selectedBusiness ? styles.dropdownText : styles.dropdownPlaceholder}
+                      numberOfLines={1}
+                    >
                       {selectedBusiness ? selectedBusiness.businessName : 'Select a business'}
-                    </Text>
+                    </ResponsiveText>
                     <Ionicons 
                       name={showBusinessDropdown ? "chevron-up" : "chevron-down"} 
-                      size={24} 
+                      size={iconSizes.lg} 
                       color="#666" 
                     />
                   </TouchableOpacity>
@@ -554,11 +592,14 @@ const PromotionsScreen = () => {
                             }));
                             setShowBusinessDropdown(false);
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Text style={styles.dropdownItemText}>{business.businessName}</Text>
-                          <Text style={styles.dropdownItemType}>
+                          <ResponsiveText size="md" weight="600" color="#333" style={styles.dropdownItemText}>
+                            {business.businessName}
+                          </ResponsiveText>
+                          <ResponsiveText size="sm" color="#666" style={styles.dropdownItemType}>
                             {business.selectedType || business.businessType}
-                          </Text>
+                          </ResponsiveText>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -568,18 +609,24 @@ const PromotionsScreen = () => {
                 {/* Business Name Display */}
                 {selectedBusiness && (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Business Name</Text>
+                    <ResponsiveText size="md" weight="600" color="#333" style={styles.inputLabel}>
+                      Business Name
+                    </ResponsiveText>
                     <View style={[styles.textInput, styles.disabledInput]}>
-                      <Text style={styles.businessInfoText}>{selectedBusiness.businessName}</Text>
-                      <Text style={styles.businessTypeText}>
+                      <ResponsiveText size="md" weight="600" color="#333" style={styles.businessInfoText}>
+                        {selectedBusiness.businessName}
+                      </ResponsiveText>
+                      <ResponsiveText size="sm" color="#666" style={styles.businessTypeText}>
                         {selectedBusiness.selectedType || selectedBusiness.businessType}
-                      </Text>
+                      </ResponsiveText>
                     </View>
                   </View>
                 )}
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Promotion Title *</Text>
+                  <ResponsiveText size="md" weight="600" color="#333" style={styles.inputLabel}>
+                    Promotion Title *
+                  </ResponsiveText>
                   <TextInput
                     style={styles.textInput}
                     value={formData.title}
@@ -591,15 +638,23 @@ const PromotionsScreen = () => {
 
                 {/* Valid Until moved before Description */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Valid Until *</Text>
+                  <ResponsiveText size="md" weight="600" color="#333" style={styles.inputLabel}>
+                    Valid Until *
+                  </ResponsiveText>
                   <TouchableOpacity
                     style={[styles.textInput, styles.dateInput]}
                     onPress={() => setShowDateDropdown(prev => !prev)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={formData.endDate ? styles.dateText : styles.datePlaceholder}>
+                    <ResponsiveText 
+                      size="md" 
+                      weight={formData.endDate ? "500" : "normal"}
+                      color={formData.endDate ? "#333" : "#999"}
+                      style={formData.endDate ? styles.dateText : styles.datePlaceholder}
+                    >
                       {formData.endDate ? new Date(formData.endDate).toLocaleDateString() : 'Select date'}
-                    </Text>
-                    <Ionicons name={showDateDropdown ? 'chevron-up' : 'chevron-down'} size={20} color="#666" />
+                    </ResponsiveText>
+                    <Ionicons name={showDateDropdown ? 'chevron-up' : 'chevron-down'} size={iconSizes.md} color="#666" />
                   </TouchableOpacity>
                   {/* Date Dropdown List */}
                   {showDateDropdown && (
@@ -615,8 +670,11 @@ const PromotionsScreen = () => {
                                 setFormData(prev => ({ ...prev, endDate: dateStr }));
                                 setShowDateDropdown(false);
                               }}
+                              activeOpacity={0.7}
                             >
-                              <Text style={styles.dropdownItemText}>{display}</Text>
+                              <ResponsiveText size="md" color="#333" style={styles.dropdownItemText}>
+                                {display}
+                              </ResponsiveText>
                             </TouchableOpacity>
                           );
                         })}
@@ -627,7 +685,9 @@ const PromotionsScreen = () => {
 
                 {/* Discount stays after Valid Until */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Discount/Offer *</Text>
+                  <ResponsiveText size="md" weight="600" color="#333" style={styles.inputLabel}>
+                    Discount/Offer *
+                  </ResponsiveText>
                   <TextInput
                     style={styles.textInput}
                     value={formData.discount}
@@ -639,7 +699,9 @@ const PromotionsScreen = () => {
 
                 {/* Description moved down */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Description *</Text>
+                  <ResponsiveText size="md" weight="600" color="#333" style={styles.inputLabel}>
+                    Description *
+                  </ResponsiveText>
                   <TextInput
                     style={[styles.textInput, styles.textArea]}
                     value={formData.description}
@@ -656,18 +718,24 @@ const PromotionsScreen = () => {
                 <TouchableOpacity 
                   style={styles.cancelButton}
                   onPress={() => setModalVisible(false)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <ResponsiveText size="md" weight="600" color="#666" style={styles.cancelButtonText}>
+                    Cancel
+                  </ResponsiveText>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.createPromoButton}
                   onPress={handleCreatePromotion}
                   disabled={creating}
+                  activeOpacity={0.8}
                 >
                   {creating ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.createPromoButtonText}>Create Promotion</Text>
+                    <ResponsiveText size="md" weight="600" color="#fff" style={styles.createPromoButtonText}>
+                      Create Promotion
+                    </ResponsiveText>
                   )}
                 </TouchableOpacity>
               </View>
@@ -690,20 +758,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: screenWidth * 0.05,
-    paddingVertical: screenHeight * 0.015,
+    paddingHorizontal: '5%',
+    paddingVertical: '2%',
+    minHeight: 60,
   },
   backButton: {
     width: 40,
+    minWidth: 40,
     height: 40,
+    minHeight: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: screenWidth * 0.055,
-    fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 20,
@@ -712,16 +781,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingVertical: screenHeight * 0.01,
-    paddingHorizontal: screenWidth * 0.04,
+    paddingVertical: '1.5%',
+    paddingHorizontal: '4%',
+    minHeight: 36,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   createButtonText: {
-    fontWeight: '600',
     marginLeft: 5,
-    fontSize: screenWidth * 0.035,
   },
   loadingContainer: {
     flex: 1,
@@ -737,32 +805,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 100,
+    paddingBottom: 50,
   },
   emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
     marginTop: 20,
+    textAlign: 'center',
   },
   emptySubText: {
-    fontSize: 16,
-    opacity: 0.8,
     textAlign: 'center',
     marginTop: 10,
     paddingHorizontal: 40,
   },
   listContent: {
-    padding: screenWidth * 0.05,
+    padding: '5%',
   },
   row: {
     justifyContent: 'space-between',
+    gap: '3%',
   },
   promoCardContainer: {
-    width: (screenWidth - screenWidth * 0.15) / 2,
-    marginBottom: screenHeight * 0.02,
+    flex: 1,
+    maxWidth: '48.5%',
+    marginBottom: '3%',
   },
   promoCard: {
     width: '100%',
-    height: screenHeight * 0.25,
+    aspectRatio: 0.75,
+    minHeight: 200,
+    maxHeight: 300,
     justifyContent: 'flex-end',
   },
   expiredOverlay: {
@@ -777,34 +847,29 @@ const styles = StyleSheet.create({
     right: 10,
     paddingVertical: 5,
     paddingHorizontal: 10,
+    minHeight: 24,
     borderRadius: 15,
     zIndex: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   expiredContent: {
     opacity: 0.7,
   },
   promoContent: {
-    padding: 10,
+    padding: '3%',
   },
   promoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 5,
   },
   promoDescription: {
-    fontSize: 14,
-    color: '#fff',
     lineHeight: 18,
+    marginBottom: 4,
   },
   promoDate: {
-    fontSize: 12,
-    color: '#fff',
     opacity: 0.8,
     fontStyle: 'italic',
   },
@@ -816,19 +881,27 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   editButton: {
-    padding: 5,
+    padding: 8,
+    minWidth: 36,
+    minHeight: 36,
     borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteButton: {
-    padding: 5,
+    padding: 8,
+    minWidth: 36,
+    minHeight: 36,
     borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
     marginLeft: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteButtonExpired: {
     backgroundColor: '#FF4444',
@@ -844,37 +917,38 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    width: screenWidth * 0.9,
-    maxHeight: screenHeight * 0.8,
+    width: '90%',
+    maxWidth: 500,
+    maxHeight: '80%',
     paddingBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: '5%',
+    minHeight: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    flex: 1,
   },
   closeButton: {
     padding: 5,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   formContainer: {
-    padding: 20,
-    maxHeight: screenHeight * 0.5,
+    padding: '5%',
+    maxHeight: '50%',
   },
   inputGroup: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
     marginBottom: 8,
   },
   textInput: {
@@ -882,11 +956,12 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 10,
     padding: 12,
+    minHeight: 48,
     fontSize: 16,
     backgroundColor: '#f9f9f9',
   },
   textArea: {
-    height: 80,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   disabledInput: {
@@ -896,47 +971,47 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: '5%',
+    gap: 10,
   },
   cancelButton: {
     flex: 1,
     padding: 15,
+    minHeight: 50,
     backgroundColor: '#f0f0f0',
     borderRadius: 10,
-    marginRight: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButtonText: {
-    color: '#666',
-    fontWeight: '600',
-    fontSize: 16,
+    // Styles handled by ResponsiveText
   },
   createPromoButton: {
     flex: 1,
     padding: 15,
+    minHeight: 50,
     backgroundColor: '#667eea',
     borderRadius: 10,
-    marginLeft: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   createPromoButtonText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
   },
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingRight: 15,
+    minHeight: 48,
   },
   dropdownText: {
-    fontSize: 16,
-    color: '#333',
+    flex: 1,
+    marginRight: 8,
   },
   dropdownPlaceholder: {
-    fontSize: 16,
-    color: '#999',
+    flex: 1,
+    marginRight: 8,
   },
   dropdownList: {
     backgroundColor: '#fff',
@@ -948,47 +1023,38 @@ const styles = StyleSheet.create({
   },
   dropdownItem: {
     padding: 15,
+    minHeight: 50,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   dropdownItemText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '600',
+    // Styles handled by ResponsiveText
   },
   dropdownItemType: {
-    fontSize: 14,
-    color: '#666',
     marginTop: 4,
   },
   businessName: {
-    fontSize: 14,
-    color: '#FFD700',
-    fontWeight: '600',
     marginTop: 5,
   },
   businessInfoText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '600',
+    // Styles handled by ResponsiveText
   },
   businessTypeText: {
-    fontSize: 14,
-    color: '#666',
     marginTop: 4,
   },
   dateInput: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 48,
   },
   dateText: {
-    fontSize: 16,
-    color: '#333',
+    flex: 1,
+    marginRight: 8,
   },
   datePlaceholder: {
-    fontSize: 16,
-    color: '#999',
+    flex: 1,
+    marginRight: 8,
   },
 });
 

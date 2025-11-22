@@ -16,9 +16,10 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../../contexts/AuthContext';
 import { auth, db } from '../../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width, height } = Dimensions.get('window');
-const FONT_SCALE = Math.min(width, height) / 400;
 
 interface SectionProps {
   title: string;
@@ -35,6 +36,7 @@ interface SettingRowProps {
 
 const BusinessSettingsScreen = () => {
   const { user, theme, toggleTheme, logout } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, dimensions } = useResponsive();
   const [userFullName, setUserFullName] = useState<string>('');
   const [loadingUserData, setLoadingUserData] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -89,23 +91,31 @@ const BusinessSettingsScreen = () => {
   };
 
   const Section = ({ title, children }: SectionProps) => (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFF' : '#000' }]}>{title}</Text>
+    <ResponsiveView style={styles.section}>
+      <ResponsiveText size="md" weight="600" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.sectionTitle}>
+        {title}
+      </ResponsiveText>
       <View style={styles.sectionCard}>{children}</View>
-    </View>
+    </ResponsiveView>
   );
 
   const SettingRow = ({ icon, name, description, children, onPress }: SettingRowProps) => {
     const content = (
       <View style={styles.row}>
         <View style={styles.rowIconContainer}>
-          <Feather name={icon} size={20 * FONT_SCALE} color="#5A67D8" />
+          <Feather name={icon} size={iconSizes.md} color="#5A67D8" />
         </View>
         <View style={styles.rowTextContainer}>
-          <Text style={styles.rowName}>{name}</Text>
-          {description && <Text style={styles.rowDescription}>{description}</Text>}
+          <ResponsiveText size="md" weight="500" color="#333" style={styles.rowName}>
+            {name}
+          </ResponsiveText>
+          {description && (
+            <ResponsiveText size="xs" color="#666" style={styles.rowDescription}>
+              {description}
+            </ResponsiveText>
+          )}
         </View>
-        {children || (onPress && <Feather name="chevron-right" size={20 * FONT_SCALE} color="#C0C0C0" />)}
+        {children || (onPress && <Feather name="chevron-right" size={iconSizes.md} color="#C0C0C0" />)}
       </View>
     );
 
@@ -127,16 +137,27 @@ const BusinessSettingsScreen = () => {
       <SafeAreaView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
           {/* Profile Section */}
-          <View style={styles.profileSection}>
+          <ResponsiveView style={styles.profileSection}>
             <View style={styles.profileTextContainer}>
-              <Text style={[styles.profileName, { color: theme === 'dark' ? '#FFF' : '#000' }]}>
+              <ResponsiveText 
+                size="lg" 
+                weight="bold" 
+                color={theme === 'dark' ? '#FFF' : '#000'} 
+                style={styles.profileName}
+                numberOfLines={1}
+              >
                 {loadingUserData ? 'Loading...' : (userFullName || user?.displayName || '')}
-              </Text>
-              <Text style={[styles.profileHandle, { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666' }]}>
+              </ResponsiveText>
+              <ResponsiveText 
+                size="sm" 
+                color={theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666'} 
+                style={styles.profileHandle}
+                numberOfLines={1}
+              >
                 {user?.email}
-              </Text>
+              </ResponsiveText>
             </View>
-          </View>
+          </ResponsiveView>
 
           {/* Preferences Section */}
           <Section title="Preferences">
@@ -195,94 +216,90 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContainer: {
-    paddingBottom: height * 0.1,
-    paddingHorizontal: width * 0.05,
+    paddingBottom: '10%',
+    paddingHorizontal: '5%',
   },
   // Profile
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: height * 0.03,
+    paddingVertical: '3%',
   },
   avatarContainer: {
-    width: width * 0.18,
-    height: width * 0.18,
-    borderRadius: width * 0.09,
+    width: '18%',
+    minWidth: 60,
+    maxWidth: 80,
+    aspectRatio: 1,
+    borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileTextContainer: {
     flex: 1,
-    marginLeft: width * 0.04,
+    marginLeft: '4%',
+    minWidth: 0,
   },
   profileName: {
-    fontSize: 20 * FONT_SCALE,
-    fontWeight: 'bold',
-    color: '#fff',
+    // Styles handled by ResponsiveText
   },
   profileHandle: {
-    fontSize: 14 * FONT_SCALE,
-    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 4,
   },
   editProfileButton: {
     backgroundColor: '#fff',
-    paddingHorizontal: width * 0.05,
-    paddingVertical: height * 0.015,
+    paddingHorizontal: '5%',
+    paddingVertical: '1.5%',
+    minHeight: 36,
     borderRadius: 20,
   },
   editProfileButtonText: {
     color: '#5A67D8',
     fontWeight: 'bold',
-    fontSize: 14 * FONT_SCALE,
   },
   // Sections
   section: {
-    marginTop: height * 0.02,
+    marginTop: '2%',
   },
   sectionTitle: {
-    fontSize: 16 * FONT_SCALE,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: height * 0.01,
+    marginBottom: '1%',
   },
   sectionCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 15,
-    paddingHorizontal: width * 0.04,
+    paddingHorizontal: '4%',
   },
   // Rows
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: height * 0.02,
+    paddingVertical: '2%',
+    minHeight: 56,
   },
   rowIconContainer: {
-    width: 35 * FONT_SCALE,
-    height: 35 * FONT_SCALE,
+    width: 35,
+    minWidth: 35,
+    height: 35,
     borderRadius: 20,
     backgroundColor: '#E9EFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: width * 0.04,
+    marginRight: '4%',
   },
   rowTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   rowName: {
-    fontSize: 16 * FONT_SCALE,
-    fontWeight: '500',
-    color: '#333',
+    // Styles handled by ResponsiveText
   },
   rowDescription: {
-    fontSize: 12 * FONT_SCALE,
-    color: '#666',
     marginTop: 2,
   },
   divider: {
     height: 1,
     backgroundColor: '#EAEAEA',
-    marginLeft: width * 0.1,
+    marginLeft: '10%',
   },
   logoutRow: {
     flexDirection: 'row',
@@ -290,7 +307,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   logoutIndicator: {
-    marginRight: width * 0.04,
+    marginRight: '4%',
   },
 });
 

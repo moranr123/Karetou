@@ -303,7 +303,7 @@ const SavedScreen = () => {
     listContainer: {
       paddingHorizontal: isSmallScreen ? (spacing?.sm || 8) : (spacing?.md || 12),
       paddingBottom: spacing?.lg || 16,
-      paddingTop: headerTotalHeight + (spacing?.sm || 8), // Add small spacing after header
+      paddingTop: headerTotalHeight + (spacing?.md || 12), // Add extra margin to prevent header overlap
     },
     card: {
       marginBottom: spacing?.md || 12,
@@ -478,7 +478,7 @@ const SavedScreen = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingTop: responsiveHeight?.(20) || 200,
+      paddingTop: headerTotalHeight + (spacing?.md || 12), // Account for header height
     },
     loadingText: {
       color: '#000',
@@ -488,7 +488,7 @@ const SavedScreen = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingTop: responsiveHeight?.(15) || 150,
+      paddingTop: headerTotalHeight + (spacing?.md || 12), // Account for header height
     },
     emptyText: {
       color: '#000',

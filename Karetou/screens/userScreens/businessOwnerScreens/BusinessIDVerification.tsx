@@ -272,35 +272,36 @@ const BusinessIDVerificationScreen = () => {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: spacing.xl,
+      minHeight: 50,
     },
     backButton: {
       marginRight: spacing.md,
+      minWidth: 44,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     title: {
-      fontSize: fontSizes.xl,
-      fontWeight: 'bold',
-      color: '#333',
+      flex: 1,
     },
     description: {
-      fontSize: fontSizes.md,
-      color: '#666',
       marginBottom: spacing.xl,
       lineHeight: fontSizes.md * 1.4,
+      paddingHorizontal: spacing.xs,
     },
     photoSection: {
       marginBottom: spacing.xl,
     },
     photoLabel: {
-      fontSize: fontSizes.md,
-      fontWeight: '600',
-      color: '#333',
       marginBottom: spacing.sm,
     },
     photoContainer: {
       marginBottom: spacing.sm,
     },
     photoPlaceholder: {
-      height: getResponsiveHeight(20),
+      minHeight: getResponsiveHeight(20),
+      maxHeight: 250,
+      aspectRatio: 4/3,
       backgroundColor: '#f8f9fa',
       borderRadius: borderRadius.md,
       borderWidth: 2,
@@ -308,20 +309,25 @@ const BusinessIDVerificationScreen = () => {
       borderStyle: 'dashed',
       justifyContent: 'center',
       alignItems: 'center',
+      padding: spacing.md,
     },
     photoText: {
       marginTop: spacing.sm,
-      fontSize: fontSizes.md,
-      color: '#666',
+      textAlign: 'center',
+      paddingHorizontal: spacing.sm,
     },
     photoPreview: {
-      height: getResponsiveHeight(20),
+      minHeight: getResponsiveHeight(20),
+      maxHeight: 250,
+      aspectRatio: 4/3,
       borderRadius: borderRadius.md,
       width: '100%',
     },
     photoPreviewContainer: {
       position: 'relative',
-      height: getResponsiveHeight(20),
+      minHeight: getResponsiveHeight(20),
+      maxHeight: 250,
+      aspectRatio: 4/3,
       borderRadius: borderRadius.md,
       overflow: 'hidden',
     },
@@ -334,26 +340,24 @@ const BusinessIDVerificationScreen = () => {
       backgroundColor: 'rgba(0, 0, 0, 0.6)',
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
+      minHeight: 28,
       borderRadius: borderRadius.sm,
     },
     changePhotoText: {
       color: '#fff',
-      fontSize: fontSizes.xs,
       marginLeft: spacing.xs,
-      fontWeight: '500',
     },
     submitButton: {
       backgroundColor: '#667eea',
-      height: getResponsiveHeight(6),
+      minHeight: 50,
       borderRadius: borderRadius.md,
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: spacing.lg,
+      paddingVertical: spacing.md,
     },
     submitButtonText: {
       color: '#fff',
-      fontSize: fontSizes.lg,
-      fontWeight: 'bold',
     },
   });
 
@@ -432,8 +436,10 @@ const BusinessIDVerificationScreen = () => {
   );
 
   const renderPhotoSection = (type: 'front' | 'back', photo: string | null) => (
-    <View style={styles.photoSection}>
-      <Text style={styles.photoLabel}>{type === 'front' ? 'Front' : 'Back'} Photo</Text>
+    <ResponsiveView style={styles.photoSection}>
+      <ResponsiveText size="md" weight="600" color="#333" style={styles.photoLabel}>
+        {type === 'front' ? 'Front' : 'Back'} Photo
+      </ResponsiveText>
       <TouchableOpacity 
         onPress={() => showImagePickerOptions(type)} 
         style={styles.photoContainer}
@@ -441,20 +447,28 @@ const BusinessIDVerificationScreen = () => {
       >
         {photo ? (
           <View style={styles.photoPreviewContainer}>
-            <LoadingImage source={{ uri: photo }} style={styles.photoPreview} />
+            <LoadingImage 
+              source={{ uri: photo }} 
+              style={styles.photoPreview}
+              resizeMode="cover"
+            />
             <View style={styles.changePhotoBadge}>
-              <Ionicons name="camera" size={16} color="#fff" />
-              <Text style={styles.changePhotoText}>Tap to change</Text>
+              <Ionicons name="camera" size={iconSizes.sm} color="#fff" />
+              <ResponsiveText size="xs" weight="500" color="#fff" style={styles.changePhotoText}>
+                Tap to change
+              </ResponsiveText>
             </View>
           </View>
         ) : (
           <View style={styles.photoPlaceholder}>
-            <Ionicons name="card-outline" size={40} color="#666" />
-            <Text style={styles.photoText}>Tap to upload {type === 'front' ? 'Front' : 'Back'} Photo</Text>
+            <Ionicons name="card-outline" size={iconSizes.xxxxl} color="#666" />
+            <ResponsiveText size="md" color="#666" style={styles.photoText}>
+              Tap to upload {type === 'front' ? 'Front' : 'Back'} Photo
+            </ResponsiveText>
           </View>
         )}
       </TouchableOpacity>
-    </View>
+    </ResponsiveView>
   );
 
   return (
@@ -467,21 +481,33 @@ const BusinessIDVerificationScreen = () => {
           <View style={styles.formCard}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#333" />
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()} 
+                style={styles.backButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="arrow-back" size={iconSizes.lg} color="#333" />
               </TouchableOpacity>
-              <Text style={styles.title}>ID Verification</Text>
+              <ResponsiveText size="xl" weight="bold" color="#333" style={styles.title}>
+                ID Verification
+              </ResponsiveText>
             </View>
 
-            <Text style={styles.description}>
+            <ResponsiveText size="md" color="#666" style={styles.description}>
               Please upload clear photos of your valid ID (front and back) for verification purposes.
-            </Text>
+            </ResponsiveText>
 
             {renderPhotoSection('front', frontIDPhoto)}
             {renderPhotoSection('back', backIDPhoto)}
 
-            <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
-              <Text style={styles.submitButtonText}>Next</Text>
+            <TouchableOpacity 
+              onPress={handleSubmit} 
+              style={styles.submitButton}
+              activeOpacity={0.8}
+            >
+              <ResponsiveText size="lg" weight="bold" color="#fff" style={styles.submitButtonText}>
+                Next
+              </ResponsiveText>
             </TouchableOpacity>
           </View>
         </ScrollView>

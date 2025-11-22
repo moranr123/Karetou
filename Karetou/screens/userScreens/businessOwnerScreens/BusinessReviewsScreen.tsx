@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db } from '../../../firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingImage from '../../../components/LoadingImage';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { ResponsiveText, ResponsiveView } from '../../../components';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const BusinessReviewsScreen = () => {
   const { user, theme } = useAuth();
+  const { spacing, fontSizes, iconSizes, borderRadius, getResponsiveWidth, getResponsiveHeight, dimensions } = useResponsive();
 
   const lightGradient = ['#F5F5F5', '#F5F5F5'] as const;
   const darkGradient = ['#232526', '#414345'] as const;
@@ -88,7 +91,7 @@ const BusinessReviewsScreen = () => {
   const renderStars = (rating: number) => (
     <View style={{ flexDirection: 'row' }}>
       {[1,2,3,4,5].map(i => (
-        <Ionicons key={i} name={i <= rating ? 'star' : 'star-outline'} size={18} color="#FFD700" />
+        <Ionicons key={i} name={i <= rating ? 'star' : 'star-outline'} size={iconSizes.sm} color="#FFD700" />
       ))}
     </View>
   );
@@ -109,52 +112,70 @@ const BusinessReviewsScreen = () => {
             />
           </View>
           <View style={styles.businessInfo}>
-            <Text style={styles.businessName}>{business.businessName}</Text>
-            <Text style={styles.businessType}>{business.businessType || business.selectedType}</Text>
+            <ResponsiveText size="lg" weight="bold" color="#333" style={styles.businessName} numberOfLines={1}>
+              {business.businessName}
+            </ResponsiveText>
+            <ResponsiveText size="sm" color="#667eea" style={styles.businessType} numberOfLines={1}>
+              {business.businessType || business.selectedType}
+            </ResponsiveText>
             <View style={styles.statusContainer}>
               <View style={[styles.statusBadge, { backgroundColor: '#4CAF50' }]}>
-                <Text style={styles.statusText}>Active</Text>
+                <ResponsiveText size="xs" weight="bold" color="#fff" style={styles.statusText}>
+                  Active
+                </ResponsiveText>
               </View>
             </View>
           </View>
           <View style={styles.ratingContainer}>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={20} color="#FFD700" />
-              <Text style={styles.ratingNumber}>{rating.average}</Text>
+              <Ionicons name="star" size={iconSizes.md} color="#FFD700" />
+              <ResponsiveText size="lg" weight="bold" color="#333" style={styles.ratingNumber}>
+                {rating.average}
+              </ResponsiveText>
             </View>
-            <Text style={styles.reviewCount}>{rating.count} {rating.count === 1 ? 'Review' : 'Reviews'}</Text>
+            <ResponsiveText size="xs" color="#666" style={styles.reviewCount}>
+              {rating.count} {rating.count === 1 ? 'Review' : 'Reviews'}
+            </ResponsiveText>
           </View>
         </View>
 
         {recentReviews.length > 0 && (
           <View style={styles.recentReviewsSection}>
-            <Text style={styles.recentReviewsTitle}>Recent Reviews</Text>
+            <ResponsiveText size="md" weight="bold" color="#333" style={styles.recentReviewsTitle}>
+              Recent Reviews
+            </ResponsiveText>
             {recentReviews.map((review) => (
               <View key={review.id} style={styles.reviewPreview}>
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewerName}>{review.userName || 'Anonymous'}</Text>
+                  <ResponsiveText size="sm" weight="600" color="#333" style={styles.reviewerName} numberOfLines={1}>
+                    {review.userName || 'Anonymous'}
+                  </ResponsiveText>
                   {renderStars(review.rating)}
                 </View>
                 {review.comment && (
-                  <Text style={styles.reviewComment} numberOfLines={2}>
+                  <ResponsiveText size="sm" color="#555" style={styles.reviewComment} numberOfLines={2}>
                     {review.comment}
-                  </Text>
+                  </ResponsiveText>
                 )}
-                <Text style={styles.reviewDate}>
+                <ResponsiveText size="xs" color="#888" style={styles.reviewDate}>
                   {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
-                </Text>
+                </ResponsiveText>
               </View>
             ))}
             {reviews.length > 2 && (
-              <Text style={styles.moreReviews}>+{reviews.length - 2} more reviews</Text>
+              <ResponsiveText size="xs" weight="600" color="#667eea" style={styles.moreReviews}>
+                +{reviews.length - 2} more reviews
+              </ResponsiveText>
             )}
           </View>
         )}
 
         {reviews.length === 0 && (
           <View style={styles.noReviewsContainer}>
-            <Ionicons name="chatbubble-outline" size={24} color="#ccc" />
-            <Text style={styles.noReviewsText}>No reviews yet</Text>
+            <Ionicons name="chatbubble-outline" size={iconSizes.lg} color="#ccc" />
+            <ResponsiveText size="sm" color="#999" style={styles.noReviewsText}>
+              No reviews yet
+            </ResponsiveText>
           </View>
         )}
       </View>
@@ -164,42 +185,72 @@ const BusinessReviewsScreen = () => {
   return (
     <LinearGradient colors={theme === 'light' ? lightGradient : darkGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Business Reviews</Text>
-          <Text style={styles.subtitle}>Active businesses and their reviews</Text>
+        <ScrollView 
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <ResponsiveText size="xxl" weight="bold" color={theme === 'dark' ? '#FFF' : '#000'} style={styles.title}>
+            Business Reviews
+          </ResponsiveText>
+          <ResponsiveText size="md" color={theme === 'dark' ? 'rgba(255,255,255,0.7)' : '#666'} style={styles.subtitle}>
+            Active businesses and their reviews
+          </ResponsiveText>
           
           {loading ? (
             <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 30 }} />
           ) : businesses.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="business-outline" size={60} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.emptyText}>No active businesses found</Text>
+              <Ionicons name="business-outline" size={iconSizes.xxxxl} color="rgba(255,255,255,0.5)" />
+              <ResponsiveText size="lg" weight="600" color={theme === 'dark' ? 'rgba(255,255,255,0.8)' : '#333'} style={styles.emptyText}>
+                No active businesses found
+              </ResponsiveText>
             </View>
           ) : (
-            <FlatList
-              data={businesses}
-              keyExtractor={item => item.id}
-              renderItem={renderBusinessCard}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 30 }}
-            />
+            <View style={styles.listContainer}>
+              {businesses.map((business) => (
+                <View key={business.id}>
+                  {renderBusinessCard({ item: business })}
+                </View>
+              ))}
+            </View>
           )}
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1 },
-  content: { flex: 1, padding: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#000', marginBottom: 5, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20 },
+  container: { 
+    flex: 1 
+  },
+  safeArea: { 
+    flex: 1 
+  },
+  content: { 
+    flex: 1 
+  },
+  scrollContent: {
+    padding: '5%',
+    paddingBottom: 30,
+    flexGrow: 1,
+  },
+  title: { 
+    marginBottom: 5, 
+    textAlign: 'center' 
+  },
+  subtitle: { 
+    textAlign: 'center', 
+    marginBottom: 20 
+  },
+  listContainer: {
+    marginTop: 10,
+  },
   businessCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: '4%',
     marginBottom: 16,
     elevation: 4,
     shadowColor: '#000',
@@ -211,44 +262,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
+    flexWrap: 'wrap',
   },
   businessImageContainer: {
     marginRight: 12,
   },
   businessImage: {
     width: 60,
-    height: 60,
+    minWidth: 50,
+    aspectRatio: 1,
     borderRadius: 12,
   },
   businessInfo: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   businessName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 4,
   },
   businessType: {
-    fontSize: 14,
-    color: '#667eea',
     marginBottom: 6,
   },
   statusContainer: {
     flexDirection: 'row',
+    marginTop: 4,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    minHeight: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   ratingContainer: {
     alignItems: 'flex-end',
+    flexShrink: 0,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -256,24 +309,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   ratingNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
     marginLeft: 4,
   },
   reviewCount: {
-    fontSize: 12,
-    color: '#666',
+    // Styles handled by ResponsiveText
   },
   recentReviewsSection: {
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 12,
+    marginTop: 12,
   },
   recentReviewsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 8,
   },
   reviewPreview: {
@@ -287,26 +334,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   reviewerName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    flex: 1,
+    marginRight: 8,
+    minWidth: 0,
   },
   reviewComment: {
-    fontSize: 13,
-    color: '#555',
     lineHeight: 18,
     marginBottom: 4,
   },
   reviewDate: {
-    fontSize: 11,
-    color: '#888',
+    // Styles handled by ResponsiveText
   },
   moreReviews: {
-    fontSize: 12,
-    color: '#667eea',
-    fontWeight: '600',
     textAlign: 'center',
     marginTop: 4,
   },
@@ -315,18 +357,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   noReviewsText: {
-    fontSize: 14,
-    color: '#999',
     marginTop: 8,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 50,
   },
   emptyText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 16,
   },
 });
