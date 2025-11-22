@@ -379,7 +379,7 @@ const SuperAdminDashboard: React.FC = () => {
                 <Button
                   color="inherit"
                   size="small"
-                  onClick={() => navigate('/user-management')}
+                  onClick={() => navigate('/user-management?filter=inactive')}
                   sx={{ 
                     textTransform: 'none',
                     width: { xs: '100%', sm: 'auto' },
@@ -393,7 +393,7 @@ const SuperAdminDashboard: React.FC = () => {
                 <Button
                   color="inherit"
                   size="small"
-                  onClick={() => navigate('/admin-management')}
+                  onClick={() => navigate('/admin-management?filter=inactive')}
                   sx={{ 
                     textTransform: 'none',
                     width: { xs: '100%', sm: 'auto' },

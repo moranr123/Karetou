@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -21,6 +22,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Search,
@@ -31,8 +36,9 @@ import {
   CalendarToday,
   CheckCircle,
   Block,
+  Business,
 } from '@mui/icons-material';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface User {
@@ -51,6 +57,8 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [businessStatusFilter, setBusinessStatusFilter] = useState<'all' | 'businessOwner' | 'regularUser'>('all');
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
@@ -66,9 +74,16 @@ const UserManagement: React.FC = () => {
     return minutesSinceLogout > 1;
   };
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     fetchUsers();
-  }, []);
+    // Check if filter parameter is set to inactive
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'inactive') {
+      setStatusFilter('inactive');
+    }
+  }, [searchParams]);
 
   const fetchUsers = async () => {
     try {
@@ -77,15 +92,39 @@ const UserManagement: React.FC = () => {
       const querySnapshot = await getDocs(q);
       const userData: User[] = [];
       
+      // Fetch all businesses to check ownership
+      const businessesQuery = query(collection(db, 'businesses'));
+      const businessesSnapshot = await getDocs(businessesQuery);
+      const userBusinessMap = new Map<string, boolean>();
+      
+      businessesSnapshot.forEach((businessDoc) => {
+        const businessData = businessDoc.data();
+        const userId = businessData.userId;
+        if (userId) {
+          userBusinessMap.set(userId, true);
+        }
+      });
+      
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        const userId = doc.id;
+        const userUid = data.uid || userId; // Check both document id and uid field
+        
+        // Check if user has businesses in the businesses collection
+        // Check both userId (document id) and uid field
+        const hasBusiness = 
+          userBusinessMap.has(userId) || 
+          userBusinessMap.has(userUid) || 
+          data.hasBusinessRegistration || 
+          data.businessId;
+        
         userData.push({
-          id: doc.id,
+          id: userId,
           email: data.email || '',
           fullName: data.fullName || '',
           phoneNumber: data.phoneNumber || '',
           createdAt: data.createdAt || new Date().toISOString(),
-          hasBusinessRegistration: data.hasBusinessRegistration || false,
+          hasBusinessRegistration: hasBusiness,
           businessId: data.businessId || undefined,
           isActive: data.isActive !== undefined ? data.isActive : true, // Default to active for existing users
           lastLogin: data.lastLogin || undefined,
@@ -191,7 +230,19 @@ const UserManagement: React.FC = () => {
       (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.phoneNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
-    return searchMatch;
+    // Filter by status
+    const statusMatch = 
+      statusFilter === 'all' || 
+      (statusFilter === 'active' && user.isActive && !needsDeactivation(user)) ||
+      (statusFilter === 'inactive' && (!user.isActive || needsDeactivation(user)));
+
+    // Filter by business status
+    const businessStatusMatch = 
+      businessStatusFilter === 'all' ||
+      (businessStatusFilter === 'businessOwner' && user.hasBusinessRegistration) ||
+      (businessStatusFilter === 'regularUser' && !user.hasBusinessRegistration);
+
+    return searchMatch && statusMatch && businessStatusMatch;
   });
 
   if (loading) {
@@ -213,10 +264,13 @@ const UserManagement: React.FC = () => {
           severity="success" 
           sx={{ 
             position: 'fixed', 
-            top: 20, 
-            right: 20, 
+            top: { xs: 10, sm: 20 }, 
+            right: { xs: 10, sm: 20 },
+            left: { xs: 10, sm: 'auto' },
             zIndex: 9999,
-            minWidth: 300,
+            minWidth: { xs: 'calc(100% - 20px)', sm: 300 },
+            maxWidth: { xs: 'calc(100% - 20px)', sm: 500 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
           }}
         >
@@ -229,10 +283,13 @@ const UserManagement: React.FC = () => {
           severity="error" 
           sx={{ 
             position: 'fixed', 
-            top: 20, 
-            right: 20, 
+            top: { xs: 10, sm: 20 }, 
+            right: { xs: 10, sm: 20 },
+            left: { xs: 10, sm: 'auto' },
             zIndex: 9999,
-            minWidth: 300,
+            minWidth: { xs: 'calc(100% - 20px)', sm: 300 },
+            maxWidth: { xs: 'calc(100% - 20px)', sm: 500 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
           }}
         >
@@ -240,50 +297,151 @@ const UserManagement: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-        <TextField
-          placeholder="Search users by name or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ 
-            flex: { xs: '1 1 100%', sm: '0 1 400px' }, 
-            minWidth: { xs: '100%', sm: 300 },
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 3,
-              backgroundColor: '#f9f9f9',
-              transition: 'all 0.3s ease',
-              border: '1px solid #d0d0d0',
-              '&:hover': {
-                backgroundColor: '#fff',
-                borderColor: '#667eea',
-                '& .MuiOutlinedInput-notchedOutline': {
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: { xs: 1.5, sm: 2 }, 
+          alignItems: { xs: 'stretch', sm: 'center' }, 
+          flexDirection: { xs: 'column', sm: 'row' },
+          flexWrap: 'wrap'
+        }}>
+          <TextField
+            placeholder="Search users by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ 
+              flex: { xs: '1 1 100%', sm: '0 1 400px' }, 
+              minWidth: { xs: '100%', sm: 300 },
+              width: { xs: '100%', sm: 'auto' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 3,
+                backgroundColor: '#f9f9f9',
+                transition: 'all 0.3s ease',
+                border: '1px solid #d0d0d0',
+                '&:hover': {
+                  backgroundColor: '#fff',
                   borderColor: '#667eea',
-                  borderWidth: '2px',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                    borderWidth: '2px',
+                  },
+                },
+                '&.Mui-focused': {
+                  backgroundColor: '#fff',
+                  borderColor: '#667eea',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                    borderWidth: '2px',
+                  },
                 },
               },
-              '&.Mui-focused': {
-                backgroundColor: '#fff',
-                borderColor: '#667eea',
-                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#667eea',
-                  borderWidth: '2px',
-                },
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#d0d0d0',
+                borderWidth: '1px',
               },
-            },
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#d0d0d0',
-              borderWidth: '1px',
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ color: '#667eea' }} />
-              </InputAdornment>
-            ),
-          }}
-        />
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: '#667eea', fontSize: { xs: 20, sm: 24 } }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ 
+            display: 'flex', 
+            gap: { xs: 1.5, sm: 2 }, 
+            flex: { xs: '1 1 100%', sm: '0 1 auto' },
+            width: { xs: '100%', sm: 'auto' },
+            flexWrap: 'wrap'
+          }}>
+            <FormControl 
+              size="small" 
+              sx={{ 
+                minWidth: { xs: '100%', sm: 150 },
+                width: { xs: '100%', sm: 'auto' },
+                flex: { xs: '1 1 100%', sm: '0 1 auto' }
+              }}
+            >
+              <InputLabel sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                sx={{
+                  borderRadius: 3,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d0d0d0',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                  },
+                }}
+              >
+                <MenuItem value="all" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>All</MenuItem>
+                <MenuItem value="active" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CheckCircle sx={{ fontSize: { xs: 16, sm: 18 }, color: '#4caf50' }} />
+                    Active
+                  </Box>
+                </MenuItem>
+                <MenuItem value="inactive" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Block sx={{ fontSize: { xs: 16, sm: 18 }, color: '#f44336' }} />
+                    Inactive
+                  </Box>
+                </MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl 
+              size="small" 
+              sx={{ 
+                minWidth: { xs: '100%', sm: 180 },
+                width: { xs: '100%', sm: 'auto' },
+                flex: { xs: '1 1 100%', sm: '0 1 auto' }
+              }}
+            >
+              <InputLabel sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>User Type</InputLabel>
+              <Select
+                value={businessStatusFilter}
+                label="User Type"
+                onChange={(e) => setBusinessStatusFilter(e.target.value as 'all' | 'businessOwner' | 'regularUser')}
+                sx={{
+                  borderRadius: 3,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d0d0d0',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                  },
+                }}
+              >
+                <MenuItem value="all" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>All Users</MenuItem>
+                <MenuItem value="businessOwner" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Business sx={{ fontSize: { xs: 16, sm: 18 }, color: '#9c27b0' }} />
+                    Business Owner
+                  </Box>
+                </MenuItem>
+                <MenuItem value="regularUser" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Person sx={{ fontSize: { xs: 16, sm: 18 }, color: '#607d8b' }} />
+                    Regular User
+                  </Box>
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
       </Box>
 
       {/* Desktop Table View */}

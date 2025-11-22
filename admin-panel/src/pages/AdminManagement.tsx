@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -22,6 +23,10 @@ import {
   DialogActions,
   CircularProgress,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Search,
@@ -63,6 +68,7 @@ const AdminManagement: React.FC = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -88,9 +94,16 @@ const AdminManagement: React.FC = () => {
     return minutesSinceLogout > 1;
   };
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     fetchAdmins();
-  }, []);
+    // Check if filter parameter is set to inactive
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'inactive') {
+      setStatusFilter('inactive');
+    }
+  }, [searchParams]);
 
 
   const fetchAdmins = async () => {
@@ -342,7 +355,13 @@ const AdminManagement: React.FC = () => {
     const email = admin.email?.toLowerCase() || '';
     const searchMatch = email.includes(searchTerm.toLowerCase());
 
-    return searchMatch;
+    // Filter by status
+    const statusMatch = 
+      statusFilter === 'all' || 
+      (statusFilter === 'active' && admin.isActive && !needsDeactivation(admin)) ||
+      (statusFilter === 'inactive' && (!admin.isActive || needsDeactivation(admin)));
+
+    return searchMatch && statusMatch;
   });
 
   // Show loading first
@@ -385,10 +404,13 @@ const AdminManagement: React.FC = () => {
           severity="success" 
           sx={{ 
             position: 'fixed', 
-            top: 20, 
-            right: 20, 
+            top: { xs: 10, sm: 20 }, 
+            right: { xs: 10, sm: 20 },
+            left: { xs: 10, sm: 'auto' },
             zIndex: 9999,
-            minWidth: 300,
+            minWidth: { xs: 'calc(100% - 20px)', sm: 300 },
+            maxWidth: { xs: 'calc(100% - 20px)', sm: 500 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
           }}
         >
@@ -401,10 +423,13 @@ const AdminManagement: React.FC = () => {
           severity="error" 
           sx={{ 
             position: 'fixed', 
-            top: 20, 
-            right: 20, 
+            top: { xs: 10, sm: 20 }, 
+            right: { xs: 10, sm: 20 },
+            left: { xs: 10, sm: 'auto' },
             zIndex: 9999,
-            minWidth: 300,
+            minWidth: { xs: 'calc(100% - 20px)', sm: 300 },
+            maxWidth: { xs: 'calc(100% - 20px)', sm: 500 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
           }}
         >
@@ -412,7 +437,14 @@ const AdminManagement: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+      <Box sx={{ 
+        mb: 3, 
+        display: 'flex', 
+        gap: { xs: 1.5, sm: 2 }, 
+        alignItems: { xs: 'stretch', sm: 'center' }, 
+        flexDirection: { xs: 'column', sm: 'row' },
+        flexWrap: 'wrap'
+      }}>
         <TextField
           placeholder="Search admins by email..."
           value={searchTerm}
@@ -420,6 +452,7 @@ const AdminManagement: React.FC = () => {
           sx={{ 
             flex: { xs: '1 1 100%', sm: '0 1 400px' }, 
             minWidth: { xs: '100%', sm: 300 },
+            width: { xs: '100%', sm: 'auto' },
             '& .MuiOutlinedInput-root': {
               borderRadius: 3,
               backgroundColor: '#f9f9f9',
@@ -451,11 +484,53 @@ const AdminManagement: React.FC = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search sx={{ color: '#667eea' }} />
+                <Search sx={{ color: '#667eea', fontSize: { xs: 20, sm: 24 } }} />
               </InputAdornment>
             ),
           }}
         />
+        <FormControl 
+          size="small" 
+          sx={{ 
+            minWidth: { xs: '100%', sm: 150 },
+            width: { xs: '100%', sm: 'auto' },
+            flex: { xs: '1 1 100%', sm: '0 1 auto' }
+          }}
+        >
+          <InputLabel sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>Status</InputLabel>
+          <Select
+            value={statusFilter}
+            label="Status"
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            sx={{
+              borderRadius: 3,
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#d0d0d0',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#667eea',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#667eea',
+              },
+            }}
+          >
+            <MenuItem value="all" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>All</MenuItem>
+            <MenuItem value="active" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CheckCircle sx={{ fontSize: { xs: 16, sm: 18 }, color: '#4caf50' }} />
+                Active
+              </Box>
+            </MenuItem>
+            <MenuItem value="inactive" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Block sx={{ fontSize: { xs: 16, sm: 18 }, color: '#f44336' }} />
+                Inactive
+              </Box>
+            </MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
       {/* Desktop Table View */}
